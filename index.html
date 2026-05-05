@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Export Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--pri:#1565C0;--prid:#0D47A1;--pril:#E3F2FD;--acc:#F57C00;--accl:#FFF3E0;--ok:#2E7D32;--okl:#E8F5E9;--warn:#F9A825;--warnl:#FFFDE7;--err:#C62828;--errl:#FFEBEE;--bg:#F0F4F8;--card:#fff;--bdr:#DEE2E6;--txt:#212529;--muted:#6C757D;--sw:230px}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+button{cursor:pointer;font-family:inherit}
+#app{display:flex;flex:1;overflow:hidden;height:100vh}
+/* SIDEBAR */
+#sb{width:var(--sw);background:var(--prid);color:#fff;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width .2s}
+.sb-logo{padding:16px;border-bottom:1px solid rgba(255,255,255,.15);display:flex;align-items:center;gap:10px}
+.sb-logo h2{font-size:15px;font-weight:700;line-height:1.2}
+.sb-logo span{font-size:11px;color:rgba(255,255,255,.55)}
+.yr-wrap{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.12)}
+.yr-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.45);margin-bottom:6px}
+.yr-row{display:flex;gap:6px;align-items:center}
+.yr-sel{flex:1;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:6px 8px;font-size:13px;font-weight:700;cursor:pointer}
+.yr-sel option{background:#1a3a6b;color:#fff}
+.yr-add{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:6px;width:28px;height:28px;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center}
+.yr-add:hover{background:rgba(255,255,255,.3)}
+.nav-grp{padding:6px 0}
+.nav-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:rgba(255,255,255,.4);padding:8px 16px 3px}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.8);transition:background .12s;border-left:3px solid transparent}
+.ni:hover{background:rgba(255,255,255,.09)}
+.ni.active{background:rgba(255,255,255,.16);color:#fff;font-weight:600;border-left-color:#90CAF9}
+.ni svg{flex-shrink:0;opacity:.75}
+.ni.active svg{opacity:1}
+.sb-div{border-top:1px solid rgba(255,255,255,.1);margin:8px 0}
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#topbar{background:var(--card);border-bottom:1px solid var(--bdr);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+#topbar-left{min-width:0}
+.tb-title{font-size:17px;font-weight:700;color:var(--prid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-meta{font-size:11.5px;color:var(--muted)}
+.tb-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+#content{flex:1;overflow-y:auto;padding:22px 24px}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:none;border-radius:6px;font-size:12.5px;font-weight:600;transition:all .14s;white-space:nowrap;cursor:pointer}
+.btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--prid)}
+.btn-out{background:transparent;color:var(--pri);border:1.5px solid var(--pri)}.btn-out:hover{background:var(--pril)}
+.btn-err{background:var(--err);color:#fff}.btn-err:hover{background:#b71c1c}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--bdr)}.btn-ghost:hover{background:#f5f5f5}
+.btn-ok{background:var(--ok);color:#fff}.btn-ok:hover{background:#1b5e20}
+.btn-warn{background:#E65100;color:#fff}.btn-warn:hover{background:#bf360c}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 7px;font-size:11px}
+/* CARDS */
+.card{background:var(--card);border-radius:10px;padding:20px;border:1px solid var(--bdr);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card-title{font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--card);border-radius:10px;padding:16px 18px;border:1px solid var(--bdr);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.kpi .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.kpi .val{font-size:24px;font-weight:800;margin:3px 0 1px;color:var(--prid)}
+.kpi .sub{font-size:11.5px;color:var(--muted)}
+.kpi.acc .val{color:var(--acc)}
+.kpi.ok .val{color:var(--ok)}
+.kpi.err .val{color:var(--err)}
+.kpi.warn .val{color:#E65100}
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--bdr)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:#F8F9FA;padding:9px 11px;text-align:left;font-weight:700;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr);white-space:nowrap}
+tbody td{padding:9px 11px;border-bottom:1px solid #f2f2f2;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fafafa}
+tbody tr.cancel{opacity:.5}
+tbody tr.cancel td{text-decoration:line-through}
+tfoot td{background:#F8F9FA;font-weight:700;padding:9px 11px;border-top:2px solid var(--bdr)}
+/* BADGE */
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.bdg-ok{background:var(--okl);color:var(--ok)}
+.bdg-err{background:var(--errl);color:var(--err)}
+.bdg-warn{background:var(--warnl);color:#E65100}
+.bdg-info{background:var(--pril);color:var(--prid)}
+.bdg-grey{background:#F5F5F5;color:var(--muted)}
+/* FILTERS */
+.filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filters select,.filters input[type=text]{padding:6px 10px;border:1.5px solid var(--bdr);border-radius:6px;font-size:12.5px;font-family:inherit;background:var(--card);color:var(--txt)}
+.filters select:focus,.filters input:focus{outline:none;border-color:var(--pri)}
+.srch{flex:1;min-width:180px;max-width:300px}
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:16px}
+.ov.open{display:flex}
+.modal{background:var(--card);border-radius:12px;width:100%;max-width:700px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.22)}
+.modal.sm{max-width:420px}
+.modal.lg{max-width:900px}
+.mh{padding:18px 22px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.mh h3{font-size:16px;font-weight:700}
+.mb{padding:18px 22px}
+.mf{padding:14px 22px;border-top:1px solid var(--bdr);display:flex;justify-content:flex-end;gap:8px}
+.xbtn{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1;padding:2px 6px}
+.xbtn:hover{color:var(--txt)}
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
+.fg label{font-size:11.5px;font-weight:700;color:var(--muted)}
+.fg input,.fg select,.fg textarea{padding:7px 11px;border:1.5px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;color:var(--txt)}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--pri)}
+.fg-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.fg-grid .full{grid-column:1/-1}
+@media(max-width:520px){.fg-grid{grid-template-columns:1fr}}
+/* STAT ROW */
+.sr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f3f3f3;font-size:13px}
+.sr:last-child{border-bottom:none}
+.sr .sk{color:var(--muted)}
+.sr .sv{font-weight:700}
+/* PROGRESS */
+.prog{height:7px;background:#eee;border-radius:4px;overflow:hidden;margin-top:5px}
+.prog-f{height:100%;border-radius:4px}
+/* SECTION HEADER */
+.sh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.sh-t{font-size:19px;font-weight:800;color:var(--prid)}
+.sh-s{font-size:12.5px;color:var(--muted);margin-top:2px}
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px}
+/* REPORT CARDS */
+.rpt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.rpt-card{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.rpt-card h4{font-size:14px;font-weight:700;color:var(--prid)}
+.rpt-card p{font-size:12.5px;color:var(--muted);flex:1}
+.rpt-card .rbt{display:flex;gap:7px;flex-wrap:wrap}
+/* COMPARE */
+.yr-checks{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.yr-check{display:flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--bdr);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px;font-weight:600;transition:all .14s}
+.yr-check.checked{border-color:var(--pri);background:var(--pril);color:var(--prid)}
+.yr-check input{display:none}
+/* CHART */
+.chart-box{margin-bottom:4px}
+/* TAG */
+.tag{display:inline-block;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;background:#EEF2FF;color:#3730A3}
+/* TOAST */
+#toast{position:fixed;bottom:22px;right:22px;background:#323232;color:#fff;padding:11px 18px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity .22s;pointer-events:none}
+#toast.show{opacity:1}
+/* CONFIRM */
+#conf-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;align-items:center;justify-content:center}
+#conf-ov.open{display:flex}
+#conf-box{background:#fff;border-radius:10px;padding:26px;max-width:340px;width:92%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+#conf-box h4{margin-bottom:7px;font-size:15px}
+#conf-box p{color:var(--muted);font-size:13px;margin-bottom:18px;line-height:1.5}
+#conf-box .btns{display:flex;gap:8px;justify-content:center}
+/* SYNC STATUS */
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.sync-ok{background:var(--ok)}
+.sync-off{background:var(--muted)}
+.sync-err{background:var(--err)}
+/* PRINT PREVIEW NOTE */
+.print-note{background:var(--warnl);border:1px solid var(--warn);border-radius:6px;padding:10px 14px;font-size:12.5px;color:#5D4037;margin-bottom:16px}
+/* EARN TABLE */
+.earn-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.earn-tbl th,.earn-tbl td{padding:10px 14px;border-bottom:1px solid var(--bdr);text-align:left}
+.earn-tbl thead th{background:#F8F9FA;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase}
+.earn-tbl tfoot td{font-weight:700;background:#F8F9FA;border-top:2px solid var(--bdr)}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
+@media print{#sb,#topbar .tb-right,.btn,.filters button{display:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+<nav id="sb">
+  <div class="sb-logo">
+    <span style="font-size:22px">📦</span>
+    <div><h2>Export Manager</h2><span>Shipment Calendar</span></div>
+  </div>
+  <div class="yr-wrap">
+    <div class="yr-label">Active Year</div>
+    <div class="yr-row">
+      <select class="yr-sel" id="yr-sel" onchange="switchYear(this.value)"></select>
+      <button class="yr-add" onclick="openAddYear()" title="Add year">+</button>
+    </div>
+  </div>
+  <div class="nav-grp">
+    <div class="nav-lbl">Overview</div>
+    <div class="ni active" id="ni-dashboard" onclick="nav('dashboard')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard</div>
+  </div>
+  <div class="nav-grp">
+    <div class="nav-lbl">Shipments</div>
+    <div class="ni" id="ni-shipments" onclick="nav('shipments')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>All Shipments</div>
+    <div class="ni" id="ni-calendar" onclick="nav('calendar')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Monthly View</div>
+  </div>
+  <div class="nav-grp">
+    <div class="nav-lbl">Reports</div>
+    <div class="ni" id="ni-buyers" onclick="nav('buyers')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Buyers</div>
+    <div class="ni" id="ni-financials" onclick="nav('financials')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Financials</div>
+    <div class="ni" id="ni-personal" onclick="nav('personal')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>Personal</div>
+    <div class="ni" id="ni-reports" onclick="nav('reports')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print Reports</div>
+  </div>
+  <div class="nav-grp">
+    <div class="nav-lbl">System</div>
+    <div class="ni" id="ni-settings" onclick="nav('settings')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Settings</div>
+  </div>
+  <div class="sb-div"></div>
+  <div class="nav-grp">
+    <div class="nav-lbl">Global</div>
+    <div class="ni" id="ni-compare" onclick="nav('compare')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Multi-Year Compare</div>
+    <div class="ni" id="ni-years" onclick="nav('years')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Manage Years</div>
+  </div>
+</nav>
+<div id="main">
+  <div id="topbar">
+    <div id="topbar-left">
+      <div class="tb-title" id="tb-title">Dashboard</div>
+      <div class="tb-meta" id="tb-meta">Export Orders</div>
+    </div>
+    <div class="tb-right">
+      <span id="sync-status" style="font-size:11px;color:var(--muted);display:flex;align-items:center"></span>
+      <button class="btn btn-ghost btn-sm" onclick="doExportCSV()">⬇ CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="doSync()" id="sync-btn" title="Sync to cloud">☁ Sync</button>
+      <button class="btn btn-pri btn-sm" onclick="openAdd()">+ Shipment</button>
+    </div>
+  </div>
+  <div id="content"></div>
+</div>
+</div>
+
+<!-- SHIPMENT MODAL -->
+<div class="ov" id="ship-ov">
+<div class="modal">
+  <div class="mh"><h3 id="ship-title">Add Shipment</h3><button class="xbtn" onclick="closeModal('ship-ov')">×</button></div>
+  <div class="mb">
+    <div class="fg-grid">
+      <div class="fg"><label>Month *</label><select id="f-month"><option value="">Select…</option><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div>
+      <div class="fg"><label>Order No *</label><input id="f-orderNo" type="text" placeholder="e.g. BC035572"></div>
+      <div class="fg"><label>Party / Buyer *</label><input id="f-party" type="text" list="dl-party" placeholder="e.g. Bunnik Creations"><datalist id="dl-party"></datalist></div>
+      <div class="fg"><label>Destination *</label><input id="f-dest" type="text" list="dl-dest" placeholder="e.g. USA"><datalist id="dl-dest"></datalist></div>
+      <div class="fg"><label>Volume (CBM)</label><input id="f-vol" type="number" step="0.01" min="0"></div>
+      <div class="fg"><label>ETD</label><input id="f-etd" type="date"></div>
+      <div class="fg"><label>Ex-Factory Date</label><input id="f-exf" type="date"></div>
+      <div class="fg"><label>ETA – Destination</label><input id="f-eta" type="date"></div>
+      <div class="fg"><label>Order Amount (USD)</label><input id="f-oamt" type="number" step="0.01" min="0"></div>
+      <div class="fg"><label>Invoice Amount (USD)</label><input id="f-iamt" type="number" step="0.01" min="0"></div>
+      <div class="fg"><label>Payment Status</label><select id="f-pay"><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="fg"><label>Surrender Status</label><select id="f-sur"><option value="Complete">Complete</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="fg"><label>Incentive Status</label><select id="f-inc"><option value="Yes">Yes</option><option value="No">No</option></select></div>
+      <div class="fg" style="padding-top:20px;justify-content:center"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="f-cancel"> Mark as Cancelled</label></div>
+      <div class="fg full"><label>Notes</label><textarea id="f-notes" rows="2" placeholder="Optional…"></textarea></div>
+    </div>
+    <input type="hidden" id="f-id">
+  </div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal('ship-ov')">Cancel</button><button class="btn btn-pri" onclick="saveShip()">Save</button></div>
+</div>
+</div>
+
+<!-- ADD YEAR MODAL -->
+<div class="ov" id="addyr-ov">
+<div class="modal sm">
+  <div class="mh"><h3>Add Year</h3><button class="xbtn" onclick="closeModal('addyr-ov')">×</button></div>
+  <div class="mb">
+    <div class="fg"><label>Year *</label><input id="ay-year" type="number" min="2000" max="2099" placeholder="e.g. 2024"></div>
+    <div class="fg"><label>Copy settings from</label><select id="ay-copy"><option value="">— Start with defaults —</option></select></div>
+    <p style="font-size:12px;color:var(--muted)">Shipments start empty. Exchange rates and percentages can be copied from an existing year.</p>
+  </div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal('addyr-ov')">Cancel</button><button class="btn btn-pri" onclick="confirmAddYear()">Create Year</button></div>
+</div>
+</div>
+
+<!-- MONTH PICKER FOR PRINT -->
+<div class="ov" id="mthpick-ov">
+<div class="modal sm">
+  <div class="mh"><h3>Select Month to Print</h3><button class="xbtn" onclick="closeModal('mthpick-ov')">×</button></div>
+  <div class="mb">
+    <div class="fg"><label>Month</label><select id="mthpick-sel"><option value="All">All Months</option><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div>
+  </div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal('mthpick-ov')">Cancel</button><button class="btn btn-pri" onclick="doPrintMonthly()">Print</button></div>
+</div>
+</div>
+
+<!-- CONFIRM -->
+<div id="conf-ov">
+<div id="conf-box">
+  <h4 id="conf-title">Confirm</h4>
+  <p id="conf-msg"></p>
+  <div class="btns">
+    <button class="btn btn-ghost" onclick="closeConf()">Cancel</button>
+    <button class="btn btn-err" id="conf-ok">Confirm</button>
+  </div>
+</div>
+</div>
+<div id="toast"></div>
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const COLORS=['#1565C0','#F57C00','#2E7D32','#9C27B0','#00838F','#C62828','#455A64','#6D4C41','#1B5E20','#BF360C'];
+const SEED={shipments:[
+  {id:1,month:'January',orderNo:'BC035572',party:'Bunnik Creations',dest:'USA',vol:65,etd:'2025-01-20',exf:'2025-01-26',oamt:19656,iamt:19686.24,eta:'2025-03-20',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:2,month:'January',orderNo:'SEPO10968',party:'Granit',dest:'SW',vol:62,etd:'2025-01-05',exf:'2025-01-19',oamt:13093.8,iamt:10475.04,eta:'2025-03-12',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:3,month:'January',orderNo:'BC035203',party:'Bunnik Creations',dest:'USA',vol:16.97,etd:'2024-12-28',exf:'2025-01-28',oamt:7896,iamt:7896,eta:'2025-04-02',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:4,month:'January',orderNo:'BC034558',party:'Bunnik Creations',dest:'USA',vol:29.06,etd:'2024-11-30',exf:'2025-01-11',oamt:13950,iamt:13910.4,eta:'2025-02-25',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:5,month:'January',orderNo:'151029696',party:'URBN',dest:'UK',vol:1,etd:'2024-12-15',exf:'2025-01-26',oamt:2025,iamt:2025,eta:'2025-03-18',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:6,month:'February',orderNo:'BC035883',party:'Bunnik Creations',dest:'USA',vol:62.57,etd:'2025-02-10',exf:'2025-02-13',oamt:16855.44,iamt:16884,eta:'2025-03-31',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:7,month:'February',orderNo:'00001272',party:'Shinji Ohashi Co. JP',dest:'JP',vol:57,etd:'2025-01-18',exf:'2025-02-06',oamt:11932.17,iamt:11909.12,eta:'2025-03-06',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:8,month:'February',orderNo:'BC035669',party:'Bunnik Creations',dest:'USA',vol:66.84,etd:'2025-01-30',exf:'2025-02-03',oamt:13483.2,iamt:13483.2,eta:'2025-03-24',pay:'Yes',sur:'Complete',inc:'Yes',cancelled:false,notes:''},
+  {id:9,month:'March',orderNo:'BC035884',party:'Bunnik Creations',dest:'USA',vol:28,etd:'2025-03-09',exf:'2025-03-07',oamt:9397.33,iamt:9504.4,eta:'2025-04-16',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:10,month:'April',orderNo:'SEPO11046',party:'Granit',dest:'SW',vol:283.56,etd:'2025-04-07',exf:'2025-04-07',oamt:41203,iamt:41203,eta:'2025-05-20',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:11,month:'June',orderNo:'00001353',party:'Shinji Ohashi, Japan',dest:'JP',vol:27,etd:'2025-06-25',exf:'2025-06-30',oamt:5451.71,iamt:5451.71,eta:'',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:12,month:'June',orderNo:'BC036380',party:'Bunnik Creations',dest:'USA',vol:65.23,etd:'2025-05-31',exf:'2025-06-21',oamt:17795,iamt:17833.05,eta:'',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:13,month:'June',orderNo:'BC036669',party:'Bunnik Creations',dest:'USA',vol:66,etd:'2025-05-31',exf:'2025-06-16',oamt:11967.66,iamt:11978.88,eta:'',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:14,month:'July',orderNo:'BC036966',party:'Bunnik Creations',dest:'USA',vol:68,etd:'2025-07-14',exf:'2025-07-17',oamt:24397.2,iamt:24397.2,eta:'',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:15,month:'August',orderNo:'PO2571',party:'Original Home',dest:'NL',vol:2.68,etd:'2025-07-30',exf:'2025-08-28',oamt:3052.16,iamt:3052.16,eta:'2025-10-16',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:16,month:'August',orderNo:'BC036842',party:'Bunnik Creations',dest:'Canada',vol:27,etd:'2025-07-30',exf:'2025-08-18',oamt:6790,iamt:6790,eta:'2025-10-08',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:17,month:'August',orderNo:'BC036817',party:'Bunnik Creations',dest:'Canada',vol:64,etd:'2025-07-30',exf:'2025-08-18',oamt:16490,iamt:16490,eta:'2025-10-29',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:18,month:'August',orderNo:'BC036041',party:'Bunnik Creations',dest:'New York',vol:65,etd:'2025-08-10',exf:'2025-08-19',oamt:22949.1,iamt:22949.1,eta:'2025-10-09',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:19,month:'August',orderNo:'RTS25PO0016',party:'Return To Sender',dest:'NL',vol:27,etd:'2025-07-30',exf:'2025-08-07',oamt:4839.1,iamt:4839.1,eta:'2025-09-18',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:20,month:'September',orderNo:'BC037117',party:'Bunnik Creations',dest:'NY',vol:65,etd:'2025-09-15',exf:'2025-09-28',oamt:30644.55,iamt:30644.55,eta:'2025-11-13',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:21,month:'September',orderNo:'BC037468',party:'Bunnik Creations',dest:'NY-USA',vol:62,etd:'2025-09-20',exf:'2025-09-29',oamt:15362.1,iamt:15363.1,eta:'2025-11-15',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:22,month:'September',orderNo:'BC037246',party:'Bunnik Creations',dest:'Fl-USA',vol:0,etd:'2025-09-10',exf:'CANCELLED',oamt:0,iamt:0,eta:'',pay:'No',sur:'No',inc:'No',cancelled:true,notes:'Order cancelled'},
+  {id:23,month:'September',orderNo:'BC037395',party:'Bunnik Creations',dest:'NY-USA',vol:62,etd:'2025-08-30',exf:'2025-09-04',oamt:15362.1,iamt:15362.1,eta:'2025-10-31',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:24,month:'October',orderNo:'BC037470',party:'Bunnik Creations',dest:'NY-USA',vol:62,etd:'2025-10-10',exf:'2025-10-13',oamt:15362.1,iamt:15362.1,eta:'2025-12-03',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:25,month:'October',orderNo:'BC037469',party:'Bunnik Creations',dest:'NY-USA',vol:62,etd:'2025-10-30',exf:'2025-10-30',oamt:15362.1,iamt:15362.1,eta:'2025-12-17',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:26,month:'October',orderNo:'PO-SG2502141',party:'Al Saif Gallery',dest:'KSA',vol:57,etd:'2025-10-15',exf:'2025-10-21',oamt:25254.8,iamt:25254.8,eta:'',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:27,month:'November',orderNo:'BC037471',party:'Bunnik Creations',dest:'NY-USA',vol:62,etd:'2025-11-10',exf:'2025-11-19',oamt:15362.1,iamt:15362.1,eta:'2025-12-30',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:28,month:'November',orderNo:'BC037568',party:'Bunnik Creations',dest:'NY-USA',vol:62,etd:'2025-11-20',exf:'2025-11-22',oamt:15362.1,iamt:15362.1,eta:'2026-01-11',pay:'Yes',sur:'Yes',inc:'Yes',cancelled:false,notes:''},
+  {id:29,month:'December',orderNo:'00001460',party:'Shinji Ohashi Co. JP',dest:'JP',vol:28,etd:'2025-12-07',exf:'2025-12-07',oamt:4590.6,iamt:4590.6,eta:'',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:30,month:'December',orderNo:'GO000077',party:'Global BC',dest:'USA',vol:54,etd:'2025-12-20',exf:'2025-12-23',oamt:13519.8,iamt:13519.8,eta:'',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''},
+  {id:31,month:'December',orderNo:'GO000078',party:'Global BC',dest:'USA',vol:8.21,etd:'2025-12-20',exf:'2025-12-23',oamt:3256.2,iamt:3256.2,eta:'',pay:'Yes',sur:'Yes',inc:'No',cancelled:false,notes:''}
+],settings:{usdToBdt:121.8,overheadPct:18,profitPct:12,personalPct:1,prevIncBdt:476238,prevIncRecv:false,profH1Recv:true,incH1Recv:false,profH2Recv:false,incH2Recv:false}};
+
+const DEF_SETTINGS={usdToBdt:121.8,overheadPct:18,profitPct:12,personalPct:1,prevIncBdt:0,prevIncRecv:false,profH1Recv:false,incH1Recv:false,profH2Recv:false,incH2Recv:false};
+
+// ── DATA LAYER ────────────────────────────────────────────────────────────────
+function loadAll(){
+  const raw=localStorage.getItem('em_v2');
+  if(!raw){
+    const d={currentYear:'2025',years:{'2025':JSON.parse(JSON.stringify(SEED))},cloud:{gistId:'',token:'',autoSync:false}};
+    saveAll(d); return d;
+  }
+  return JSON.parse(raw);
+}
+function saveAll(d){localStorage.setItem('em_v2',JSON.stringify(d))}
+function getShips(yr){return (D.years[yr]||{}).shipments||[]}
+function setShips(yr,list){if(!D.years[yr])D.years[yr]={shipments:[],settings:{...DEF_SETTINGS}};D.years[yr].shipments=list;saveAll(D)}
+function getCfg(yr){return Object.assign({...DEF_SETTINGS},(D.years[yr]||{}).settings||{})}
+function setCfg(yr,cfg){if(!D.years[yr])D.years[yr]={shipments:[],settings:{...DEF_SETTINGS}};D.years[yr].settings=cfg;saveAll(D)}
+function allYears(){return Object.keys(D.years).sort((a,b)=>b-a)}
+function addYear(yr,copyFrom){
+  if(D.years[yr])return toast('Year already exists');
+  const cfg=copyFrom&&D.years[copyFrom]?{...getCfg(copyFrom),prevIncBdt:0,prevIncRecv:false,profH1Recv:false,incH1Recv:false,profH2Recv:false,incH2Recv:false}:{...DEF_SETTINGS};
+  D.years[yr]={shipments:[],settings:cfg};
+  D.currentYear=yr; saveAll(D); updateYrSel(); nav(ST.page); toast('Year '+yr+' created');
+}
+function nextId(yr){const s=getShips(yr);return s.length?Math.max(...s.map(x=>x.id))+1:1}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let D=loadAll();
+let ST={page:'dashboard',fMonth:'All',fParty:'All',fStatus:'All',search:'',cmpYears:[],cmpInit:false};
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const $=id=>document.getElementById(id);
+const fUSD=(n,d=2)=>isNaN(+n)?'—':'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fBDT=n=>isNaN(+n)?'—':'৳'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+const fNum=(n,d=2)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fDate=d=>d&&d.length>=8?new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):(d||'—');
+const uniq=(arr,k)=>[...new Set(arr.map(s=>s[k]).filter(Boolean))].sort();
+
+function payBdg(v){return v==='Yes'?'<span class="bdg bdg-ok">✓ Paid</span>':'<span class="bdg bdg-err">✗ Unpaid</span>'}
+function surBdg(v){return v==='Complete'?'<span class="bdg bdg-ok">Complete</span>':v==='Yes'?'<span class="bdg bdg-info">Yes</span>':'<span class="bdg bdg-err">No</span>'}
+function incBdg(v){return v==='Yes'?'<span class="bdg bdg-ok">Yes</span>':'<span class="bdg bdg-warn">No</span>'}
+
+function toast(msg,ms=2200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),ms)}
+
+let _confCb=null;
+function confirm2(title,msg,cb,btnTxt='Delete',cls='btn-err'){
+  $('conf-title').textContent=title;$('conf-msg').textContent=msg;
+  $('conf-ok').textContent=btnTxt;$('conf-ok').className='btn '+cls;
+  _confCb=cb;$('conf-ov').classList.add('open');
+}
+function closeConf(){$('conf-ov').classList.remove('open');_confCb=null}
+$('conf-ok').onclick=()=>{$('conf-ov').classList.remove('open');if(_confCb){_confCb();_confCb=null}};
+$('conf-ov').onclick=e=>{if(e.target===$('conf-ov'))closeConf()};
+
+function closeModal(id){$(id).classList.remove('open');$(id).onclick=e=>{if(e.target===$(id))closeModal(id)}}
+document.querySelectorAll('.ov').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open')}));
+
+// ── SVG CHARTS ────────────────────────────────────────────────────────────────
+function svgBar(items,{w=460,h=170,title='',prefix='$',showVals=true,bg='#f8f9fa'}={}){
+  // items: [{label,value,color}]
+  const pl=44,pr=10,pt=title?28:8,pb=34;
+  const cw=w-pl-pr,ch=h-pt-pb;
+  const max=Math.max(...items.map(i=>i.value),1);
+  const bw=Math.max(8,cw/items.length*0.65);
+  const gap=cw/items.length;
+  const ylines=4;
+  let grid='',bars='',xlbls='',ylbls='';
+  for(let i=0;i<=ylines;i++){
+    const y=pt+ch*(1-i/ylines);
+    const v=max*i/ylines;
+    grid+=`<line x1="${pl}" y1="${y}" x2="${pl+cw}" y2="${y}" stroke="#e0e0e0" stroke-width="0.5"/>`;
+    ylbls+=`<text x="${pl-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${prefix}${v>=1000?Math.round(v/1000)+'k':Math.round(v)}</text>`;
+  }
+  items.forEach((it,i)=>{
+    const bh=Math.max(2,(it.value/max)*ch);
+    const x=pl+i*gap+gap/2-bw/2;
+    const y=pt+ch-bh;
+    bars+=`<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${it.color||COLORS[i%COLORS.length]}" rx="3"/>`;
+    if(showVals&&it.value>0)bars+=`<text x="${x+bw/2}" y="${y-4}" text-anchor="middle" font-size="8.5" fill="#555">${prefix}${it.value>=1000?Math.round(it.value/1000)+'k':fNum(it.value,0)}</text>`;
+    const lbl=it.label.length>4?it.label.slice(0,3):it.label;
+    xlbls+=`<text x="${x+bw/2}" y="${pt+ch+16}" text-anchor="middle" font-size="9" fill="#777">${lbl}</text>`;
+  });
+  const ttl=title?`<text x="${w/2}" y="18" text-anchor="middle" font-size="12" font-weight="600" fill="#333">${title}</text>`:'';
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:${bg};border-radius:6px">${ttl}${grid}${ylbls}${bars}${xlbls}<line x1="${pl}" y1="${pt}" x2="${pl}" y2="${pt+ch}" stroke="#ccc"/><line x1="${pl}" y1="${pt+ch}" x2="${pl+cw}" y2="${pt+ch}" stroke="#ccc"/></svg>`;
+}
+
+function svgLine(series,labels,{w=460,h=160,title='',prefix='$',bg='#f8f9fa'}={}){
+  // series: [{name,values,color}]
+  const pl=48,pr=10,pt=title?28:8,pb=34;
+  const cw=w-pl-pr,ch=h-pt-pb;
+  const allV=series.flatMap(s=>s.values);
+  const max=Math.max(...allV,1);
+  const step=labels.length>1?cw/(labels.length-1):cw;
+  const ylines=4;
+  let grid='',paths='',dots='',xlbls='',ylbls='',legend='';
+  for(let i=0;i<=ylines;i++){
+    const y=pt+ch*(1-i/ylines);const v=max*i/ylines;
+    grid+=`<line x1="${pl}" y1="${y}" x2="${pl+cw}" y2="${y}" stroke="#e0e0e0" stroke-width="0.5"/>`;
+    ylbls+=`<text x="${pl-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${prefix}${v>=1000?Math.round(v/1000)+'k':Math.round(v)}</text>`;
+  }
+  labels.forEach((l,i)=>{
+    const lbl=l.length>4?l.slice(0,3):l;
+    xlbls+=`<text x="${pl+i*step}" y="${pt+ch+16}" text-anchor="middle" font-size="9" fill="#777">${lbl}</text>`;
+  });
+  series.forEach((s,si)=>{
+    const pts=s.values.map((v,i)=>`${pl+i*step},${pt+ch-(v/max)*ch}`);
+    paths+=`<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round"/>`;
+    s.values.forEach((v,i)=>{
+      if(v>0)dots+=`<circle cx="${pl+i*step}" cy="${pt+ch-(v/max)*ch}" r="3.5" fill="${s.color}" stroke="#fff" stroke-width="1.5"/>`;
+    });
+    legend+=`<g transform="translate(${pl+si*120},${h-12})"><rect x="0" y="-7" width="12" height="7" fill="${s.color}" rx="2"/><text x="15" y="0" font-size="9" fill="#555">${s.name}</text></g>`;
+  });
+  const ttl=title?`<text x="${w/2}" y="18" text-anchor="middle" font-size="12" font-weight="600" fill="#333">${title}</text>`:'';
+  return `<svg viewBox="0 0 ${w} ${h+16}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:${bg};border-radius:6px">${ttl}${grid}${ylbls}${paths}${dots}${xlbls}${legend}<line x1="${pl}" y1="${pt}" x2="${pl}" y2="${pt+ch}" stroke="#ccc"/><line x1="${pl}" y1="${pt+ch}" x2="${pl+cw}" y2="${pt+ch}" stroke="#ccc"/></svg>`;
+}
+
+function svgDonut(items,{size=200,title='',bg='transparent'}={}){
+  // items: [{label,value,color}]
+  const total=items.reduce((a,i)=>a+i.value,0)||1;
+  const cx=size/2,cy=size/2,r=size*0.38,ri=size*0.23;
+  let angle=-Math.PI/2,paths='';
+  items.forEach(it=>{
+    const a=(it.value/total)*2*Math.PI;
+    const x1=cx+r*Math.cos(angle),y1=cy+r*Math.sin(angle);
+    const x2=cx+r*Math.cos(angle+a),y2=cy+r*Math.sin(angle+a);
+    const xi1=cx+ri*Math.cos(angle),yi1=cy+ri*Math.sin(angle);
+    const xi2=cx+ri*Math.cos(angle+a),yi2=cy+ri*Math.sin(angle+a);
+    const lg=a>Math.PI?1:0;
+    paths+=`<path d="M ${x1} ${y1} A ${r} ${r} 0 ${lg} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${ri} ${ri} 0 ${lg} 0 ${xi1} ${yi1} Z" fill="${it.color}"><title>${it.label}: ${(it.value/total*100).toFixed(1)}%</title></path>`;
+    angle+=a;
+  });
+  const lh=14,lstart=items.length>4?size+4:size-items.length*lh;
+  const legend=items.map((it,i)=>`<g transform="translate(4,${lstart+i*lh})"><rect width="10" height="10" fill="${it.color}" rx="2"/><text x="14" y="9" font-size="9.5" fill="#555">${it.label.length>22?it.label.slice(0,20)+'…':it.label} (${(it.value/total*100).toFixed(1)}%)</text></g>`).join('');
+  const svgH=lstart+items.length*lh+4;
+  return `<svg viewBox="0 0 ${size} ${svgH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${size}px;background:${bg}">${paths}<text x="${cx}" y="${cy-6}" text-anchor="middle" font-size="10" fill="#666">Total</text><text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="12" font-weight="700" fill="#333">$${total>=1000?Math.round(total/1000)+'k':Math.round(total)}</text>${legend}</svg>`;
+}
+
+function svgGroupedBar(groups,seriesNames,colors,{w=460,h=170,title='',prefix='$',bg='#f8f9fa'}={}){
+  // groups: [{label, values:[v0,v1,...]}]
+  const pl=48,pr=10,pt=title?28:8,pb=44;
+  const cw=w-pl-pr,ch=h-pt-pb;
+  const allV=groups.flatMap(g=>g.values);
+  const max=Math.max(...allV,1);
+  const gw=cw/groups.length;
+  const bw=Math.max(4,gw*0.7/seriesNames.length);
+  const ylines=4;
+  let grid='',bars='',xlbls='',ylbls='',legend='';
+  for(let i=0;i<=ylines;i++){
+    const y=pt+ch*(1-i/ylines);const v=max*i/ylines;
+    grid+=`<line x1="${pl}" y1="${y}" x2="${pl+cw}" y2="${y}" stroke="#e0e0e0" stroke-width="0.5"/>`;
+    ylbls+=`<text x="${pl-4}" y="${y+4}" text-anchor="end" font-size="9" fill="#999">${prefix}${v>=1000?Math.round(v/1000)+'k':Math.round(v)}</text>`;
+  }
+  groups.forEach((g,gi)=>{
+    const gx=pl+gi*gw+gw*0.15;
+    g.values.forEach((v,vi)=>{
+      const bh=Math.max(2,(v/max)*ch);
+      const x=gx+vi*(bw+2);
+      bars+=`<rect x="${x}" y="${pt+ch-bh}" width="${bw}" height="${bh}" fill="${colors[vi%colors.length]}" rx="2"/>`;
+    });
+    const lbl=g.label.length>6?g.label.slice(0,5)+'…':g.label;
+    xlbls+=`<text x="${pl+gi*gw+gw/2}" y="${pt+ch+16}" text-anchor="middle" font-size="9" fill="#777">${lbl}</text>`;
+  });
+  seriesNames.forEach((n,i)=>{
+    legend+=`<g transform="translate(${pl+i*100},${h-10})"><rect width="10" height="8" fill="${colors[i%colors.length]}" rx="1"/><text x="13" y="8" font-size="9" fill="#555">${n}</text></g>`;
+  });
+  const ttl=title?`<text x="${w/2}" y="18" text-anchor="middle" font-size="12" font-weight="600" fill="#333">${title}</text>`:'';
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;background:${bg};border-radius:6px">${ttl}${grid}${ylbls}${bars}${xlbls}${legend}<line x1="${pl}" y1="${pt}" x2="${pl}" y2="${pt+ch}" stroke="#ccc"/><line x1="${pl}" y1="${pt+ch}" x2="${pl+cw}" y2="${pt+ch}" stroke="#ccc"/></svg>`;
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+const PAGE_TITLES={dashboard:'Dashboard',shipments:'All Shipments',calendar:'Monthly View',buyers:'Buyers Analysis',financials:'Financials',personal:'Personal Earnings',reports:'Print Reports',settings:'Settings',compare:'Multi-Year Comparison',years:'Manage Years'};
+function nav(page){
+  ST.page=page;
+  document.querySelectorAll('.ni').forEach(e=>e.classList.remove('active'));
+  const ni=$('ni-'+page);if(ni)ni.classList.add('active');
+  $('tb-title').textContent=PAGE_TITLES[page]||page;
+  $('tb-meta').textContent='Export Manager — '+(page==='compare'||page==='years'?'Global View':'Year '+D.currentYear);
+  render();
+}
+function updateYrSel(){
+  const sel=$('yr-sel'),yrs=allYears();
+  sel.innerHTML=yrs.map(y=>`<option value="${y}" ${y==D.currentYear?'selected':''}>${y}</option>`).join('');
+}
+function switchYear(yr){D.currentYear=yr;saveAll(D);nav(ST.page)}
+
+// ── RENDER ROUTER ─────────────────────────────────────────────────────────────
+function render(){
+  const c=$('content'),yr=D.currentYear,ships=getShips(yr),cfg=getCfg(yr);
+  if(ST.page==='dashboard')c.innerHTML=renderDash(yr,ships,cfg);
+  else if(ST.page==='shipments')c.innerHTML=renderShipments(yr,ships);
+  else if(ST.page==='calendar')c.innerHTML=renderCalendar(yr,ships);
+  else if(ST.page==='buyers')c.innerHTML=renderBuyers(yr,ships,cfg);
+  else if(ST.page==='financials')c.innerHTML=renderFinancials(yr,ships,cfg);
+  else if(ST.page==='personal')c.innerHTML=renderPersonal(yr,ships,cfg);
+  else if(ST.page==='reports')c.innerHTML=renderReports(yr);
+  else if(ST.page==='settings')c.innerHTML=renderSettings(yr,cfg);
+  else if(ST.page==='compare')c.innerHTML=renderCompare();
+  else if(ST.page==='years')c.innerHTML=renderYears();
+}
+
+// ── SHARED TABLE ─────────────────────────────────────────────────────────────
+function shipTable(list,actions=true){
+  if(!list.length)return '<div class="empty">No shipments found.</div>';
+  return `<div class="tbl-wrap"><table>
+<thead><tr><th>Order No</th><th>Party</th><th>Dest</th><th>Month</th><th>CBM</th><th>ETD</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>ETA</th><th>Payment</th><th>Surrender</th><th>Incentive</th>${actions?'<th>Actions</th>':''}</tr></thead>
+<tbody>${list.map(s=>`<tr class="${s.cancelled?'cancel':''}">
+  <td><strong>${s.orderNo}</strong>${s.cancelled?' <span class="bdg bdg-err" style="font-size:10px">Cancelled</span>':''}</td>
+  <td>${s.party}</td><td><span class="tag">${s.dest}</span></td><td>${s.month}</td>
+  <td>${s.vol||0}</td><td>${fDate(s.etd)}</td>
+  <td>${s.exf&&s.exf.includes('-')?fDate(s.exf):(s.exf||'—')}</td>
+  <td><strong>${fUSD(s.iamt)}</strong></td><td>${fDate(s.eta)}</td>
+  <td>${payBdg(s.pay)}</td><td>${surBdg(s.sur)}</td><td>${incBdg(s.inc)}</td>
+  ${actions?`<td style="white-space:nowrap"><button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
+</tr>`).join('')}</tbody></table></div>`;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDash(yr,ships,cfg){
+  const active=ships.filter(s=>!s.cancelled);
+  const totalInv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
+  const totalOrd=active.reduce((a,s)=>a+Number(s.oamt||0),0);
+  const unpaid=active.filter(s=>s.pay!=='Yes');
+  const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
+  const noInc=active.filter(s=>s.inc!=='Yes');
+  const mInv=MONTHS.map(m=>active.filter(s=>s.month===m).reduce((a,s)=>a+Number(s.iamt||0),0));
+  const buyerMap={};active.forEach(s=>{buyerMap[s.party]=(buyerMap[s.party]||0)+Number(s.iamt||0)});
+  const buyers=Object.entries(buyerMap).sort((a,b)=>b[1]-a[1]);
+  const barItems=MONTHS.map((m,i)=>({label:m.slice(0,3),value:mInv[i],color:mInv[i]>0?COLORS[0]:'#E0E0E0'}));
+  const donutItems=buyers.slice(0,6).map((b,i)=>({label:b[0],value:b[1],color:COLORS[i]}));
+  return `
+<div class="kpi-grid">
+  <div class="kpi"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div><div class="sub">${ships.filter(s=>s.cancelled).length} cancelled in ${yr}</div></div>
+  <div class="kpi acc"><div class="lbl">Invoice (USD)</div><div class="val">${fUSD(totalInv,0)}</div><div class="sub">Order: ${fUSD(totalOrd,0)}</div></div>
+  <div class="kpi ok"><div class="lbl">Invoice (BDT)</div><div class="val" style="font-size:18px">${fBDT(totalInv*cfg.usdToBdt)}</div><div class="sub">@ ${cfg.usdToBdt} rate</div></div>
+  <div class="kpi ${unpaid.length?'err':'ok'}"><div class="lbl">Unpaid</div><div class="val">${unpaid.length}</div><div class="sub">${fUSD(unpaid.reduce((a,s)=>a+Number(s.iamt||0),0),0)} outstanding</div></div>
+  <div class="kpi"><div class="lbl">Total Volume</div><div class="val">${fNum(cbm)}</div><div class="sub">CBM shipped</div></div>
+  <div class="kpi ${noInc.length?'warn':'ok'}"><div class="lbl">Incentive Pending</div><div class="val">${noInc.length}</div><div class="sub">Orders without incentive</div></div>
+</div>
+<div class="g2" style="margin-bottom:18px">
+  <div class="card"><div class="card-title">Monthly Invoice ${yr} (USD)</div><div class="chart-box">${svgBar(barItems,{w:440,h:155,prefix:'$'})}</div></div>
+  <div class="card"><div class="card-title">Buyer Share</div><div style="display:flex;justify-content:center">${svgDonut(donutItems.length?donutItems:[{label:'No data',value:1,color:'#ddd'}],{size:180})}</div></div>
+</div>
+<div class="card"><div class="card-title" style="display:flex;justify-content:space-between">Recent Shipments <button class="btn btn-ghost btn-xs" onclick="nav('shipments')">View All →</button></div>${shipTable(ships.slice().reverse().slice(0,8),false)}</div>`;
+}
+
+// ── ALL SHIPMENTS ─────────────────────────────────────────────────────────────
+function renderShipments(yr,ships){
+  const parties=uniq(ships,'party'),filtered=ships.filter(s=>{
+    if(ST.fMonth!=='All'&&s.month!==ST.fMonth)return false;
+    if(ST.fParty!=='All'&&s.party!==ST.fParty)return false;
+    if(ST.fStatus==='Paid'&&s.pay!=='Yes')return false;
+    if(ST.fStatus==='Unpaid'&&s.pay==='Yes')return false;
+    if(ST.fStatus==='Incentive Pending'&&s.inc==='Yes')return false;
+    if(ST.fStatus==='Cancelled'&&!s.cancelled)return false;
+    if(ST.search){const q=ST.search.toLowerCase();if(!`${s.orderNo} ${s.party} ${s.dest} ${s.month}`.toLowerCase().includes(q))return false}
+    return true;
+  });
+  const tot=filtered.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
+  return `
+<div class="sh"><div><div class="sh-t">Shipments — ${yr}</div><div class="sh-s">${filtered.length} of ${ships.length} shown • ${fUSD(tot)} invoice</div></div></div>
+<div class="filters">
+  <input class="srch" type="text" placeholder="🔍 Search order, buyer, destination…" value="${ST.search}" oninput="ST.search=this.value;render()">
+  <select onchange="ST.fMonth=this.value;render()"><option value="All">All Months</option>${MONTHS.map(m=>`<option ${ST.fMonth===m?'selected':''}>${m}</option>`).join('')}</select>
+  <select onchange="ST.fParty=this.value;render()"><option value="All">All Buyers</option>${parties.map(p=>`<option ${ST.fParty===p?'selected':''}>${p}</option>`).join('')}</select>
+  <select onchange="ST.fStatus=this.value;render()"><option value="All">All Status</option><option>Paid</option><option>Unpaid</option><option>Incentive Pending</option><option>Cancelled</option></select>
+  <button class="btn btn-ghost btn-sm" onclick="ST.fMonth='All';ST.fParty='All';ST.fStatus='All';ST.search='';render()">Clear</button>
+</div>
+${shipTable(filtered,true)}`;
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────────────────────
+function renderCalendar(yr,ships){
+  return `<div class="sh"><div><div class="sh-t">Monthly Calendar — ${yr}</div><div class="sh-s">All shipments grouped by month</div></div></div>`+
+  MONTHS.map(m=>{
+    const list=ships.filter(s=>s.month===m);
+    const active=list.filter(s=>!s.cancelled);
+    const inv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
+    const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${list.length?14:0}px;flex-wrap:wrap;gap:8px">
+        <div><strong style="font-size:15px">${m}</strong><span style="margin-left:10px;color:var(--muted);font-size:12.5px">${active.length} shipment${active.length!==1?'s':''} • ${fNum(cbm)} CBM • ${fUSD(inv)}</span></div>
+        ${list.length?`<button class="btn btn-ghost btn-xs" onclick="ST.fMonth='${m}';nav('shipments')">Details →</button>`:'<span class="bdg bdg-grey">No shipments</span>'}
+      </div>
+      ${list.length?shipTable(list,true):''}
+    </div>`;
+  }).join('');
+}
+
+// ── BUYERS ────────────────────────────────────────────────────────────────────
+function renderBuyers(yr,ships,cfg){
+  const active=ships.filter(s=>!s.cancelled);
+  const total=active.reduce((a,s)=>a+Number(s.iamt||0),0)||1;
+  const bm={};
+  active.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,ord:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.ord+=Number(s.oamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Yes')b.paid++;if(s.inc==='Yes')b.inc++});
+  const sorted=Object.entries(bm).sort((a,b)=>b[1].inv-a[1].inv);
+  const barItems=sorted.map((b,i)=>({label:b[0].split(' ')[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
+  const donutItems=sorted.map((b,i)=>({label:b[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
+  return `
+<div class="sh"><div><div class="sh-t">Buyers — ${yr}</div><div class="sh-s">${sorted.length} active buyers</div></div>
+  <button class="btn btn-ghost btn-sm" onclick="printBuyer('${yr}')">🖨 Print Buyer Report</button></div>
+<div class="g2" style="margin-bottom:18px">
+  <div class="card"><div class="card-title">Invoice by Buyer</div>${svgBar(barItems,{w:440,h:155})}</div>
+  <div class="card"><div class="card-title">Buyer Share</div><div style="display:flex;justify-content:center">${svgDonut(donutItems,{size:190})}</div></div>
+</div>
+<div class="card">
+  <div class="card-title">Buyer Details</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Buyer</th><th>Orders</th><th>CBM</th><th>Order (USD)</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Share %</th><th>Pay Rate</th><th>Inc Rate</th></tr></thead>
+    <tbody>${sorted.map((b,i)=>`<tr>
+      <td><span style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><strong>${b[0]}</strong></span></td>
+      <td>${b[1].cnt}</td><td>${fNum(b[1].cbm)}</td><td>${fUSD(b[1].ord)}</td><td>${fUSD(b[1].inv)}</td>
+      <td>${fBDT(b[1].inv*cfg.usdToBdt)}</td><td>${(b[1].inv/total*100).toFixed(2)}%</td>
+      <td>${b[1].cnt?Math.round(b[1].paid/b[1].cnt*100)+'%':'—'}</td>
+      <td>${b[1].cnt?Math.round(b[1].inc/b[1].cnt*100)+'%':'—'}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${active.length}</strong></td><td><strong>${fNum(active.reduce((a,s)=>a+Number(s.vol||0),0))}</strong></td><td><strong>${fUSD(active.reduce((a,s)=>a+Number(s.oamt||0),0))}</strong></td><td><strong>${fUSD(total)}</strong></td><td><strong>${fBDT(total*cfg.usdToBdt)}</strong></td><td><strong>100%</strong></td><td></td><td></td></tr></tfoot>
+  </table></div>
+</div>`;
+}
+
+// ── FINANCIALS ────────────────────────────────────────────────────────────────
+function renderFinancials(yr,ships,cfg){
+  const active=ships.filter(s=>!s.cancelled);
+  const rate=cfg.usdToBdt;
+  const h1m=MONTHS.slice(0,6),h2m=MONTHS.slice(6);
+  const mData=MONTHS.map(m=>{const s=active.filter(x=>x.month===m);const inv=s.reduce((a,x)=>a+Number(x.iamt||0),0);return{month:m,cnt:s.length,inv,bdt:inv*rate}});
+  const h1usd=mData.slice(0,6).reduce((a,m)=>a+m.inv,0);
+  const h2usd=mData.slice(6).reduce((a,m)=>a+m.inv,0);
+  const total=h1usd+h2usd,totalBdt=total*rate;
+  const barItems=mData.map((m,i)=>({label:m.month.slice(0,3),value:m.inv,color:i<6?'#1565C0':'#2E7D32'}));
+  return `
+<div class="sh"><div><div class="sh-t">Financials — ${yr}</div><div class="sh-s">USD ↔ BDT breakdown, overhead & profit</div></div>
+  <button class="btn btn-ghost btn-sm" onclick="printFinancial('${yr}')">🖨 Print Financial Report</button></div>
+<div class="kpi-grid">
+  <div class="kpi acc"><div class="lbl">Total Invoice (USD)</div><div class="val">${fUSD(total,0)}</div><div class="sub">H1: ${fUSD(h1usd,0)} | H2: ${fUSD(h2usd,0)}</div></div>
+  <div class="kpi ok"><div class="lbl">Total Invoice (BDT)</div><div class="val" style="font-size:19px">${fBDT(totalBdt)}</div><div class="sub">@ ${rate} BDT/USD</div></div>
+  <div class="kpi" style="--val-color:#9C27B0"><div class="lbl">Overhead @ ${cfg.overheadPct}%</div><div class="val" style="color:#9C27B0;font-size:19px">${fBDT(totalBdt*cfg.overheadPct/100)}</div><div class="sub">${fUSD(totalBdt*cfg.overheadPct/100/rate)} USD equiv.</div></div>
+  <div class="kpi ok"><div class="lbl">Profit @ ${cfg.profitPct}%</div><div class="val" style="font-size:19px">${fBDT(totalBdt*cfg.profitPct/100)}</div><div class="sub">${fUSD(totalBdt*cfg.profitPct/100/rate)} USD equiv.</div></div>
+</div>
+<div class="g2">
+  <div class="card"><div class="card-title">Monthly Invoice (H1=Blue, H2=Green)</div>${svgBar(barItems,{w:440,h:155})}</div>
+  <div class="card"><div class="card-title">Summary</div>
+    ${[['Exchange Rate','1 USD = '+rate+' BDT'],['H1 Invoice (USD)',fUSD(h1usd)],['H1 Invoice (BDT)',fBDT(h1usd*rate)],['H2 Invoice (USD)',fUSD(h2usd)],['H2 Invoice (BDT)',fBDT(h2usd*rate)],['Total Invoice (USD)',fUSD(total)],['Total Invoice (BDT)',fBDT(totalBdt)],['Overhead @ '+cfg.overheadPct+'% (BDT)',fBDT(totalBdt*cfg.overheadPct/100)],['Profit @ '+cfg.profitPct+'% (BDT)',fBDT(totalBdt*cfg.profitPct/100)]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('')}
+  </div>
+</div>
+<div class="card" style="margin-top:16px"><div class="card-title">Monthly Breakdown</div>
+  <div class="tbl-wrap"><table><thead><tr><th>Month</th><th>Shipments</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Overhead (BDT)</th><th>Profit (BDT)</th></tr></thead>
+  <tbody>${mData.map(m=>`<tr><td><strong>${m.month}</strong></td><td>${m.cnt}</td><td>${m.inv?fUSD(m.inv):'—'}</td><td>${m.inv?fBDT(m.bdt):'—'}</td><td>${m.inv?fBDT(m.bdt*cfg.overheadPct/100):'—'}</td><td>${m.inv?fBDT(m.bdt*cfg.profitPct/100):'—'}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td>TOTAL</td><td>${active.length}</td><td>${fUSD(total)}</td><td>${fBDT(totalBdt)}</td><td>${fBDT(totalBdt*cfg.overheadPct/100)}</td><td>${fBDT(totalBdt*cfg.profitPct/100)}</td></tr></tfoot>
+  </table></div>
+</div>`;
+}
+
+// ── PERSONAL ──────────────────────────────────────────────────────────────────
+function renderPersonal(yr,ships,cfg){
+  const active=ships.filter(s=>!s.cancelled);
+  const rate=cfg.usdToBdt,pct=cfg.personalPct/100;
+  const h1=active.filter(s=>MONTHS.indexOf(s.month)<6).reduce((a,s)=>a+Number(s.iamt||0),0)*rate;
+  const h2=active.filter(s=>MONTHS.indexOf(s.month)>=6).reduce((a,s)=>a+Number(s.iamt||0),0)*rate;
+  const profH1=h1*pct,incH1=h1*pct,profH2=h2*pct,incH2=h2*pct,prev=Number(cfg.prevIncBdt||0);
+  const rows=[
+    {k:'prevIncRecv',label:'Previous Claim Incentive (31 Files)',bdt:prev,recv:cfg.prevIncRecv},
+    {k:'profH1Recv',label:`Profit @ ${cfg.personalPct}% (Jan–Jun)`,bdt:profH1,recv:cfg.profH1Recv},
+    {k:'incH1Recv',label:`Incentive @ ${cfg.personalPct}% (Jan–Jun)`,bdt:incH1,recv:cfg.incH1Recv},
+    {k:'profH2Recv',label:`Profit @ ${cfg.personalPct}% (Jul–Dec)`,bdt:profH2,recv:cfg.profH2Recv},
+    {k:'incH2Recv',label:`Incentive @ ${cfg.personalPct}% (Jul–Dec)`,bdt:incH2,recv:cfg.incH2Recv},
+  ];
+  const total=rows.reduce((a,r)=>a+r.bdt,0);
+  const received=rows.filter(r=>r.recv).reduce((a,r)=>a+r.bdt,0);
+  return `
+<div class="sh"><div><div class="sh-t">Personal Earnings — ${yr}</div><div class="sh-s">Profit & incentive tracking</div></div>
+  <button class="btn btn-ghost btn-sm" onclick="printPersonal('${yr}')">🖨 Print Personal Report</button></div>
+<div class="kpi-grid">
+  <div class="kpi ok"><div class="lbl">Gross Earnings</div><div class="val" style="font-size:19px">${fBDT(total)}</div><div class="sub">Total due</div></div>
+  <div class="kpi"><div class="lbl">Received</div><div class="val" style="font-size:19px">${fBDT(received)}</div><div class="sub">Marked received</div></div>
+  <div class="kpi acc"><div class="lbl">Receivable</div><div class="val" style="font-size:19px">${fBDT(total-received)}</div><div class="sub">Pending collection</div></div>
+  <div class="kpi"><div class="lbl">Rate</div><div class="val">${cfg.personalPct}%</div><div class="sub">Profit & Incentive each</div></div>
+</div>
+<div class="card">
+  <div class="card-title">Earnings Breakdown</div>
+  <table class="earn-tbl"><thead><tr><th>Description</th><th>BDT Amount</th><th>Received?</th></tr></thead>
+  <tbody>${rows.map(r=>`<tr><td>${r.label}</td><td><strong>${fBDT(r.bdt)}</strong></td>
+    <td><label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" ${r.recv?'checked':''} onchange="toggleRecv('${yr}','${r.k}',this.checked)">
+    <span style="font-size:12.5px;color:${r.recv?'var(--ok)':'var(--muted)'}">${r.recv?'✓ Received':'Pending'}</span></label></td>
+  </tr>`).join('')}</tbody>
+  <tfoot><tr><td>TOTAL</td><td>${fBDT(total)}</td><td></td></tr>
+  <tr><td>Received</td><td style="color:var(--ok)">${fBDT(received)}</td><td></td></tr>
+  <tr><td>Receivable (Pending)</td><td style="color:var(--acc)">${fBDT(total-received)}</td><td></td></tr></tfoot>
+  </table>
+  <p style="margin-top:10px;font-size:11.5px;color:var(--muted)">Toggle checkboxes to mark amounts as received. Changes save automatically.</p>
+</div>`;
+}
+function toggleRecv(yr,key,val){const cfg=getCfg(yr);cfg[key]=val;setCfg(yr,cfg);render();toast('Status updated')}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+function renderSettings(yr,cfg){
+  const cloud=D.cloud||{};
+  return `
+<div class="sh"><div class="sh-t">Settings — ${yr}</div></div>
+<div class="g2">
+  <div class="card"><div class="card-title">Rates & Percentages</div>
+    <div class="fg"><label>USD → BDT Exchange Rate</label><input type="number" id="s-rate" value="${cfg.usdToBdt}" step="0.01" min="1"></div>
+    <div class="fg"><label>Overhead % (on BDT total)</label><input type="number" id="s-over" value="${cfg.overheadPct}" step="0.1" min="0" max="100"></div>
+    <div class="fg"><label>Company Profit %</label><input type="number" id="s-prof" value="${cfg.profitPct}" step="0.1" min="0" max="100"></div>
+    <div class="fg"><label>Personal Profit & Incentive % (each)</label><input type="number" id="s-pers" value="${cfg.personalPct}" step="0.1" min="0" max="100"></div>
+    <div class="fg"><label>Previous Incentive Claim (BDT)</label><input type="number" id="s-prev" value="${cfg.prevIncBdt||0}" step="1" min="0"></div>
+    <button class="btn btn-pri" onclick="saveSettings('${yr}')">Save Settings</button>
+  </div>
+  <div class="card"><div class="card-title">☁ Cloud Sync (GitHub Gist)</div>
+    <div class="print-note">Cloud sync lets colleagues access your data at the same URL. Data is stored in a private GitHub Gist.</div>
+    <div class="fg"><label>GitHub Personal Access Token (gist scope)</label><input type="password" id="s-token" value="${cloud.token||''}" placeholder="ghp_xxxxxxxxxxxxxxxx"></div>
+    <div class="fg"><label>Gist ID</label><input type="text" id="s-gist" value="${cloud.gistId||''}" placeholder="Leave blank to auto-create on first sync"></div>
+    <div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="s-auto" ${cloud.autoSync?'checked':''}> Auto-sync on every save</label></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-pri btn-sm" onclick="saveCloudSettings()">Save Cloud Config</button>
+      <button class="btn btn-ok btn-sm" onclick="doSync()">☁ Sync Now</button>
+      <button class="btn btn-ghost btn-sm" onclick="doPull()">⬇ Pull from Cloud</button>
+    </div>
+    <hr class="div">
+    <div class="card-title">Data Management</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="doExportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="doImportJSON()">⬆ Import JSON</button>
+      <button class="btn btn-err btn-sm" onclick="resetYear('${yr}')">↺ Reset ${yr} Data</button>
+    </div>
+  </div>
+</div>`;
+}
+function saveSettings(yr){const cfg=getCfg(yr);cfg.usdToBdt=parseFloat($('s-rate').value)||121.8;cfg.overheadPct=parseFloat($('s-over').value)||18;cfg.profitPct=parseFloat($('s-prof').value)||12;cfg.personalPct=parseFloat($('s-pers').value)||1;cfg.prevIncBdt=parseFloat($('s-prev').value)||0;setCfg(yr,cfg);toast('Settings saved');if(D.cloud&&D.cloud.autoSync)doSync()}
+function saveCloudSettings(){D.cloud={token:$('s-token').value.trim(),gistId:$('s-gist').value.trim(),autoSync:$('s-auto').checked};saveAll(D);toast('Cloud config saved')}
+function resetYear(yr){confirm2('Reset '+yr+' data?','This restores the original seed data for '+yr+' (only if it is 2025) or clears all shipments.',()=>{if(yr==='2025'){D.years['2025']=JSON.parse(JSON.stringify(SEED))}else{D.years[yr]={shipments:[],settings:{...DEF_SETTINGS}}};saveAll(D);render();toast('Reset done');},'Reset','btn-err')}
+
+// ── PRINT REPORTS PAGE ────────────────────────────────────────────────────────
+function renderReports(yr){
+  return `
+<div class="sh"><div><div class="sh-t">Print Reports — ${yr}</div><div class="sh-s">Generate professional printable reports with charts</div></div></div>
+<div class="print-note">📄 Reports open in a new window and auto-trigger the print dialog. Use your browser's print settings to save as PDF or print on paper.</div>
+<div class="rpt-grid">
+  <div class="rpt-card">
+    <h4>📊 Yearly Summary</h4>
+    <p>Complete overview of ${yr}: KPI totals, monthly breakdown table, buyer analysis, and financial summary with charts.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printYearly('${yr}')">🖨 Print</button></div>
+  </div>
+  <div class="rpt-card">
+    <h4>📅 Monthly Detail</h4>
+    <p>Detailed shipment-by-shipment breakdown for a selected month, including all statuses and amounts.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="openMonthPicker()">🖨 Select Month & Print</button></div>
+  </div>
+  <div class="rpt-card">
+    <h4>🏢 Buyer Analysis</h4>
+    <p>Per-buyer performance: invoice totals, order count, CBM, payment rate, incentive rate, and share charts.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printBuyer('${yr}')">🖨 Print</button></div>
+  </div>
+  <div class="rpt-card">
+    <h4>💵 Financial Statement</h4>
+    <p>Full financial breakdown: USD/BDT conversion, H1/H2 split, overhead & profit calculation with monthly table.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printFinancial('${yr}')">🖨 Print</button></div>
+  </div>
+  <div class="rpt-card">
+    <h4>👤 Personal Earnings</h4>
+    <p>Personal profit & incentive summary, previous claims, received vs. receivable, with basis calculations.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printPersonal('${yr}')">🖨 Print</button></div>
+  </div>
+  <div class="rpt-card" style="border-color:var(--pri)">
+    <h4>📈 Multi-Year Comparison</h4>
+    <p>Compare ${yr} against other years. Charts: yearly totals bar, monthly trend lines, buyer evolution.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="nav('compare')">Go to Compare →</button></div>
+  </div>
+</div>`;
+}
+function openMonthPicker(){$('mthpick-ov').classList.add('open')}
+function doPrintMonthly(){const m=$('mthpick-sel').value;closeModal('mthpick-ov');printMonthly(D.currentYear,m)}
+
+// ── PRINT ENGINE ──────────────────────────────────────────────────────────────
+function printBase(title,yr,body){
+  const w=window.open('','_blank','width=1000,height=750');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${title} — ${yr}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:10.5pt;color:#111;background:#fff;padding:18mm 20mm}
+@page{size:A4 portrait;margin:12mm 15mm}
+h1{font-size:18pt;color:#0D47A1;margin-bottom:4pt}
+h2{font-size:13pt;color:#0D47A1;border-bottom:1.5pt solid #1565C0;padding-bottom:4pt;margin:16pt 0 8pt}
+h3{font-size:11pt;font-weight:700;margin:12pt 0 6pt;color:#333}
+.meta{font-size:9pt;color:#666;margin-bottom:14pt}
+.kpi-row{display:flex;gap:14pt;margin:10pt 0 16pt;flex-wrap:wrap}
+.kpi-box{border:1pt solid #ddd;border-radius:4pt;padding:8pt 12pt;min-width:110pt;flex:1}
+.kpi-box .lbl{font-size:8pt;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:.4pt}
+.kpi-box .val{font-size:16pt;font-weight:800;color:#0D47A1;margin-top:2pt}
+.kpi-box .sub{font-size:8pt;color:#888;margin-top:1pt}
+table{width:100%;border-collapse:collapse;font-size:9pt;margin:6pt 0}
+thead th{background:#1565C0;color:#fff;padding:5pt 7pt;text-align:left;font-size:8.5pt}
+tbody td{padding:5pt 7pt;border-bottom:.5pt solid #e0e0e0}
+tbody tr:nth-child(even) td{background:#F8F9FA}
+tfoot td{font-weight:700;background:#F0F4F8;padding:5pt 7pt;border-top:1pt solid #ccc}
+.chart-section{margin:12pt 0;page-break-inside:avoid}
+.chart-section svg{max-width:100%;display:block}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16pt}
+.page-break{page-break-after:always}
+.no-break{page-break-inside:avoid}
+.badge-ok{background:#E8F5E9;color:#2E7D32;padding:1pt 6pt;border-radius:10pt;font-size:8pt;font-weight:700}
+.badge-err{background:#FFEBEE;color:#C62828;padding:1pt 6pt;border-radius:10pt;font-size:8pt;font-weight:700}
+.badge-warn{background:#FFF3E0;color:#E65100;padding:1pt 6pt;border-radius:10pt;font-size:8pt;font-weight:700}
+.badge-info{background:#E3F2FD;color:#0D47A1;padding:1pt 6pt;border-radius:10pt;font-size:8pt;font-weight:700}
+footer{margin-top:20pt;padding-top:8pt;border-top:.5pt solid #ccc;font-size:8pt;color:#999;display:flex;justify-content:space-between}
+@media print{body{padding:0}}
+</style></head><body>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16pt">
+  <div><h1>📦 Export Manager</h1><div class="meta">${title} — Year ${yr} &nbsp;|&nbsp; Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
+  <div style="text-align:right;font-size:9pt;color:#888"><strong>CONFIDENTIAL</strong><br>Internal Use Only</div>
+</div>
+${body}
+<footer><span>Export Manager — ${yr}</span><span>${title}</span><span>Printed ${new Date().toLocaleString()}</span></footer>
+<script>window.onload=function(){setTimeout(function(){window.print()},400)}<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+function printYearly(yr){
+  const ships=getShips(yr),cfg=getCfg(yr),active=ships.filter(s=>!s.cancelled);
+  const rate=cfg.usdToBdt;
+  const totalInv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
+  const totalOrd=active.reduce((a,s)=>a+Number(s.oamt||0),0);
+  const unpaid=active.filter(s=>s.pay!=='Yes');
+  const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
+  const mData=MONTHS.map(m=>{const s=active.filter(x=>x.month===m);const inv=s.reduce((a,x)=>a+Number(x.iamt||0),0);return{month:m,cnt:s.length,inv,bdt:inv*rate}});
+  const barItems=MONTHS.map((m,i)=>({label:m.slice(0,3),value:mData[i].inv,color:i<6?'#1565C0':'#2E7D32'}));
+  const bm={};active.forEach(s=>{bm[s.party]=(bm[s.party]||0)+Number(s.iamt||0)});
+  const buyers=Object.entries(bm).sort((a,b)=>b[1]-a[1]);
+  const donutItems=buyers.map((b,i)=>({label:b[0],value:b[1],color:COLORS[i%COLORS.length]}));
+  const body=`
+<div class="kpi-row">
+  <div class="kpi-box"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div><div class="sub">${ships.filter(s=>s.cancelled).length} cancelled</div></div>
+  <div class="kpi-box"><div class="lbl">Invoice (USD)</div><div class="val">$${Math.round(totalInv).toLocaleString()}</div><div class="sub">Order: $${Math.round(totalOrd).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Invoice (BDT)</div><div class="val">৳${Math.round(totalInv*rate).toLocaleString()}</div><div class="sub">@ ${rate} rate</div></div>
+  <div class="kpi-box"><div class="lbl">Unpaid</div><div class="val">${unpaid.length}</div><div class="sub">$${Math.round(unpaid.reduce((a,s)=>a+Number(s.iamt||0),0)).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">CBM Shipped</div><div class="val">${fNum(cbm)}</div><div class="sub">Total volume</div></div>
+</div>
+<div class="two-col">
+  <div class="chart-section"><h3>Monthly Invoice (USD)</h3>${svgBar(barItems,{w:380,h:155,bg:'#fff'})}</div>
+  <div class="chart-section"><h3>Buyer Share</h3>${svgDonut(donutItems.length?donutItems:[{label:'No data',value:1,color:'#ddd'}],{size:180,bg:'transparent'})}</div>
+</div>
+<h2>Monthly Breakdown</h2>
+<table><thead><tr><th>Month</th><th>Shipments</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Overhead (BDT)</th><th>Profit (BDT)</th></tr></thead>
+<tbody>${mData.map(m=>`<tr><td>${m.month}</td><td>${m.cnt}</td><td>${m.inv?'$'+Math.round(m.inv).toLocaleString():'—'}</td><td>${m.inv?'৳'+Math.round(m.bdt).toLocaleString():'—'}</td><td>${m.inv?'৳'+Math.round(m.bdt*cfg.overheadPct/100).toLocaleString():'—'}</td><td>${m.inv?'৳'+Math.round(m.bdt*cfg.profitPct/100).toLocaleString():'—'}</td></tr>`).join('')}</tbody>
+<tfoot><tr><td>TOTAL</td><td>${active.length}</td><td>$${Math.round(totalInv).toLocaleString()}</td><td>৳${Math.round(totalInv*rate).toLocaleString()}</td><td>৳${Math.round(totalInv*rate*cfg.overheadPct/100).toLocaleString()}</td><td>৳${Math.round(totalInv*rate*cfg.profitPct/100).toLocaleString()}</td></tr></tfoot>
+</table>
+<div class="page-break"></div>
+<h2>Buyer Analysis</h2>
+<table><thead><tr><th>Buyer</th><th>Orders</th><th>CBM</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Share %</th></tr></thead>
+<tbody>${buyers.map(([name,inv])=>{const b=active.filter(s=>s.party===name);return`<tr><td>${name}</td><td>${b.length}</td><td>${fNum(b.reduce((a,s)=>a+Number(s.vol||0),0))}</td><td>$${Math.round(inv).toLocaleString()}</td><td>৳${Math.round(inv*rate).toLocaleString()}</td><td>${(inv/totalInv*100).toFixed(2)}%</td></tr>`}).join('')}</tbody>
+<tfoot><tr><td>TOTAL</td><td>${active.length}</td><td>${fNum(cbm)}</td><td>$${Math.round(totalInv).toLocaleString()}</td><td>৳${Math.round(totalInv*rate).toLocaleString()}</td><td>100%</td></tr></tfoot>
+</table>
+<h2>All Shipments</h2>
+<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>Month</th><th>CBM</th><th>Invoice (USD)</th><th>Payment</th><th>Surrender</th><th>Incentive</th></tr></thead>
+<tbody>${ships.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.month}</td><td>${s.vol}</td><td>${fUSD(s.iamt)}</td><td class="${s.pay==='Yes'?'badge-ok':'badge-err'}">${s.pay}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+</table>`;
+  printBase('Yearly Summary Report',yr,body);
+}
+
+function printMonthly(yr,month){
+  const ships=getShips(yr),cfg=getCfg(yr);
+  const list=month==='All'?ships:ships.filter(s=>s.month===month);
+  const active=list.filter(s=>!s.cancelled);
+  const inv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
+  const ord=active.reduce((a,s)=>a+Number(s.oamt||0),0);
+  const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
+  const byMonth=month==='All'?MONTHS.filter(m=>ships.some(s=>s.month===m)).map(m=>{
+    const ms=ships.filter(s=>s.month===m);
+    const mi=ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
+    return`<h3>${m}</h3><table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>ETD</th><th>Ex-Factory</th><th>Order (USD)</th><th>Invoice (USD)</th><th>ETA</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
+    <tbody>${ms.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.etd?new Date(s.etd).toLocaleDateString('en-GB'):'—'}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.oamt||0).toLocaleString()}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.eta?new Date(s.eta).toLocaleDateString('en-GB'):'—'}</td><td class="${s.pay==='Yes'?'badge-ok':'badge-err'}">${s.pay}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="3">Sub-total (${ms.filter(s=>!s.cancelled).length} active)</td><td>${fNum(ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.vol||0),0))}</td><td colspan="2"></td><td>$${Math.round(ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.oamt||0),0)).toLocaleString()}</td><td>$${Math.round(mi).toLocaleString()}</td><td colspan="4"></td></tr></tfoot></table>`;
+  }).join('<br>'):
+  `<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>ETD</th><th>Ex-Factory</th><th>Order (USD)</th><th>Invoice (USD)</th><th>ETA</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
+  <tbody>${list.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.etd?new Date(s.etd).toLocaleDateString('en-GB'):'—'}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.oamt||0).toLocaleString()}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.eta?new Date(s.eta).toLocaleDateString('en-GB'):'—'}</td><td class="${s.pay==='Yes'?'badge-ok':'badge-err'}">${s.pay}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="3">Total (${active.length} active)</td><td>${fNum(cbm)}</td><td colspan="2"></td><td>$${Math.round(ord).toLocaleString()}</td><td>$${Math.round(inv).toLocaleString()}</td><td colspan="4"></td></tr></tfoot></table>`;
+  const body=`<div class="kpi-row">
+    <div class="kpi-box"><div class="lbl">Shipments</div><div class="val">${active.length}</div></div>
+    <div class="kpi-box"><div class="lbl">Invoice (USD)</div><div class="val">$${Math.round(inv).toLocaleString()}</div></div>
+    <div class="kpi-box"><div class="lbl">Invoice (BDT)</div><div class="val">৳${Math.round(inv*cfg.usdToBdt).toLocaleString()}</div></div>
+    <div class="kpi-box"><div class="lbl">CBM</div><div class="val">${fNum(cbm)}</div></div>
+  </div><h2>${month==='All'?'All Months':month}</h2>${byMonth}`;
+  printBase(`Monthly Detail — ${month}`,yr,body);
+}
+
+function printBuyer(yr){
+  const ships=getShips(yr),cfg=getCfg(yr),active=ships.filter(s=>!s.cancelled);
+  const rate=cfg.usdToBdt;
+  const totalInv=active.reduce((a,s)=>a+Number(s.iamt||0),0)||1;
+  const bm={};
+  active.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,ord:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.ord+=Number(s.oamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Yes')b.paid++;if(s.inc==='Yes')b.inc++});
+  const sorted=Object.entries(bm).sort((a,b)=>b[1].inv-a[1].inv);
+  const barItems=sorted.map((b,i)=>({label:b[0].split(' ')[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
+  const donutItems=sorted.map((b,i)=>({label:b[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
+  const body=`
+<div class="kpi-row">
+  <div class="kpi-box"><div class="lbl">Total Buyers</div><div class="val">${sorted.length}</div></div>
+  <div class="kpi-box"><div class="lbl">Total Invoice</div><div class="val">$${Math.round(totalInv).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div></div>
+</div>
+<div class="two-col">
+  <div class="chart-section"><h3>Invoice by Buyer</h3>${svgBar(barItems,{w:350,h:155,bg:'#fff'})}</div>
+  <div class="chart-section"><h3>Buyer Share</h3>${svgDonut(donutItems,{size:185,bg:'transparent'})}</div>
+</div>
+<h2>Buyer Details</h2>
+<table><thead><tr><th>Buyer</th><th>Orders</th><th>CBM</th><th>Order (USD)</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Share</th><th>Pay %</th><th>Inc %</th></tr></thead>
+<tbody>${sorted.map(([n,b],i)=>`<tr><td>${n}</td><td>${b.cnt}</td><td>${fNum(b.cbm)}</td><td>$${Math.round(b.ord).toLocaleString()}</td><td>$${Math.round(b.inv).toLocaleString()}</td><td>৳${Math.round(b.inv*rate).toLocaleString()}</td><td>${(b.inv/totalInv*100).toFixed(2)}%</td><td>${b.cnt?Math.round(b.paid/b.cnt*100)+'%':'—'}</td><td>${b.cnt?Math.round(b.inc/b.cnt*100)+'%':'—'}</td></tr>`).join('')}</tbody>
+<tfoot><tr><td>TOTAL</td><td>${active.length}</td><td>${fNum(active.reduce((a,s)=>a+Number(s.vol||0),0))}</td><td>$${Math.round(active.reduce((a,s)=>a+Number(s.oamt||0),0)).toLocaleString()}</td><td>$${Math.round(totalInv).toLocaleString()}</td><td>৳${Math.round(totalInv*rate).toLocaleString()}</td><td>100%</td><td></td><td></td></tr></tfoot>
+</table>`;
+  printBase('Buyer Analysis Report',yr,body);
+}
+
+function printFinancial(yr){
+  const ships=getShips(yr),cfg=getCfg(yr),active=ships.filter(s=>!s.cancelled);
+  const rate=cfg.usdToBdt;
+  const mData=MONTHS.map(m=>{const s=active.filter(x=>x.month===m);const inv=s.reduce((a,x)=>a+Number(x.iamt||0),0);return{month:m,cnt:s.length,inv,bdt:inv*rate}});
+  const h1usd=mData.slice(0,6).reduce((a,m)=>a+m.inv,0);
+  const h2usd=mData.slice(6).reduce((a,m)=>a+m.inv,0);
+  const total=h1usd+h2usd,totalBdt=total*rate;
+  const barItems=MONTHS.map((m,i)=>({label:m.slice(0,3),value:mData[i].inv,color:i<6?'#1565C0':'#2E7D32'}));
+  const body=`
+<div class="kpi-row">
+  <div class="kpi-box"><div class="lbl">Exchange Rate</div><div class="val">${rate}</div><div class="sub">BDT per USD</div></div>
+  <div class="kpi-box"><div class="lbl">Total Invoice (USD)</div><div class="val">$${Math.round(total).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Total Invoice (BDT)</div><div class="val">৳${Math.round(totalBdt).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Overhead (BDT)</div><div class="val">৳${Math.round(totalBdt*cfg.overheadPct/100).toLocaleString()}</div><div class="sub">@ ${cfg.overheadPct}%</div></div>
+  <div class="kpi-box"><div class="lbl">Profit (BDT)</div><div class="val">৳${Math.round(totalBdt*cfg.profitPct/100).toLocaleString()}</div><div class="sub">@ ${cfg.profitPct}%</div></div>
+</div>
+<div class="chart-section"><h3>Monthly Invoice Distribution (H1=Blue, H2=Green)</h3>${svgBar(barItems,{w:560,h:150,bg:'#fff'})}</div>
+<h2>Monthly Financial Breakdown</h2>
+<table><thead><tr><th>Month</th><th>Shipments</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Overhead @ ${cfg.overheadPct}% (BDT)</th><th>Profit @ ${cfg.profitPct}% (BDT)</th></tr></thead>
+<tbody>${mData.map(m=>`<tr><td>${m.month}</td><td>${m.cnt}</td><td>${m.inv?'$'+Math.round(m.inv).toLocaleString():'—'}</td><td>${m.inv?'৳'+Math.round(m.bdt).toLocaleString():'—'}</td><td>${m.inv?'৳'+Math.round(m.bdt*cfg.overheadPct/100).toLocaleString():'—'}</td><td>${m.inv?'৳'+Math.round(m.bdt*cfg.profitPct/100).toLocaleString():'—'}</td></tr>`).join('')}</tbody>
+<tfoot>
+  <tr><td>H1 (Jan–Jun)</td><td></td><td>$${Math.round(h1usd).toLocaleString()}</td><td>৳${Math.round(h1usd*rate).toLocaleString()}</td><td>৳${Math.round(h1usd*rate*cfg.overheadPct/100).toLocaleString()}</td><td>৳${Math.round(h1usd*rate*cfg.profitPct/100).toLocaleString()}</td></tr>
+  <tr><td>H2 (Jul–Dec)</td><td></td><td>$${Math.round(h2usd).toLocaleString()}</td><td>৳${Math.round(h2usd*rate).toLocaleString()}</td><td>৳${Math.round(h2usd*rate*cfg.overheadPct/100).toLocaleString()}</td><td>৳${Math.round(h2usd*rate*cfg.profitPct/100).toLocaleString()}</td></tr>
+  <tr><td>TOTAL</td><td>${active.length}</td><td>$${Math.round(total).toLocaleString()}</td><td>৳${Math.round(totalBdt).toLocaleString()}</td><td>৳${Math.round(totalBdt*cfg.overheadPct/100).toLocaleString()}</td><td>৳${Math.round(totalBdt*cfg.profitPct/100).toLocaleString()}</td></tr>
+</tfoot></table>`;
+  printBase('Financial Statement',yr,body);
+}
+
+function printPersonal(yr){
+  const ships=getShips(yr),cfg=getCfg(yr),active=ships.filter(s=>!s.cancelled);
+  const rate=cfg.usdToBdt,pct=cfg.personalPct/100;
+  const h1=active.filter(s=>MONTHS.indexOf(s.month)<6).reduce((a,s)=>a+Number(s.iamt||0),0)*rate;
+  const h2=active.filter(s=>MONTHS.indexOf(s.month)>=6).reduce((a,s)=>a+Number(s.iamt||0),0)*rate;
+  const prev=Number(cfg.prevIncBdt||0);
+  const rows=[
+    {label:'Previous Claim Incentive (31 Files)',bdt:prev,recv:cfg.prevIncRecv},
+    {label:`Profit @ ${cfg.personalPct}% (Jan–Jun)`,bdt:h1*pct,recv:cfg.profH1Recv,basis:h1},
+    {label:`Incentive @ ${cfg.personalPct}% (Jan–Jun)`,bdt:h1*pct,recv:cfg.incH1Recv,basis:h1},
+    {label:`Profit @ ${cfg.personalPct}% (Jul–Dec)`,bdt:h2*pct,recv:cfg.profH2Recv,basis:h2},
+    {label:`Incentive @ ${cfg.personalPct}% (Jul–Dec)`,bdt:h2*pct,recv:cfg.incH2Recv,basis:h2},
+  ];
+  const total=rows.reduce((a,r)=>a+r.bdt,0);
+  const received=rows.filter(r=>r.recv).reduce((a,r)=>a+r.bdt,0);
+  const body=`
+<div class="kpi-row">
+  <div class="kpi-box"><div class="lbl">Gross Earnings</div><div class="val">৳${Math.round(total).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Received</div><div class="val">৳${Math.round(received).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Receivable</div><div class="val">৳${Math.round(total-received).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Rate</div><div class="val">${cfg.personalPct}%</div><div class="sub">Each (Profit & Incentive)</div></div>
+</div>
+<h2>Earnings Breakdown</h2>
+<table><thead><tr><th>Description</th><th>Basis (BDT)</th><th>Amount (BDT)</th><th>Status</th></tr></thead>
+<tbody>${rows.map(r=>`<tr><td>${r.label}</td><td>${r.basis?'৳'+Math.round(r.basis).toLocaleString():'Previous carry-forward'}</td><td><strong>৳${Math.round(r.bdt).toLocaleString()}</strong></td><td class="${r.recv?'badge-ok':'badge-warn'}">${r.recv?'Received':'Pending'}</td></tr>`).join('')}</tbody>
+<tfoot>
+  <tr><td>TOTAL</td><td></td><td>৳${Math.round(total).toLocaleString()}</td><td></td></tr>
+  <tr><td>Received</td><td></td><td>৳${Math.round(received).toLocaleString()}</td><td></td></tr>
+  <tr><td>Receivable (Pending)</td><td></td><td>৳${Math.round(total-received).toLocaleString()}</td><td></td></tr>
+</tfoot></table>
+<h2>Calculation Basis</h2>
+<table><thead><tr><th>Period</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Rate</th><th>Profit (BDT)</th><th>Incentive (BDT)</th></tr></thead>
+<tbody>
+  <tr><td>H1 (Jan–Jun)</td><td>$${Math.round(h1/rate).toLocaleString()}</td><td>৳${Math.round(h1).toLocaleString()}</td><td>${cfg.personalPct}%</td><td>৳${Math.round(h1*pct).toLocaleString()}</td><td>৳${Math.round(h1*pct).toLocaleString()}</td></tr>
+  <tr><td>H2 (Jul–Dec)</td><td>$${Math.round(h2/rate).toLocaleString()}</td><td>৳${Math.round(h2).toLocaleString()}</td><td>${cfg.personalPct}%</td><td>৳${Math.round(h2*pct).toLocaleString()}</td><td>৳${Math.round(h2*pct).toLocaleString()}</td></tr>
+</tbody></table>`;
+  printBase('Personal Earnings Report',yr,body);
+}
+
+// ── MULTI-YEAR COMPARISON ─────────────────────────────────────────────────────
+function renderCompare(){
+  const yrs=allYears();
+  if(!ST.cmpInit&&yrs.length>0){ST.cmpYears=yrs.slice(0,Math.min(3,yrs.length));ST.cmpInit=true}
+  const sel=ST.cmpYears.filter(y=>D.years[y]);
+  const hasData=sel.length>=1;
+  // Monthly line chart: one series per year
+  const lineSeries=sel.map((yr,i)=>{
+    const active=getShips(yr).filter(s=>!s.cancelled);
+    return{name:yr,color:COLORS[i%COLORS.length],values:MONTHS.map(m=>active.filter(s=>s.month===m).reduce((a,s)=>a+Number(s.iamt||0),0))};
+  });
+  // Yearly totals bar
+  const yearTotals=sel.map((yr,i)=>{const a=getShips(yr).filter(s=>!s.cancelled);return{label:yr,value:a.reduce((ac,s)=>ac+Number(s.iamt||0),0),color:COLORS[i%COLORS.length]}});
+  // Per-year summary
+  const summaries=sel.map(yr=>{const a=getShips(yr).filter(s=>!s.cancelled);return{yr,cnt:a.length+getShips(yr).filter(s=>s.cancelled).length,active:a.length,inv:a.reduce((ac,s)=>ac+Number(s.iamt||0),0),cbm:a.reduce((ac,s)=>ac+Number(s.vol||0),0),unpaid:a.filter(s=>s.pay!=='Yes').length}});
+  return `
+<div class="sh">
+  <div><div class="sh-t">Multi-Year Comparison</div><div class="sh-s">Select years to compare</div></div>
+  ${hasData?`<button class="btn btn-ghost btn-sm" onclick="printComparison()">🖨 Print Comparison Report</button>`:''}
+</div>
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+  <span style="font-size:13px;font-weight:600;color:var(--muted)">Compare:</span>
+  ${yrs.map((y,i)=>`<label class="yr-check ${ST.cmpYears.includes(y)?'checked':''}">
+    <input type="checkbox" value="${y}" ${ST.cmpYears.includes(y)?'checked':''} onchange="toggleCmpYear('${y}',this.checked)">
+    <span style="color:${COLORS[yrs.indexOf(y)%COLORS.length]};margin-right:4px">●</span> ${y}
+  </label>`).join('')}
+  ${yrs.length<2?'<span style="font-size:12px;color:var(--muted)">(Add more years in "Manage Years" to compare)</span>':''}
+</div>
+${!hasData?'<div class="empty">Select at least one year to view comparison.</div>':`
+<div class="kpi-grid">
+  ${summaries.map((s,i)=>`<div class="kpi" style="border-top:3px solid ${COLORS[i%COLORS.length]}">
+    <div class="lbl" style="color:${COLORS[i%COLORS.length]}">${s.yr}</div>
+    <div class="val">${fUSD(s.inv,0)}</div>
+    <div class="sub">${s.active} shipments • ${fNum(s.cbm)} CBM</div>
+    <div class="sub">${s.unpaid} unpaid</div>
+  </div>`).join('')}
+</div>
+<div class="g2" style="margin-bottom:18px">
+  <div class="card"><div class="card-title">Total Invoice by Year</div>${svgBar(yearTotals,{w:440,h:155,prefix:'$'})}</div>
+  <div class="card"><div class="card-title">Monthly Trend (USD) — All Selected Years</div>${svgLine(lineSeries,MONTHS.map(m=>m.slice(0,3)),{w:440,h:155,prefix:'$'})}</div>
+</div>
+<div class="card" style="margin-bottom:18px">
+  <div class="card-title">Year-Over-Year Summary</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Metric</th>${sel.map(y=>`<th>${y}</th>`).join('')}${sel.length>1?'<th>Change (Last vs First)</th>':''}</tr></thead>
+    <tbody>
+      ${[
+        ['Total Shipments (active)',s=>s.active],
+        ['Invoice (USD)',s=>fUSD(s.inv)],
+        ['Invoice (BDT)',s=>fBDT(s.inv*(getCfg(s.yr).usdToBdt))],
+        ['Avg Invoice / Shipment',s=>s.active?fUSD(s.inv/s.active):'—'],
+        ['Unpaid Invoices',s=>s.unpaid],
+        ['Total CBM',s=>fNum(s.cbm)],
+      ].map(([lbl,fn])=>`<tr><td>${lbl}</td>${summaries.map(s=>`<td>${fn(s)}</td>`).join('')}${sel.length>1?`<td>${lbl.includes('USD')||lbl.includes('BDT')||lbl.includes('Invoice')?'$'+((summaries.at(-1).inv-summaries[0].inv)>=0?'+':'')+Math.round(summaries.at(-1).inv-summaries[0].inv).toLocaleString():(summaries.at(-1).active-summaries[0].active>=0?'+':'')+(summaries.at(-1).active-summaries[0].active)}</td>`:''}</tr>`).join('')}
+    </tbody>
+  </table></div>
+</div>
+${sel.length>1?`<div class="card">
+  <div class="card-title">Top Buyers Across Selected Years</div>
+  ${(()=>{
+    const allBuyers=[...new Set(sel.flatMap(yr=>getShips(yr).filter(s=>!s.cancelled).map(s=>s.party)))].slice(0,8);
+    const groups=allBuyers.map(b=>({label:b.split(' ')[0],values:sel.map(yr=>getShips(yr).filter(s=>!s.cancelled&&s.party===b).reduce((a,s)=>a+Number(s.iamt||0),0))}));
+    return svgGroupedBar(groups,sel,sel.map((y,i)=>COLORS[i%COLORS.length]),{w:600,h:180,title:'',prefix:'$'});
+  })()}
+</div>`:''}
+`}`;
+}
+function toggleCmpYear(yr,checked){
+  if(checked){if(!ST.cmpYears.includes(yr))ST.cmpYears.push(yr)}
+  else ST.cmpYears=ST.cmpYears.filter(y=>y!==yr);
+  render();
+}
+
+function printComparison(){
+  const sel=ST.cmpYears.filter(y=>D.years[y]);
+  if(!sel.length){toast('Select at least one year');return}
+  const summaries=sel.map(yr=>{const a=getShips(yr).filter(s=>!s.cancelled),cfg=getCfg(yr);return{yr,active:a.length,inv:a.reduce((ac,s)=>ac+Number(s.iamt||0),0),cbm:a.reduce((ac,s)=>ac+Number(s.vol||0),0),unpaid:a.filter(s=>s.pay!=='Yes').length,rate:cfg.usdToBdt}});
+  const lineSeries=sel.map((yr,i)=>{const a=getShips(yr).filter(s=>!s.cancelled);return{name:yr,color:COLORS[i%COLORS.length],values:MONTHS.map(m=>a.filter(s=>s.month===m).reduce((ac,s)=>ac+Number(s.iamt||0),0))}});
+  const yearTotals=summaries.map((s,i)=>({label:s.yr,value:s.inv,color:COLORS[i%COLORS.length]}));
+  const allBuyers=[...new Set(sel.flatMap(yr=>getShips(yr).filter(s=>!s.cancelled).map(s=>s.party)))].slice(0,8);
+  const groups=allBuyers.map(b=>({label:b.split(' ')[0].slice(0,8),values:sel.map(yr=>getShips(yr).filter(s=>!s.cancelled&&s.party===b).reduce((a,s)=>a+Number(s.iamt||0),0))}));
+  const body=`
+<div class="kpi-row">${summaries.map((s,i)=>`<div class="kpi-box" style="border-top:2pt solid ${COLORS[i%COLORS.length]}"><div class="lbl" style="color:${COLORS[i%COLORS.length]}">${s.yr}</div><div class="val">$${Math.round(s.inv).toLocaleString()}</div><div class="sub">${s.active} shipments • ${fNum(s.cbm)} CBM</div></div>`).join('')}</div>
+<div class="two-col">
+  <div class="chart-section"><h3>Total Invoice by Year</h3>${svgBar(yearTotals,{w:340,h:145,bg:'#fff',prefix:'$'})}</div>
+  <div class="chart-section"><h3>Monthly Trend</h3>${svgLine(lineSeries,MONTHS.map(m=>m.slice(0,3)),{w:340,h:145,bg:'#fff',prefix:'$'})}</div>
+</div>
+<h2>Year-Over-Year Summary</h2>
+<table><thead><tr><th>Metric</th>${sel.map(y=>`<th>${y}</th>`).join('')}</tr></thead>
+<tbody>
+  <tr><td>Active Shipments</td>${summaries.map(s=>`<td>${s.active}</td>`).join('')}</tr>
+  <tr><td>Invoice (USD)</td>${summaries.map(s=>`<td>$${Math.round(s.inv).toLocaleString()}</td>`).join('')}</tr>
+  <tr><td>Invoice (BDT)</td>${summaries.map(s=>`<td>৳${Math.round(s.inv*s.rate).toLocaleString()}</td>`).join('')}</tr>
+  <tr><td>Avg Invoice/Shipment</td>${summaries.map(s=>`<td>${s.active?'$'+Math.round(s.inv/s.active).toLocaleString():'—'}</td>`).join('')}</tr>
+  <tr><td>Unpaid</td>${summaries.map(s=>`<td>${s.unpaid}</td>`).join('')}</tr>
+  <tr><td>CBM</td>${summaries.map(s=>`<td>${fNum(s.cbm)}</td>`).join('')}</tr>
+</tbody></table>
+<h2>Buyer Evolution</h2>
+<div class="chart-section">${svgGroupedBar(groups,sel,sel.map((y,i)=>COLORS[i%COLORS.length]),{w:560,h:165,bg:'#fff',prefix:'$'})}</div>
+<table><thead><tr><th>Buyer</th>${sel.map(y=>`<th>${y} (USD)</th>`).join('')}</tr></thead>
+<tbody>${allBuyers.map(b=>`<tr><td>${b}</td>${sel.map(yr=>{const v=getShips(yr).filter(s=>!s.cancelled&&s.party===b).reduce((a,s)=>a+Number(s.iamt||0),0);return`<td>${v?'$'+Math.round(v).toLocaleString():'—'}</td>`}).join('')}</tr>`).join('')}</tbody>
+</table>`;
+  printBase(`Multi-Year Comparison (${sel.join(', ')})`,sel.join(' vs '),body);
+}
+
+// ── MANAGE YEARS ──────────────────────────────────────────────────────────────
+function renderYears(){
+  const yrs=allYears();
+  return `
+<div class="sh"><div><div class="sh-t">Manage Years</div><div class="sh-s">Add, view, or remove years</div></div>
+  <button class="btn btn-pri btn-sm" onclick="openAddYear()">+ Add Year</button></div>
+<div class="g3">
+  ${yrs.map((yr,i)=>{
+    const ships=getShips(yr),active=ships.filter(s=>!s.cancelled);
+    const inv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
+    const cfg=getCfg(yr);
+    return`<div class="card" style="border-top:3px solid ${COLORS[i%COLORS.length]}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <strong style="font-size:18px;color:${COLORS[i%COLORS.length]}">${yr}</strong>
+        ${yr==D.currentYear?'<span class="bdg bdg-ok">Active</span>':
+          `<button class="btn btn-ghost btn-xs" onclick="switchYear('${yr}');nav('dashboard')">Switch</button>`}
+      </div>
+      ${[['Shipments',ships.length+' ('+active.length+' active)'],['Invoice (USD)',fUSD(inv)],['Invoice (BDT)',fBDT(inv*cfg.usdToBdt)],['Exchange Rate',cfg.usdToBdt+' BDT/USD']].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join('')}
+      <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-out btn-xs" onclick="switchYear('${yr}');nav('dashboard')">Open</button>
+        <button class="btn btn-ghost btn-xs" onclick="switchYear('${yr}');nav('reports')">Reports</button>
+        ${yrs.length>1?`<button class="btn btn-err btn-xs" onclick="deleteYear('${yr}')">Delete</button>`:''}
+      </div>
+    </div>`;
+  }).join('')}
+</div>`;
+}
+function deleteYear(yr){
+  confirm2('Delete '+yr+'?','All shipments and settings for '+yr+' will be permanently deleted. This cannot be undone.',()=>{
+    delete D.years[yr];
+    if(D.currentYear==yr)D.currentYear=allYears()[0]||'2025';
+    saveAll(D);updateYrSel();nav('years');toast(yr+' deleted');
+  },'Delete','btn-err');
+}
+
+// ── ADD YEAR MODAL ────────────────────────────────────────────────────────────
+function openAddYear(){
+  const yrs=allYears();
+  $('ay-year').value='';
+  $('ay-copy').innerHTML='<option value="">— Start with defaults —</option>'+yrs.map(y=>`<option value="${y}">Copy from ${y}</option>`).join('');
+  $('addyr-ov').classList.add('open');
+}
+function confirmAddYear(){
+  const yr=($('ay-year').value||'').trim();
+  if(!yr||isNaN(yr)||yr<2000||yr>2099){toast('Enter a valid year (2000–2099)');return}
+  closeModal('addyr-ov');
+  addYear(yr,$('ay-copy').value||null);
+}
+
+// ── CRUD ──────────────────────────────────────────────────────────────────────
+function populateDL(){
+  const ships=getShips(D.currentYear);
+  const pl=$('dl-party');pl.innerHTML=uniq(ships,'party').map(p=>`<option value="${p}">`).join('');
+  const dl=$('dl-dest');dl.innerHTML=uniq(ships,'dest').map(d=>`<option value="${d}">`).join('');
+}
+function openAdd(){
+  $('ship-title').textContent='Add Shipment';
+  document.getElementById('ship-ov').querySelector('form')?.reset();
+  $('f-month').value='';$('f-orderNo').value='';$('f-party').value='';$('f-dest').value='';
+  $('f-vol').value='';$('f-etd').value='';$('f-exf').value='';$('f-eta').value='';
+  $('f-oamt').value='';$('f-iamt').value='';$('f-pay').value='Yes';$('f-sur').value='Complete';
+  $('f-inc').value='Yes';$('f-cancel').checked=false;$('f-notes').value='';$('f-id').value='';
+  populateDL();$('ship-ov').classList.add('open');
+}
+function openEdit(id){
+  const yr=D.currentYear,s=getShips(yr).find(x=>x.id===id);if(!s)return;
+  $('ship-title').textContent='Edit Shipment';
+  $('f-id').value=s.id;$('f-month').value=s.month;$('f-orderNo').value=s.orderNo;
+  $('f-party').value=s.party;$('f-dest').value=s.dest;$('f-vol').value=s.vol;
+  $('f-etd').value=s.etd||'';$('f-exf').value=s.exf&&s.exf.includes('-')?s.exf:'';
+  $('f-eta').value=s.eta||'';$('f-oamt').value=s.oamt;$('f-iamt').value=s.iamt;
+  $('f-pay').value=s.pay;$('f-sur').value=s.sur;$('f-inc').value=s.inc;
+  $('f-cancel').checked=!!s.cancelled;$('f-notes').value=s.notes||'';
+  populateDL();$('ship-ov').classList.add('open');
+}
+function saveShip(){
+  const yr=D.currentYear;
+  const id=$('f-id').value;
+  const s={
+    id:id?+id:nextId(yr),month:$('f-month').value,orderNo:$('f-orderNo').value.trim(),
+    party:$('f-party').value.trim(),dest:$('f-dest').value.trim(),vol:+$('f-vol').value||0,
+    etd:$('f-etd').value,exf:$('f-exf').value,eta:$('f-eta').value,
+    oamt:+$('f-oamt').value||0,iamt:+$('f-iamt').value||0,
+    pay:$('f-pay').value,sur:$('f-sur').value,inc:$('f-inc').value,
+    cancelled:$('f-cancel').checked,notes:$('f-notes').value.trim()
+  };
+  if(!s.month||!s.orderNo||!s.party||!s.dest){toast('Fill required fields (*)');return}
+  let list=getShips(yr);
+  if(id){list=list.map(x=>x.id===+id?s:x);toast('Shipment updated')}
+  else{list.push(s);toast('Shipment added')}
+  setShips(yr,list);closeModal('ship-ov');render();
+  if(D.cloud&&D.cloud.autoSync)doSync();
+}
+function delShip(id){
+  const yr=D.currentYear,s=getShips(yr).find(x=>x.id===id);if(!s)return;
+  confirm2('Delete Shipment?',`Delete order "${s.orderNo}" (${s.party})? This cannot be undone.`,()=>{
+    setShips(yr,getShips(yr).filter(x=>x.id!==id));render();toast('Deleted');
+    if(D.cloud&&D.cloud.autoSync)doSync();
+  },'Delete','btn-err');
+}
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function doExportCSV(){
+  const yr=D.currentYear,ships=getShips(yr);
+  const cols=['Year','Month','Order No','Party','Dest','CBM','ETD','Ex-Factory','Order (USD)','Invoice (USD)','ETA','Payment','Surrender','Incentive','Cancelled','Notes'];
+  const rows=ships.map(s=>[yr,s.month,s.orderNo,s.party,s.dest,s.vol,s.etd,s.exf,s.oamt,s.iamt,s.eta,s.pay,s.sur,s.inc,s.cancelled?'Yes':'No',s.notes||'']);
+  const csv=[cols,...rows].map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`ExportManager_${yr}.csv`;a.click();toast('CSV exported');
+}
+function doImportJSON(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(d.years){Object.assign(D.years,d.years);saveAll(D);updateYrSel();render();toast('Imported successfully')}else toast('Invalid JSON format')}catch{toast('Error reading file')}};r.readAsText(f)};
+  inp.click();
+}
+
+// ── CLOUD SYNC ────────────────────────────────────────────────────────────────
+function setSyncStatus(type,msg){
+  const el=$('sync-status');
+  el.innerHTML=`<span class="sync-dot sync-${type}"></span>${msg}`;
+}
+async function doSync(){
+  const cloud=D.cloud||{};
+  if(!cloud.token){toast('Add a GitHub token in Settings > Cloud Sync');return}
+  setSyncStatus('warn','Syncing…');
+  try{
+    let gistId=cloud.gistId;
+    const data=JSON.stringify({currentYear:D.currentYear,years:D.years});
+    if(!gistId){
+      // Create new gist
+      const res=await fetch('https://api.github.com/gists',{method:'POST',headers:{'Authorization':'Bearer '+cloud.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'},body:JSON.stringify({description:'Export Manager Data',public:false,files:{'exportmanager.json':{content:data}}})});
+      if(!res.ok)throw new Error('Create failed: '+res.status);
+      const g=await res.json();gistId=g.id;D.cloud.gistId=gistId;saveAll(D);toast('☁ Gist created: '+gistId);
+    } else {
+      const res=await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:{'Authorization':'Bearer '+cloud.token,'Content-Type':'application/json','Accept':'application/vnd.github+json'},body:JSON.stringify({files:{'exportmanager.json':{content:data}}})});
+      if(!res.ok)throw new Error('Sync failed: '+res.status);
+    }
+    setSyncStatus('ok','Synced '+new Date().toLocaleTimeString());toast('☁ Synced to cloud');
+  }catch(e){setSyncStatus('err','Sync error');toast('Sync error: '+e.message)}
+}
+async function doPull(){
+  const cloud=D.cloud||{};
+  if(!cloud.gistId){toast('No Gist ID configured in Settings');return}
+  setSyncStatus('warn','Pulling…');
+  try{
+    const headers={'Accept':'application/vnd.github+json'};
+    if(cloud.token)headers['Authorization']='Bearer '+cloud.token;
+    const res=await fetch('https://api.github.com/gists/'+cloud.gistId,{headers});
+    if(!res.ok)throw new Error('Pull failed: '+res.status);
+    const g=await res.json();
+    const file=g.files['exportmanager.json'];
+    if(!file)throw new Error('No data file in gist');
+    const parsed=JSON.parse(file.content);
+    if(parsed.years)Object.assign(D.years,parsed.years);
+    if(parsed.currentYear)D.currentYear=parsed.currentYear;
+    saveAll(D);updateYrSel();render();
+    setSyncStatus('ok','Pulled '+new Date().toLocaleTimeString());toast('☁ Pulled from cloud');
+  }catch(e){setSyncStatus('err','Pull error');toast('Pull error: '+e.message)}
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){document.querySelectorAll('.ov.open').forEach(el=>el.classList.remove('open'));closeConf()}
+  if(e.key==='n'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName==='BODY')openAdd()
+});
+updateYrSel();
+nav('dashboard');
+// Auto-pull on load if cloud configured
+if(D.cloud&&D.cloud.gistId&&D.cloud.token){setTimeout(doPull,800)}
+</script>
+</body>
+</html>
