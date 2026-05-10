@@ -1477,7 +1477,7 @@ const PNL_EXPENSES=[
   {key:'cashIncentive',label:'Cash Incentive',code:''},
   {key:'profitShare',label:'Profit Share',code:''},
   {key:'docs',label:'Documentation Cost',code:'210'},
-  {key:'ambiente',label:'Ambiente Mela Expense',code:'220'},
+  {key:'ambiente',label:'Fair Expense',code:'220'},
   {key:'hospitality',label:'Hospitality',code:'220'},
   {key:'motorbike',label:'Motor Bike Expense',code:'218'},
   {key:'generator',label:'Generator Oil',code:'213'},
@@ -1505,7 +1505,7 @@ const _PNL_ALIASES = {
   cashIncentive: ['cash incentive','incentive'],
   profitShare:   ['profit share','commission'],
   docs:          ['documentation','doc cost','document'],
-  ambiente:      ['ambiente','mela','trade fair','exhibition'],
+  ambiente:      ['fair expense','ambiente','mela','trade fair','exhibition'],
   hospitality:   ['hospitality','hospit','entertain'],
   motorbike:     ['motor bike','motorbike','bike exp','motorcycle'],
   generator:     ['generator','gen oil'],
@@ -1636,7 +1636,7 @@ function renderPnl(yr,ships,cfg){
     const exp=PNL_EXPENSES.reduce((a,e)=>a+(pd.expenses[e.key]||0),0);
     const gp=sale*(1-pd.cogsPct/100);
     const net=gp-exp-sale*(pd.badDebtPct/100);
-    return{m,sale,exp,gp,net,hasData:exp>0||pd.totalSaleOverride!=null};
+    return{m,sale,cogs:sale*(pd.cogsPct/100),exp,gp,net,hasData:exp>0||pd.totalSaleOverride!=null};
   });
   const pnlWithData=allMoPnl.filter(x=>x.hasData||x.sale>0);
 
@@ -1690,7 +1690,8 @@ function renderPnl(yr,ships,cfg){
 <!-- KPI grid — P&L -->
 <div class="kpi-grid" style="margin-bottom:20px">
   <div class="kpi acc"><div class="lbl">Total Sale (BDT)</div><div class="val" style="font-size:19px">${fB(totalSale)}</div><div class="sub">${autoSaleUSD?fUSD(autoSaleUSD)+' · '+moShips.length+' shipment'+(moShips.length!==1?'s':''):'No shipments this month'}</div></div>
-  <div class="kpi ok"><div class="lbl">Gross Profit (${100-d.cogsPct}%)</div><div class="val" style="font-size:19px">${fB(grossProfit)}</div><div class="sub">After COGS ${d.cogsPct}%</div></div>
+  <div class="kpi err"><div class="lbl">COGS — ${d.cogsPct}%</div><div class="val" style="font-size:19px;color:var(--err)">${totalSale?'('+fB(cogs)+')':'—'}</div><div class="sub">Cost of goods sold</div></div>
+  <div class="kpi ok"><div class="lbl">Gross Profit — ${100-d.cogsPct}%</div><div class="val" style="font-size:19px">${fB(grossProfit)}</div><div class="sub">Sale minus COGS</div></div>
   <div class="kpi ${totalExp>0?'warn':''}"><div class="lbl">Total Expenses</div><div class="val" style="font-size:19px;color:${totalExp>0?'var(--err)':'var(--muted)'}">${totalExp>0?fB(totalExp):'—'}</div><div class="sub">${PNL_EXPENSES.filter(e=>d.expenses[e.key]).length} line items</div></div>
   <div class="kpi ${netProfit>=0?'ok':'err'}"><div class="lbl">Net Profit / Loss</div><div class="val" style="font-size:19px;color:${netProfit>=0?'var(--ok)':'var(--err)'}">${totalSale?fB(Math.abs(netProfit)):'—'}</div><div class="sub">${totalSale?(netProfit>=0?'▲ +'+npPct+'% margin':'▼ '+npPct+'% loss'):'Enter data to calculate'}</div></div>
 </div>
@@ -1708,6 +1709,20 @@ function renderPnl(yr,ships,cfg){
   </div>
 </div>
 
+
+<!-- COGS chart row -->
+${pnlWithData.length?`<div class="g2" style="margin-bottom:18px">
+  <div class="card">
+    <div class="card-title">💸 Monthly COGS — ${yr}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Cost of Goods Sold per month (BDT)</div>
+    <div class="chart-box">${svgBar(pnlWithData.map(x=>({label:x.m.slice(0,3),value:x.cogs,color:'#EF5350'})),{w:440,h:130,prefix:'৳',showVals:true})}</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📈 Sale vs COGS vs Gross Profit — ${yr}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Blue = Sale &nbsp;·&nbsp; Red = COGS &nbsp;·&nbsp; Green = Gross Profit</div>
+    <div class="chart-box">${svgGroupedBar(pnlWithData.map(x=>({label:x.m.slice(0,3),values:[x.sale,x.cogs,x.gp]})),['Sale','COGS','Gross Profit'],['#1565C0','#EF5350','#2E7D32'],{w:440,h:130,prefix:'৳'})}</div>
+  </div>
+</div>`:''}
 
 <!-- Expense form + P&L statement -->
 <div class="g2" style="margin-bottom:18px">
@@ -1765,21 +1780,26 @@ function renderPnl(yr,ships,cfg){
 <div class="card" style="margin-bottom:18px">
   <div class="card-title">📅 Monthly Breakdown — ${yr}</div>
   <div class="tbl-wrap"><table>
-    <thead><tr><th>Month</th><th>Shipments</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Net Profit/Loss</th><th>Margin</th></tr></thead>
+    <thead><tr><th>Month</th><th>Ships</th><th>Invoice (USD)</th><th>Sale (BDT)</th><th style="color:#C62828">COGS (BDT)</th><th style="color:#2E7D32">Gross Profit</th><th>Net P/L</th><th>Margin</th></tr></thead>
     <tbody>${fin.mData.map((m,i)=>{
-      const pd=allMoPnl[i];
+      const pd=allMoPnl[i];const hasP=pd.hasData||pd.sale>0;
       return`<tr style="${m.month===mo?'background:var(--pril)':''}">
         <td><strong>${m.month}</strong></td>
         <td>${m.cnt}</td>
         <td>${m.inv?fUSD(m.inv):'—'}</td>
-        <td>${m.inv?fBDT(m.bdt):'—'}</td>
-        <td style="color:${pd.net>=0?'var(--ok)':'var(--err)'};font-weight:700">${pd.hasData||pd.sale>0?'৳'+Math.round(Math.abs(pd.net)).toLocaleString()+(pd.net>=0?' ▲':' ▼'):'—'}</td>
-        <td>${pd.sale&&(pd.hasData||pd.sale>0)?'<span class="bdg '+(pd.net>=0?'bdg-ok':'bdg-err')+'">'+((pd.net/pd.sale)*100).toFixed(1)+'%</span>':'—'}</td>
+        <td>${hasP?'৳'+Math.round(pd.sale).toLocaleString():'—'}</td>
+        <td style="color:var(--err)">${hasP?'(৳'+Math.round(pd.cogs).toLocaleString()+')':'—'}</td>
+        <td style="color:var(--ok)">${hasP?'৳'+Math.round(pd.gp).toLocaleString():'—'}</td>
+        <td style="color:${pd.net>=0?'var(--ok)':'var(--err)'};font-weight:700">${hasP?'৳'+Math.round(Math.abs(pd.net)).toLocaleString()+(pd.net>=0?' ▲':' ▼'):'—'}</td>
+        <td>${pd.sale&&hasP?'<span class="bdg '+(pd.net>=0?'bdg-ok':'bdg-err')+'">'+((pd.net/pd.sale)*100).toFixed(1)+'%</span>':'—'}</td>
       </tr>`;
     }).join('')}</tbody>
     <tfoot><tr>
       <td>TOTAL</td><td>${fin.active.length}</td>
-      <td>${fUSD(fin.total)}</td><td>${fBDT(fin.totalBdt)}</td>
+      <td>${fUSD(fin.total)}</td>
+      <td>৳${Math.round(allMoPnl.reduce((a,x)=>a+x.sale,0)).toLocaleString()}</td>
+      <td style="color:var(--err);font-weight:700">(৳${Math.round(allMoPnl.reduce((a,x)=>a+x.cogs,0)).toLocaleString()})</td>
+      <td style="color:var(--ok);font-weight:700">৳${Math.round(allMoPnl.reduce((a,x)=>a+x.gp,0)).toLocaleString()}</td>
       <td style="font-weight:800;color:${allMoPnl.reduce((a,x)=>a+x.net,0)>=0?'var(--ok)':'var(--err)'}">৳${Math.round(Math.abs(allMoPnl.reduce((a,x)=>a+x.net,0))).toLocaleString()} ${allMoPnl.reduce((a,x)=>a+x.net,0)>=0?'▲':'▼'}</td>
       <td></td>
     </tr></tfoot>
@@ -2149,6 +2169,21 @@ function renderCompare(){
   const yearTotals=sel.map((yr,i)=>{const a=getShips(yr).filter(s=>!s.cancelled);return{label:yr,value:a.reduce((ac,s)=>ac+Number(s.iamt||0),0),color:COLORS[i%COLORS.length]}});
   // Per-year summary
   const summaries=sel.map(yr=>{const a=getShips(yr).filter(s=>!s.cancelled);return{yr,cnt:a.length+getShips(yr).filter(s=>s.cancelled).length,active:a.length,inv:a.reduce((ac,s)=>ac+Number(s.iamt||0),0),cbm:a.reduce((ac,s)=>ac+Number(s.vol||0),0),unpaid:a.filter(s=>s.pay!=='Full Paid').length}});
+  // P&L per-year computation
+  const pnlByYear=sel.map((yr,i)=>{
+    const ships=getShips(yr).filter(s=>!s.cancelled);const cfg=getCfg(yr);const rate=cfg.usdToBdt;
+    const months=MONTHS.map(m=>{
+      const ms=ships.filter(s=>s.month===m);const pd=getPnlMonth(yr,m);
+      const sale=pd.totalSaleOverride!=null?pd.totalSaleOverride:ms.reduce((a,s)=>a+Number(s.iamt||0),0)*rate;
+      const cogs=sale*(pd.cogsPct/100);const gp=sale-cogs;
+      const exp=PNL_EXPENSES.reduce((a,e)=>a+(pd.expenses[e.key]||0),0);
+      const net=gp-exp-sale*(pd.badDebtPct/100);
+      return{m,sale,cogs,gp,exp,net,hasData:sale>0||exp>0};
+    });
+    const active=months.filter(x=>x.hasData);
+    return{yr,color:COLORS[i%COLORS.length],sale:active.reduce((a,x)=>a+x.sale,0),cogs:active.reduce((a,x)=>a+x.cogs,0),gp:active.reduce((a,x)=>a+x.gp,0),exp:active.reduce((a,x)=>a+x.exp,0),net:active.reduce((a,x)=>a+x.net,0),months};
+  });
+  const hasPnl=pnlByYear.some(p=>p.sale>0);
   return `
 <div class="sh">
   <div><div class="sh-t">Multi-Year Comparison</div><div class="sh-s">Select years to compare</div></div>
@@ -2191,13 +2226,63 @@ ${!hasData?'<div class="empty">Select at least one year to view comparison.</div
     </tbody>
   </table></div>
 </div>
-${sel.length>1?`<div class="card">
+${sel.length>1?`<div class="card" style="margin-bottom:18px">
   <div class="card-title">Top Buyers Across Selected Years</div>
   ${(()=>{
     const allBuyers=[...new Set(sel.flatMap(yr=>getShips(yr).filter(s=>!s.cancelled).map(s=>s.party)))].slice(0,8);
     const groups=allBuyers.map(b=>({label:b.split(' ')[0],values:sel.map(yr=>getShips(yr).filter(s=>!s.cancelled&&s.party===b).reduce((a,s)=>a+Number(s.iamt||0),0))}));
     return svgGroupedBar(groups,sel,sel.map((y,i)=>COLORS[i%COLORS.length]),{w:600,h:180,title:'',prefix:'$'});
   })()}
+</div>`:''}
+
+${hasPnl?`
+<div class="sh" style="margin-top:8px"><div><div class="sh-t" style="font-size:16px">📊 Profit &amp; Loss Comparison</div><div class="sh-s">Year-over-year P&amp;L: COGS, gross profit, expenses, and net profit/loss</div></div></div>
+
+<div class="kpi-grid" style="margin-bottom:18px">
+  ${pnlByYear.map(p=>`<div class="kpi" style="border-top:3px solid ${p.color}">
+    <div class="lbl" style="color:${p.color};font-weight:700">${p.yr} — P&amp;L</div>
+    <div style="font-size:11px;margin:6px 0 2px;color:var(--muted)">Total Sale</div><div style="font-size:14px;font-weight:700">৳${Math.round(p.sale).toLocaleString()}</div>
+    <div style="font-size:11px;margin:4px 0 2px;color:var(--err)">COGS</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.cogs).toLocaleString()})</div>
+    <div style="font-size:11px;margin:4px 0 2px;color:var(--ok)">Gross Profit</div><div style="font-size:13px;font-weight:600;color:var(--ok)">৳${Math.round(p.gp).toLocaleString()}</div>
+    <div style="font-size:11px;margin:4px 0 2px;color:var(--muted)">Expenses</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.exp).toLocaleString()})</div>
+    <div style="font-size:11px;margin:6px 0 2px;font-weight:700">Net P/L</div><div style="font-size:15px;font-weight:800;color:${p.net>=0?'var(--ok)':'var(--err)'}">৳${Math.round(Math.abs(p.net)).toLocaleString()} ${p.net>=0?'▲':'▼'}</div>
+  </div>`).join('')}
+</div>
+
+<div class="g2" style="margin-bottom:18px">
+  <div class="card">
+    <div class="card-title">Net Profit / Loss by Year</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Green = Profit ▲ &nbsp; Red = Loss ▼</div>
+    <div class="chart-box">${svgBar(pnlByYear.map(p=>({label:p.yr,value:Math.abs(p.net),color:p.net>=0?'#2E7D32':'#C62828'})),{w:440,h:150,prefix:'৳',showVals:true})}</div>
+  </div>
+  <div class="card">
+    <div class="card-title">COGS vs Gross Profit by Year</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Red = COGS &nbsp;·&nbsp; Green = Gross Profit</div>
+    <div class="chart-box">${svgGroupedBar(pnlByYear.map(p=>({label:p.yr,values:[p.cogs,p.gp]})),['COGS','Gross Profit'],['#EF5350','#2E7D32'],{w:440,h:150,prefix:'৳'})}</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:18px">
+  <div class="card-title">Monthly Net Profit / Loss Trend</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px">One line per year — positive values = profit, negative shown as 0 in line chart</div>
+  <div class="chart-box">${svgLine(pnlByYear.map(p=>({name:p.yr,color:p.color,values:MONTHS.map(m=>{const mx=p.months.find(x=>x.m===m);return mx?Math.max(0,mx.net):0;})})),MONTHS.map(m=>m.slice(0,3)),{w:600,h:160,prefix:'৳'})}</div>
+</div>
+
+<div class="card" style="margin-bottom:18px">
+  <div class="card-title">Year-over-Year P&amp;L Summary</div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Metric</th>${pnlByYear.map(p=>`<th style="color:${p.color}">${p.yr}</th>`).join('')}${pnlByYear.length>1?'<th>Change</th>':''}</tr></thead>
+    <tbody>
+      ${[
+        ['Total Sale (BDT)',p=>'৳'+Math.round(p.sale).toLocaleString()],
+        ['COGS (BDT)',p=>'(৳'+Math.round(p.cogs).toLocaleString()+')'],
+        ['Gross Profit (BDT)',p=>'৳'+Math.round(p.gp).toLocaleString()],
+        ['Total Expenses (BDT)',p=>'(৳'+Math.round(p.exp).toLocaleString()+')'],
+        ['Net Profit/Loss (BDT)',p=>'<span style="font-weight:700;color:'+(p.net>=0?'var(--ok)':'var(--err)')+'">৳'+Math.round(Math.abs(p.net)).toLocaleString()+(p.net>=0?' ▲':' ▼')+'</span>'],
+        ['Net Margin',p=>p.sale?((p.net/p.sale)*100).toFixed(1)+'%':'—'],
+      ].map(([lbl,fn])=>`<tr><td>${lbl}</td>${pnlByYear.map(p=>`<td>${fn(p)}</td>`).join('')}${pnlByYear.length>1?`<td style="font-weight:700">${(()=>{const diff=pnlByYear.at(-1).net-pnlByYear[0].net;return(diff>=0?'<span style="color:var(--ok)">+':'<span style="color:var(--err)">') + '৳'+Math.round(Math.abs(diff)).toLocaleString()+(lbl.includes('Net Profit')?diff>=0?' ▲':' ▼':'')+'</span>';})()}</td>`:''}</tr>`).join('')}
+    </tbody>
+  </table></div>
 </div>`:''}
 `}`;
 }
@@ -2215,13 +2300,28 @@ function printComparison(){
   const yearTotals=summaries.map((s,i)=>({label:s.yr,value:s.inv,color:COLORS[i%COLORS.length]}));
   const allBuyers=[...new Set(sel.flatMap(yr=>getShips(yr).filter(s=>!s.cancelled).map(s=>s.party)))].slice(0,8);
   const groups=allBuyers.map(b=>({label:b.split(' ')[0].slice(0,8),values:sel.map(yr=>getShips(yr).filter(s=>!s.cancelled&&s.party===b).reduce((a,s)=>a+Number(s.iamt||0),0))}));
+  // P&L per year for print
+  const pnlPrint=sel.map((yr,i)=>{
+    const ships=getShips(yr).filter(s=>!s.cancelled),cfg=getCfg(yr),rate=cfg.usdToBdt;
+    const months=MONTHS.map(m=>{
+      const ms=ships.filter(s=>s.month===m),pd=getPnlMonth(yr,m);
+      const sale=pd.totalSaleOverride!=null?pd.totalSaleOverride:ms.reduce((a,s)=>a+Number(s.iamt||0),0)*rate;
+      const cogs=sale*(pd.cogsPct/100),gp=sale-cogs;
+      const exp=PNL_EXPENSES.reduce((a,e)=>a+(pd.expenses[e.key]||0),0);
+      const net=gp-exp-sale*(pd.badDebtPct/100);
+      return{m,sale,cogs,gp,exp,net,hasData:sale>0||exp>0};
+    });
+    const active=months.filter(x=>x.hasData);
+    return{yr,color:COLORS[i%COLORS.length],sale:active.reduce((a,x)=>a+x.sale,0),cogs:active.reduce((a,x)=>a+x.cogs,0),gp:active.reduce((a,x)=>a+x.gp,0),exp:active.reduce((a,x)=>a+x.exp,0),net:active.reduce((a,x)=>a+x.net,0),months};
+  });
+  const hasPnlData=pnlPrint.some(p=>p.sale>0);
   const body=`
 <div class="kpi-row">${summaries.map((s,i)=>`<div class="kpi-box" style="border-top:2pt solid ${COLORS[i%COLORS.length]}"><div class="lbl" style="color:${COLORS[i%COLORS.length]}">${s.yr}</div><div class="val">$${Math.round(s.inv).toLocaleString()}</div><div class="sub">${s.active} shipments • ${fNum(s.cbm)} CBM</div></div>`).join('')}</div>
 <div class="two-col">
   <div class="chart-section"><h3>Total Invoice by Year</h3>${svgBar(yearTotals,{w:340,h:145,bg:'#fff',prefix:'$'})}</div>
-  <div class="chart-section"><h3>Monthly Trend</h3>${svgLine(lineSeries,MONTHS.map(m=>m.slice(0,3)),{w:340,h:145,bg:'#fff',prefix:'$'})}</div>
+  <div class="chart-section"><h3>Monthly Invoice Trend</h3>${svgLine(lineSeries,MONTHS.map(m=>m.slice(0,3)),{w:340,h:145,bg:'#fff',prefix:'$'})}</div>
 </div>
-<h2>Year-Over-Year Summary</h2>
+<h2>Year-Over-Year Shipment Summary</h2>
 <table><thead><tr><th>Metric</th>${sel.map(y=>`<th>${y}</th>`).join('')}</tr></thead>
 <tbody>
   <tr><td>Active Shipments</td>${summaries.map(s=>`<td>${s.active}</td>`).join('')}</tr>
@@ -2235,7 +2335,26 @@ function printComparison(){
 <div class="chart-section">${svgGroupedBar(groups,sel,sel.map((y,i)=>COLORS[i%COLORS.length]),{w:560,h:165,bg:'#fff',prefix:'$'})}</div>
 <table><thead><tr><th>Buyer</th>${sel.map(y=>`<th>${y} (USD)</th>`).join('')}</tr></thead>
 <tbody>${allBuyers.map(b=>`<tr><td>${b}</td>${sel.map(yr=>{const v=getShips(yr).filter(s=>!s.cancelled&&s.party===b).reduce((a,s)=>a+Number(s.iamt||0),0);return`<td>${v?'$'+Math.round(v).toLocaleString():'—'}</td>`}).join('')}</tr>`).join('')}</tbody>
-</table>`;
+</table>
+${hasPnlData?`
+<h2 style="margin-top:18pt;border-top:2pt solid #1565C0;padding-top:12pt">Profit &amp; Loss Comparison</h2>
+<div class="kpi-row">${pnlPrint.map(p=>`<div class="kpi-box" style="border-top:2pt solid ${p.color}"><div class="lbl" style="color:${p.color}">${p.yr}</div><div class="val" style="color:${p.net>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(p.net)).toLocaleString()}${p.net>=0?' ▲':' ▼'}</div><div class="sub">Net Profit/Loss</div><div style="font-size:8pt;margin-top:4pt">Sale: ৳${Math.round(p.sale).toLocaleString()}</div><div style="font-size:8pt">COGS: (৳${Math.round(p.cogs).toLocaleString()})</div><div style="font-size:8pt">GP: ৳${Math.round(p.gp).toLocaleString()}</div><div style="font-size:8pt">Exp: (৳${Math.round(p.exp).toLocaleString()})</div></div>`).join('')}</div>
+<div class="two-col">
+  <div class="chart-section"><h3>Net Profit / Loss by Year</h3>${svgBar(pnlPrint.map(p=>({label:p.yr,value:Math.abs(p.net),color:p.net>=0?'#2E7D32':'#C62828'})),{w:340,h:145,bg:'#fff',prefix:'৳',showVals:true})}<p style="font-size:8pt;color:#888;margin-top:4pt">Green = Profit ▲ &nbsp; Red = Loss ▼</p></div>
+  <div class="chart-section"><h3>COGS vs Gross Profit by Year</h3>${svgGroupedBar(pnlPrint.map(p=>({label:p.yr,values:[p.cogs,p.gp]})),['COGS','Gross Profit'],['#EF5350','#2E7D32'],{w:340,h:145,bg:'#fff',prefix:'৳'})}</div>
+</div>
+<h3 style="margin:12pt 0 6pt">Monthly Net P/L Trend</h3>
+${svgLine(pnlPrint.map(p=>({name:p.yr,color:p.color,values:MONTHS.map(m=>{const mx=p.months.find(x=>x.m===m);return mx?Math.max(0,mx.net):0;})})),MONTHS.map(m=>m.slice(0,3)),{w:560,h:150,bg:'#fff',prefix:'৳'})}
+<h2 style="margin-top:14pt">Year-over-Year P&amp;L Summary</h2>
+<table><thead><tr><th>Metric</th>${pnlPrint.map(p=>`<th>${p.yr}</th>`).join('')}${pnlPrint.length>1?'<th>Change</th>':''}</tr></thead>
+<tbody>
+  <tr><td>Total Sale (BDT)</td>${pnlPrint.map(p=>`<td>৳${Math.round(p.sale).toLocaleString()}</td>`).join('')}${pnlPrint.length>1?`<td>${(()=>{const d=pnlPrint.at(-1).sale-pnlPrint[0].sale;return(d>=0?'+':'')+Math.round(d/1000)+'k'})()}</td>`:''}</tr>
+  <tr><td>COGS (BDT)</td>${pnlPrint.map(p=>`<td>(৳${Math.round(p.cogs).toLocaleString()})</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
+  <tr><td>Gross Profit (BDT)</td>${pnlPrint.map(p=>`<td>৳${Math.round(p.gp).toLocaleString()}</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
+  <tr><td>Total Expenses (BDT)</td>${pnlPrint.map(p=>`<td>(৳${Math.round(p.exp).toLocaleString()})</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
+  <tr style="font-weight:700"><td>Net Profit/Loss (BDT)</td>${pnlPrint.map(p=>`<td style="color:${p.net>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(p.net)).toLocaleString()}${p.net>=0?' ▲':' ▼'}</td>`).join('')}${pnlPrint.length>1?`<td style="font-weight:800">${(()=>{const d=pnlPrint.at(-1).net-pnlPrint[0].net;return`<span style="color:${d>=0?'#2E7D32':'#C62828'}">${d>=0?'+':''}৳${Math.round(Math.abs(d)).toLocaleString()}${d>=0?' ▲':' ▼'}</span>`})()}</td>`:''}</tr>
+  <tr><td>Net Margin</td>${pnlPrint.map(p=>`<td>${p.sale?((p.net/p.sale)*100).toFixed(1)+'%':'—'}</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
+</tbody></table>`:''}`;
   printBase(`Multi-Year Comparison (${sel.join(', ')})`,sel.join(' vs '),body);
 }
 
