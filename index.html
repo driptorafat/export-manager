@@ -43,6 +43,7 @@ button{cursor:pointer;font-family:inherit}
 .btn-out{background:transparent;color:var(--pri);border:1.5px solid var(--pri)}.btn-out:hover{background:var(--pril)}
 .btn-err{background:var(--err);color:#fff}.btn-err:hover{background:#b71c1c}
 .btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--bdr)}.btn-ghost:hover{background:#f5f5f5}
+.btn-ok{background:var(--okl);color:var(--ok);border:1.5px solid var(--ok)}.btn-ok:hover{background:var(--ok);color:#fff}
 .btn-ok{background:var(--ok);color:#fff}.btn-ok:hover{background:#1b5e20}
 .btn-warn{background:#E65100;color:#fff}.btn-warn:hover{background:#bf360c}
 .btn-sm{padding:5px 10px;font-size:12px}
@@ -395,7 +396,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
     </div>
     <input type="hidden" id="f-id">
   </div>
-  <div class="mf"><button class="btn btn-ghost" onclick="closeModal('ship-ov')">Cancel</button><button class="btn btn-pri" onclick="saveShip()">Save</button></div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal('ship-ov')">Cancel</button><button class="btn btn-ghost" id="copy-ship-btn" onclick="copyShip(+$('f-id').value)" style="display:none">📋 Duplicate</button><button class="btn btn-pri" onclick="saveShip()">Save</button></div>
 </div>
 </div>
 
@@ -841,7 +842,7 @@ function shipTable(list,actions=true){
   <td>${s.dpmt?'<strong>'+fUSD(Math.max(0,(s.iamt||0)-(s.dpmt||0)))+'</strong>':'—'}</td>
   <td>${shippedBdg(s.shipped||'Order In Progress')}${agingBdg(s.exf,s.shipped||'Order In Progress')}</td>
   <td>${payBdg(s.pay)}</td><td>${surBdg(s.sur)}</td><td>${incBdg(s.inc)}${incDeadlineBdg(s.exf,s.inc)}</td>
-  ${actions?`<td style="white-space:nowrap"><button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
+  ${actions?`<td style="white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap">${!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress'?`<button class="btn btn-ok btn-xs" title="Mark as Shipped" onclick="quickMarkShipped(${s.id})">🚢</button>`:''}${!s.cancelled&&s.pay!=='Full Paid'?`<button class="btn btn-ok btn-xs" title="Mark Full Paid" onclick="quickMarkPaid(${s.id})">💰</button>`:''}<button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
 </tr>`}).join('')}</tbody></table></div>`;
 }
 
@@ -907,7 +908,40 @@ ${(()=>{
   <div class="card"><div class="card-title">🔔 Incentive Application Alerts</div>
   ${(()=>{const alerts=active.filter(s=>s.inc!=='Yes'&&s.exf&&ageDays(s.exf)>=45).map(s=>({...s,days:ageDays(s.exf)})).sort((a,b)=>b.days-a.days);if(!alerts.length)return'<div class="empty" style="color:var(--ok)">✓ No incentive deadlines approaching.</div>';return`<div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Party</th><th>Ex-Factory</th><th>Days</th><th>Deadline</th></tr></thead><tbody>${alerts.map(s=>`<tr><td><strong>${s.orderNo}</strong></td><td>${s.party}</td><td>${fDate(s.exf)}</td><td>${s.days}</td><td>${incDeadlineBdg(s.exf,s.inc)}</td></tr>`).join('')}</tbody></table></div>`})()}
   </div>
-</div>`;
+</div>
+<div class="g2" style="margin-top:18px">
+  <div class="card"><div class="card-title">💳 Unpaid Invoice Aging</div>
+  ${(()=>{
+    const now=new Date();
+    const moIdx=m=>MONTHS.indexOf(m);
+    const mthsOld=s=>{const mi=moIdx(s.month);if(mi<0)return 99;const shipDate=new Date(Number(yr),mi,15);return Math.max(0,Math.floor((now-shipDate)/(1000*60*60*24*30)));};
+    const unpaidAll=active.filter(s=>s.pay!=='Full Paid');
+    const b0=unpaidAll.filter(s=>mthsOld(s)<=1);
+    const b1=unpaidAll.filter(s=>mthsOld(s)>1&&mthsOld(s)<=2);
+    const b2=unpaidAll.filter(s=>mthsOld(s)>2&&mthsOld(s)<=3);
+    const b3=unpaidAll.filter(s=>mthsOld(s)>3);
+    if(!unpaidAll.length)return'<div class="empty" style="color:var(--ok)">✓ All invoices fully paid!</div>';
+    const row=(label,items,cls)=>items.length?`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f3f3f3"><span><span class="bdg ${cls}" style="margin-right:8px">${label}</span>${items.length} order${items.length>1?'s':''}</span><strong>${fUSD(items.reduce((a,s)=>a+Math.max(0,(s.iamt||0)-(s.dpmt||0)),0),0)}</strong></div>`:'';
+    return row('Current',b0,'bdg-ok')+row('1–2 Months',b1,'bdg-warn')+row('2–3 Months',b2,'bdg-err')+row('3+ Months Overdue',b3,'bdg-err')+
+    `<div style="display:flex;justify-content:space-between;padding:9px 0;font-weight:700"><span>Total Outstanding</span><span style="color:var(--err)">${fUSD(unpaidAll.reduce((a,s)=>a+Math.max(0,(s.iamt||0)-(s.dpmt||0)),0),0)}</span></div>`;
+  })()}
+  </div>
+  <div class="card"><div class="card-title">🗂 Document Checklist Alerts</div>
+  ${(()=>{
+    const docLabels={ci:'CI',pl:'PL',bl:'BL',lc:'LC',coo:'COO'};
+    const incomplete=active.filter(s=>{const d=s.docs||{};return ['ci','pl','bl','lc','coo'].some(k=>!d[k])});
+    if(!incomplete.length)return'<div class="empty" style="color:var(--ok)">✓ All shipments have complete document checklists.</div>';
+    const shown=incomplete.slice(0,6);
+    return`<div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Party</th><th>Missing Docs</th></tr></thead><tbody>${shown.map(s=>{const d=s.docs||{};const missing=['ci','pl','bl','lc','coo'].filter(k=>!d[k]).map(k=>docLabels[k]);return`<tr><td><strong>${s.orderNo}</strong></td><td>${s.party}</td><td>${missing.map(m=>`<span class="bdg bdg-warn" style="margin-right:2px">${m}</span>`).join('')}</td></tr>`}).join('')}</tbody></table></div>${incomplete.length>6?`<div style="font-size:11.5px;color:var(--muted);padding:6px 2px">…+${incomplete.length-6} more with incomplete docs <button class="btn btn-ghost btn-xs" onclick="ST.fStatus='All';ST.fMonth='All';nav('shipments')">View All →</button></div>`:''}`;
+  })()}
+  </div>
+</div>
+${(()=>{
+  const shipped=active.filter(s=>(s.shipped||'Order In Progress')==='Shipped');
+  const surPending=shipped.filter(s=>s.sur!=='Complete');
+  if(!surPending.length)return'';
+  return`<div class="card" style="margin-top:18px;border-left:4px solid var(--warn)"><div class="card-title">📋 Surrender Certificate Pending — ${surPending.length} shipment${surPending.length>1?'s':''}</div><div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Party</th><th>Month</th><th>Invoice</th><th>Surrender Status</th></tr></thead><tbody>${surPending.slice(0,8).map(s=>`<tr><td><strong>${s.orderNo}</strong></td><td>${s.party}</td><td>${s.month}</td><td><strong>${fUSD(s.iamt)}</strong></td><td>${surBdg(s.sur)}</td></tr>`).join('')}</tbody></table></div>${surPending.length>8?`<div style="font-size:11.5px;color:var(--muted);padding:6px 2px">…+${surPending.length-8} more</div>`:''}</div>`;
+})()}`;
 }
 
 // ── ALL SHIPMENTS ─────────────────────────────────────────────────────────────
@@ -927,7 +961,7 @@ function renderShipments(yr,ships){
   });
   const tot=filtered.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
   return `
-<div class="sh"><div><div class="sh-t">Shipments — ${yr}</div><div class="sh-s">${filtered.length} of ${ships.length} shown • ${fUSD(tot)} invoice</div></div></div>
+<div class="sh"><div><div class="sh-t">Shipments — ${yr}</div><div class="sh-s">${filtered.length} of ${ships.length} shown • ${fUSD(tot)} invoice</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="doImportShipCSV()" title="Import shipments from CSV (same format as export)">📂 Import CSV</button><button class="btn btn-pri btn-sm" onclick="openAdd()">+ Add Shipment</button></div></div>
 <div class="filters">
   <input class="srch" type="text" placeholder="🔍 Search order, buyer, destination…" value="${ST.search}" oninput="ST.search=this.value;render()">
   <select onchange="ST.fMonth=this.value;render()"><option value="All">All Months</option>${MONTHS.map(m=>`<option ${ST.fMonth===m?'selected':''}>${m}</option>`).join('')}</select>
@@ -1019,7 +1053,7 @@ function renderBuyers(yr,ships,cfg){
   const donutItems=sorted.map((b,i)=>({label:b[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
   return `
 <div class="sh"><div><div class="sh-t">Buyers — ${yr}</div><div class="sh-s">${sorted.length} active buyers</div></div>
-  <button class="btn btn-ghost btn-sm" onclick="printBuyer('${yr}')">🖨 Print Buyer Report</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="exportBuyerCSV('${yr}')">📥 Export CSV</button><button class="btn btn-ghost btn-sm" onclick="printBuyer('${yr}')">🖨 Print Buyer Report</button></div></div>
 <div class="g2" style="margin-bottom:18px">
   <div class="card"><div class="card-title">Invoice by Buyer</div>${svgBar(barItems,{w:440,h:155})}</div>
   <div class="card"><div class="card-title">Buyer Share</div><div style="display:flex;justify-content:center">${svgDonut(donutItems,{size:190})}</div></div>
@@ -1876,7 +1910,8 @@ function renderSettings(yr,cfg){
     <hr class="div">
     <div class="card-title">Data Management</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="doExportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="doExportCSV()">⬇ Export Shipments CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="doImportShipCSV()" title="Import shipments from CSV — same columns as export, duplicates by Order No are skipped">📂 Import Shipments CSV</button>
       <button class="btn btn-ghost btn-sm" onclick="doImportJSON()">⬆ Import JSON</button>
       <button class="btn btn-err btn-sm" onclick="resetYear('${yr}')">↺ Reset ${yr} Data</button>
     </div>
@@ -2564,11 +2599,13 @@ function openAdd(){
   $('f-shipped').value='Order In Progress';$('f-pay').value='None';$('f-sur').value='Complete';
   $('f-inc').value='Yes';$('f-cancel').checked=false;$('f-notes').value='';
   ['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=false);$('f-id').value='';
+  $('copy-ship-btn').style.display='none';
   populateDL();$('ship-ov').classList.add('open');
 }
 function openEdit(id){
   const yr=D.currentYear,s=getShips(yr).find(x=>x.id===id);if(!s)return;
   $('ship-title').textContent='Edit Shipment';
+  $('copy-ship-btn').style.display='';
   $('f-id').value=s.id;$('f-month').value=s.month;$('f-orderNo').value=s.orderNo;
   $('f-party').value=s.party;$('f-dest').value=s.dest;$('f-vol').value=s.vol;
   $('f-exf').value=s.exf&&s.exf.includes('-')?s.exf:'';
@@ -2610,6 +2647,45 @@ function delShip(id){
   },'Delete','btn-err');
 }
 
+// ── QUICK ACTIONS ────────────────────────────────────────────────────────────
+function quickMarkShipped(id){
+  const yr=D.currentYear,list=getShips(yr),s=list.find(x=>x.id===id);if(!s)return;
+  const updated={...s,shipped:'Shipped'};
+  setShips(yr,list.map(x=>x.id===id?updated:x));render();toast('✅ Marked as Shipped: '+s.orderNo);
+  if(D.cloud&&D.cloud.autoSync)doSync();
+}
+function quickMarkPaid(id){
+  const yr=D.currentYear,list=getShips(yr),s=list.find(x=>x.id===id);if(!s)return;
+  const updated={...s,pay:'Full Paid'};
+  setShips(yr,list.map(x=>x.id===id?updated:x));render();toast('✅ Marked as Full Paid: '+s.orderNo);
+  if(D.cloud&&D.cloud.autoSync)doSync();
+}
+function copyShip(id){
+  const yr=D.currentYear,s=getShips(yr).find(x=>x.id===id);if(!s)return;
+  $('ship-title').textContent='Add Shipment (Copy of '+s.orderNo+')';
+  $('f-id').value='';
+  $('f-month').value=s.month;$('f-orderNo').value=s.orderNo+'-copy';$('f-party').value=s.party;
+  $('f-dest').value=s.dest;$('f-vol').value=s.vol;$('f-exf').value='';
+  $('f-oamt').value=s.oamt;$('f-iamt').value=s.iamt;$('f-dpmt').value='';$('f-rbal').value=s.iamt||'';
+  $('f-shipped').value='Order In Progress';$('f-pay').value='None';
+  $('f-sur').value=s.sur||'No';$('f-inc').value='No';$('f-cancel').checked=false;$('f-notes').value=s.notes||'';
+  const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
+  populateDL();$('ship-ov').classList.add('open');
+}
+function exportBuyerCSV(yr){
+  const ships=getShips(yr).filter(s=>!s.cancelled);
+  const cfg=getCfg(yr);const rate=cfg.usdToBdt;
+  const bm={};
+  ships.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,ord:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.ord+=Number(s.oamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Full Paid')b.paid++;if(s.inc==='Yes')b.inc++});
+  const sorted=Object.entries(bm).sort((a,b)=>b[1].inv-a[1].inv);
+  const total=ships.reduce((a,s)=>a+Number(s.iamt||0),0)||1;
+  const cols=['Buyer','Orders','CBM','Order (USD)','Invoice (USD)','Invoice (BDT)','Share %','Pay Rate %','Incentive Rate %'];
+  const rows=sorted.map(([name,b])=>[name,b.cnt,b.cbm.toFixed(2),b.ord.toFixed(2),b.inv.toFixed(2),(b.inv*rate).toFixed(0),(b.inv/total*100).toFixed(2),b.cnt?Math.round(b.paid/b.cnt*100):0,b.cnt?Math.round(b.inc/b.cnt*100):0]);
+  const csv=[cols,...rows].map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`buyers-${yr}.csv`;a.click();
+  toast('📥 Buyer CSV exported');
+}
+
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
 function doExportCSV(){
   const yr=D.currentYear,ships=getShips(yr);
@@ -2617,6 +2693,39 @@ function doExportCSV(){
   const rows=ships.map(s=>[yr,s.month,s.orderNo,s.party,s.dest,s.vol,s.exf,s.oamt,s.iamt,s.dpmt||0,Math.max(0,(s.iamt||0)-(s.dpmt||0)),s.shipped||'Order In Progress',s.pay,s.sur,s.inc,s.cancelled?'Yes':'No',s.notes||'']);
   const csv=[cols,...rows].map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`ExportManager_${yr}.csv`;a.click();toast('CSV exported');
+}
+function doImportShipCSV(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.csv';
+  inp.onchange=e=>{
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      const lines=ev.target.result.split('\n').filter(l=>l.trim());
+      if(lines.length<2){toast('CSV has no data rows');return}
+      const parseRow=line=>{const out=[];let cur='',inQ=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&!inQ){inQ=true}else if(c==='"'&&inQ&&line[i+1]==='"'){cur+='"';i++}else if(c==='"'&&inQ){inQ=false}else if(c===','&&!inQ){out.push(cur);cur=''}else cur+=c}out.push(cur);return out};
+      const yr=D.currentYear;
+      const existing=new Set(getShips(yr).map(s=>s.orderNo));
+      let added=0,skipped=0;
+      const newShips=[];
+      lines.slice(1).forEach(line=>{
+        const c=parseRow(line);
+        if(c.length<9)return;
+        const orderNo=(c[2]||'').trim();
+        if(!orderNo)return;
+        if(existing.has(orderNo)){skipped++;return;}
+        newShips.push({id:0,month:c[1]||'',orderNo,party:c[3]||'',dest:c[4]||'',vol:parseFloat(c[5])||0,exf:c[6]||'',oamt:parseFloat(c[7])||0,iamt:parseFloat(c[8])||0,dpmt:parseFloat(c[9])||0,rbal:parseFloat(c[10])||0,shipped:c[11]||'Order In Progress',pay:c[12]||'None',sur:c[13]||'Complete',inc:c[14]||'No',cancelled:c[15]==='Yes',notes:c[16]||''});
+        added++;
+      });
+      if(!newShips.length){toast(`No new shipments found. ${skipped} skipped (duplicates).`);return}
+      const list=getShips(yr);
+      let nextid=list.length?Math.max(...list.map(x=>x.id))+1:1;
+      newShips.forEach(s=>{s.id=nextid++;});
+      setShips(yr,[...list,...newShips]);render();
+      toast(`✅ Imported ${added} shipment${added>1?'s':''}${skipped?'. '+skipped+' skipped (duplicate order nos)':''}`);
+    };
+    r.readAsText(f);
+  };
+  inp.click();
 }
 function doImportJSON(){
   const inp=document.createElement('input');inp.type='file';inp.accept='.json';
