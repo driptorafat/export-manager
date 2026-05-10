@@ -354,7 +354,6 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
       <span id="sync-status" style="font-size:11px;color:var(--muted);display:flex;align-items:center"></span>
       <button class="btn btn-ghost btn-sm" onclick="doExportCSV()">⬇ CSV</button>
       <button class="btn btn-ghost btn-sm" onclick="doSync()" id="sync-btn" title="Sync to cloud">☁ Sync</button>
-      <button class="btn btn-pri btn-sm" onclick="openAdd()">+ Shipment</button>
       <button class="btn btn-ghost btn-sm" onclick="doLogout()" title="Sign out" style="border-color:#ddd">⎋ Logout</button>
     </div>
   </div>
@@ -374,10 +373,8 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
       <div class="fg"><label>Destination *</label><input id="f-dest" type="text" list="dl-dest" placeholder="e.g. USA"><datalist id="dl-dest"></datalist></div>
       <div class="fg"><label>Volume (CBM)</label><input id="f-vol" type="number" step="0.01" min="0"></div>
       <div class="fg"><label>Ex-Factory Date</label><input id="f-exf" type="date"></div>
-      <div class="fg"><label>Order Amount (USD)</label><input id="f-oamt" type="number" step="0.01" min="0"></div>
-      <div class="fg"><label>Invoice Amount (USD)</label><input id="f-iamt" type="number" step="0.01" min="0" oninput="calcRbal()"></div>
-      <div class="fg"><label>Down Payment (USD)</label><input id="f-dpmt" type="number" step="0.01" min="0" placeholder="0" oninput="calcRbal()"></div>
-      <div class="fg"><label>Remaining Balance (USD)</label><input id="f-rbal" type="number" step="0.01" readonly style="background:var(--bg);color:var(--muted);cursor:default" placeholder="Auto-calculated"></div>
+      <div class="fg"><label>Invoice Amount (USD)</label><input id="f-iamt" type="number" step="0.01" min="0"></div>
+      <div class="fg"><label>Down Payment (USD)</label><input id="f-dpmt" type="number" step="0.01" min="0" placeholder="0"></div>
       <div class="fg"><label>Shipment Status</label><select id="f-shipped"><option value="Order In Progress">Order In Progress</option><option value="Shipped">Shipped</option></select></div>
       <div class="fg"><label>Payment Status</label><select id="f-pay"><option value="None">None</option><option value="Partially Paid">Partially Paid</option><option value="Full Paid">Full Paid</option></select></div>
       <div class="fg"><label>Surrender Status</label><select id="f-sur"><option value="Complete">Complete</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
@@ -660,7 +657,6 @@ function payBdg(v){return v==='Full Paid'?'<span class="bdg bdg-ok">✓ Full Pai
 function surBdg(v){return v==='Complete'?'<span class="bdg bdg-ok">Complete</span>':v==='Yes'?'<span class="bdg bdg-info">Yes</span>':'<span class="bdg bdg-err">No</span>'}
 function incBdg(v){return v==='Yes'?'<span class="bdg bdg-ok">Yes</span>':'<span class="bdg bdg-warn">No</span>'}
 function shippedBdg(v){return v==='Shipped'?'<span class="bdg bdg-ok">🚢 Shipped</span>':'<span class="bdg bdg-warn">🔄 Order In Progress</span>'}
-function calcRbal(){const inv=parseFloat($('f-iamt').value)||0;const dp=parseFloat($('f-dpmt').value)||0;$('f-rbal').value=Math.max(0,inv-dp).toFixed(2)}
 
 function ageDays(exf){if(!exf||!exf.includes('-'))return null;const d=new Date(exf);if(isNaN(d))return null;return Math.floor((Date.now()-d.getTime())/(1000*60*60*24))}
 function agingBdg(exf,shipped){if(shipped==='Shipped')return'';const d=ageDays(exf);if(d===null)return'';if(d>60)return`<span class="bdg bdg-err" style="margin-left:4px">${d}d</span>`;if(d>=30)return`<span class="bdg bdg-warn" style="margin-left:4px">${d}d</span>`;return`<span class="bdg bdg-ok" style="margin-left:4px">${d}d</span>`}
@@ -850,7 +846,6 @@ function shipTable(list,actions=true){
 function renderDash(yr,ships,cfg){
   const active=ships.filter(s=>!s.cancelled);
   const totalInv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
-  const totalOrd=active.reduce((a,s)=>a+Number(s.oamt||0),0);
   const unpaid=active.filter(s=>s.pay!=='Full Paid');
   const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
   const noInc=active.filter(s=>s.inc!=='Yes');
@@ -865,7 +860,7 @@ function renderDash(yr,ships,cfg){
   return `
 <div class="kpi-grid">
   <div class="kpi"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div><div class="sub">${ships.filter(s=>s.cancelled).length} cancelled in ${yr}</div></div>
-  <div class="kpi acc"><div class="lbl">Invoice (USD)</div><div class="val">${fUSD(totalInv,0)}</div><div class="sub">Order: ${fUSD(totalOrd,0)}</div></div>
+  <div class="kpi acc"><div class="lbl">Invoice (USD)</div><div class="val">${fUSD(totalInv,0)}</div><div class="sub">${active.length} active shipments</div></div>
   <div class="kpi ok"><div class="lbl">Invoice (BDT)</div><div class="val" style="font-size:18px">${fBDT(totalInv*cfg.usdToBdt)}</div><div class="sub">@ ${cfg.usdToBdt} rate</div></div>
   <div class="kpi ${unpaid.length?'err':'ok'}"><div class="lbl">Not Full Paid</div><div class="val">${unpaid.length}</div><div class="sub">${fUSD(unpaid.reduce((a,s)=>a+Number(s.iamt||0),0),0)} outstanding</div></div>
   <div class="kpi ${inProgress.length?'warn':'ok'}"><div class="lbl">In Progress</div><div class="val">${inProgress.length}</div><div class="sub">Awaiting dispatch</div></div>
@@ -1047,7 +1042,7 @@ function renderBuyers(yr,ships,cfg){
   const active=ships.filter(s=>!s.cancelled);
   const total=active.reduce((a,s)=>a+Number(s.iamt||0),0)||1;
   const bm={};
-  active.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,ord:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.ord+=Number(s.oamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Full Paid')b.paid++;if(s.inc==='Yes')b.inc++});
+  active.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Full Paid')b.paid++;if(s.inc==='Yes')b.inc++});
   const sorted=Object.entries(bm).sort((a,b)=>b[1].inv-a[1].inv);
   const barItems=sorted.map((b,i)=>({label:b[0].split(' ')[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
   const donutItems=sorted.map((b,i)=>({label:b[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
@@ -1061,15 +1056,15 @@ function renderBuyers(yr,ships,cfg){
 <div class="card">
   <div class="card-title">Buyer Details</div>
   <div class="tbl-wrap"><table>
-    <thead><tr><th>Buyer</th><th>Orders</th><th>CBM</th><th>Order (USD)</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Share %</th><th>Pay Rate</th><th>Inc Rate</th></tr></thead>
+    <thead><tr><th>Buyer</th><th>Orders</th><th>CBM</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Share %</th><th>Pay Rate</th><th>Inc Rate</th></tr></thead>
     <tbody>${sorted.map((b,i)=>`<tr>
       <td><span style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></span><strong>${b[0]}</strong></span></td>
-      <td>${b[1].cnt}</td><td>${fNum(b[1].cbm)}</td><td>${fUSD(b[1].ord)}</td><td>${fUSD(b[1].inv)}</td>
+      <td>${b[1].cnt}</td><td>${fNum(b[1].cbm)}</td><td>${fUSD(b[1].inv)}</td>
       <td>${fBDT(b[1].inv*cfg.usdToBdt)}</td><td>${(b[1].inv/total*100).toFixed(2)}%</td>
       <td>${b[1].cnt?Math.round(b[1].paid/b[1].cnt*100)+'%':'—'}</td>
       <td>${b[1].cnt?Math.round(b[1].inc/b[1].cnt*100)+'%':'—'}</td>
     </tr>`).join('')}</tbody>
-    <tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${active.length}</strong></td><td><strong>${fNum(active.reduce((a,s)=>a+Number(s.vol||0),0))}</strong></td><td><strong>${fUSD(active.reduce((a,s)=>a+Number(s.oamt||0),0))}</strong></td><td><strong>${fUSD(total)}</strong></td><td><strong>${fBDT(total*cfg.usdToBdt)}</strong></td><td><strong>100%</strong></td><td></td><td></td></tr></tfoot>
+    <tfoot><tr><td><strong>TOTAL</strong></td><td><strong>${active.length}</strong></td><td><strong>${fNum(active.reduce((a,s)=>a+Number(s.vol||0),0))}</strong></td><td><strong>${fUSD(total)}</strong></td><td><strong>${fBDT(total*cfg.usdToBdt)}</strong></td><td><strong>100%</strong></td><td></td><td></td></tr></tfoot>
   </table></div>
 </div>
 ${(()=>{const prevYr=String(Number(yr)-1);const prevShips=((D.years[prevYr]||{}).shipments||[]).filter(s=>!s.cancelled);if(!prevShips.length)return'';const prevBuyers=[...new Set(prevShips.map(s=>s.party))];const curBuyers=new Set(active.map(s=>s.party));const missed=prevBuyers.filter(b=>!curBuyers.has(b));if(!missed.length)return`<div class="card" style="margin-top:18px"><div class="card-title">🔄 Buyer Re-engagement</div><div class="empty" style="color:var(--ok)">✓ All buyers from ${prevYr} have placed orders in ${yr}.</div></div>`;const pm={};prevShips.forEach(s=>{if(!pm[s.party])pm[s.party]={cnt:0,inv:0};pm[s.party].cnt++;pm[s.party].inv+=Number(s.iamt||0)});return`<div class="card" style="margin-top:18px"><div class="card-title">🔄 Buyer Re-engagement — ${missed.length} buyer${missed.length>1?'s':''} from ${prevYr} not yet active in ${yr}</div><div class="tbl-wrap"><table><thead><tr><th>Buyer</th><th>${prevYr} Orders</th><th>${prevYr} Invoice (USD)</th><th>Status</th></tr></thead><tbody>${missed.map(b=>`<tr><td><strong>${b}</strong></td><td>${pm[b].cnt}</td><td>${fUSD(pm[b].inv)}</td><td><span class="bdg bdg-warn">No orders yet</span></td></tr>`).join('')}</tbody></table></div></div>`})()}`;
@@ -2030,7 +2025,6 @@ function printYearly(yr){
   const ships=getShips(yr),cfg=getCfg(yr),active=ships.filter(s=>!s.cancelled);
   const rate=cfg.usdToBdt;
   const totalInv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
-  const totalOrd=active.reduce((a,s)=>a+Number(s.oamt||0),0);
   const unpaid=active.filter(s=>s.pay!=='Full Paid');
   const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
   const mData=MONTHS.map(m=>{const s=active.filter(x=>x.month===m);const inv=s.reduce((a,x)=>a+Number(x.iamt||0),0);return{month:m,cnt:s.length,inv,bdt:inv*rate}});
@@ -2042,7 +2036,7 @@ function printYearly(yr){
   const body=`
 <div class="kpi-row">
   <div class="kpi-box"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div><div class="sub">${ships.filter(s=>s.cancelled).length} cancelled</div></div>
-  <div class="kpi-box"><div class="lbl">Invoice (USD)</div><div class="val">$${Math.round(totalInv).toLocaleString()}</div><div class="sub">Order: $${Math.round(totalOrd).toLocaleString()}</div></div>
+  <div class="kpi-box"><div class="lbl">Invoice (USD)</div><div class="val">$${Math.round(totalInv).toLocaleString()}</div><div class="sub">${active.length} shipments</div></div>
   <div class="kpi-box"><div class="lbl">Invoice (BDT)</div><div class="val">৳${Math.round(totalInv*rate).toLocaleString()}</div><div class="sub">@ ${rate} rate</div></div>
   <div class="kpi-box"><div class="lbl">Unpaid</div><div class="val">${unpaid.length}</div><div class="sub">$${Math.round(unpaid.reduce((a,s)=>a+Number(s.iamt||0),0)).toLocaleString()}</div></div>
   <div class="kpi-box"><div class="lbl">CBM</div><div class="val">${fNum(cbm)}</div><div class="sub">Total volume</div></div>
@@ -2097,18 +2091,17 @@ function printMonthly(yr,month){
   const list=month==='All'?ships:ships.filter(s=>s.month===month);
   const active=list.filter(s=>!s.cancelled);
   const inv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
-  const ord=active.reduce((a,s)=>a+Number(s.oamt||0),0);
   const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
   const byMonth=month==='All'?MONTHS.filter(m=>ships.some(s=>s.month===m)).map(m=>{
     const ms=ships.filter(s=>s.month===m);
     const mi=ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
-    return`<h3>${m}</h3><table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>Ex-Factory</th><th>Order (USD)</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
-    <tbody>${ms.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.oamt||0).toLocaleString()}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${(s.shipped||'Order In Progress')==='Shipped'?'badge-ok':'badge-warn'}">${s.shipped||'Order In Progress'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="3">Sub-total (${ms.filter(s=>!s.cancelled).length} active)</td><td>${fNum(ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.vol||0),0))}</td><td></td><td>$${Math.round(ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.oamt||0),0)).toLocaleString()}</td><td>$${Math.round(mi).toLocaleString()}</td><td colspan="6"></td></tr></tfoot></table>`;
+    return`<h3>${m}</h3><table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
+    <tbody>${ms.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${(s.shipped||'Order In Progress')==='Shipped'?'badge-ok':'badge-warn'}">${s.shipped||'Order In Progress'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="4">Sub-total (${ms.filter(s=>!s.cancelled).length} active)</td><td></td><td>$${Math.round(mi).toLocaleString()}</td><td colspan="6"></td></tr></tfoot></table>`;
   }).join('<br>'):
-  `<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>Ex-Factory</th><th>Order (USD)</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
-  <tbody>${list.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.oamt||0).toLocaleString()}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${(s.shipped||'Order In Progress')==='Shipped'?'badge-ok':'badge-warn'}">${s.shipped||'Order In Progress'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
-  <tfoot><tr><td colspan="3">Total (${active.length} active)</td><td>${fNum(cbm)}</td><td></td><td>$${Math.round(ord).toLocaleString()}</td><td>$${Math.round(inv).toLocaleString()}</td><td colspan="6"></td></tr></tfoot></table>`;
+  `<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
+  <tbody>${list.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${(s.shipped||'Order In Progress')==='Shipped'?'badge-ok':'badge-warn'}">${s.shipped||'Order In Progress'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="4">Total (${active.length} active)</td><td></td><td>$${Math.round(inv).toLocaleString()}</td><td colspan="6"></td></tr></tfoot></table>`;
   const body=`<div class="kpi-row">
     <div class="kpi-box"><div class="lbl">Shipments</div><div class="val">${active.length}</div></div>
     <div class="kpi-box"><div class="lbl">Invoice (USD)</div><div class="val">$${Math.round(inv).toLocaleString()}</div></div>
@@ -2123,7 +2116,7 @@ function printBuyer(yr){
   const rate=cfg.usdToBdt;
   const totalInv=active.reduce((a,s)=>a+Number(s.iamt||0),0)||1;
   const bm={};
-  active.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,ord:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.ord+=Number(s.oamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Full Paid')b.paid++;if(s.inc==='Yes')b.inc++});
+  active.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Full Paid')b.paid++;if(s.inc==='Yes')b.inc++});
   const sorted=Object.entries(bm).sort((a,b)=>b[1].inv-a[1].inv);
   const barItems=sorted.map((b,i)=>({label:b[0].split(' ')[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
   const donutItems=sorted.map((b,i)=>({label:b[0],value:b[1].inv,color:COLORS[i%COLORS.length]}));
@@ -2138,9 +2131,9 @@ function printBuyer(yr){
   <div class="chart-section"><h3>Buyer Share</h3>${svgDonut(donutItems,{size:185,bg:'transparent'})}</div>
 </div>
 <h2>Buyer Details</h2>
-<table><thead><tr><th>Buyer</th><th>Orders</th><th>CBM</th><th>Order (USD)</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Share</th><th>Pay %</th><th>Inc %</th></tr></thead>
-<tbody>${sorted.map(([n,b],i)=>`<tr><td>${n}</td><td>${b.cnt}</td><td>${fNum(b.cbm)}</td><td>$${Math.round(b.ord).toLocaleString()}</td><td>$${Math.round(b.inv).toLocaleString()}</td><td>৳${Math.round(b.inv*rate).toLocaleString()}</td><td>${(b.inv/totalInv*100).toFixed(2)}%</td><td>${b.cnt?Math.round(b.paid/b.cnt*100)+'%':'—'}</td><td>${b.cnt?Math.round(b.inc/b.cnt*100)+'%':'—'}</td></tr>`).join('')}</tbody>
-<tfoot><tr><td>TOTAL</td><td>${active.length}</td><td>${fNum(active.reduce((a,s)=>a+Number(s.vol||0),0))}</td><td>$${Math.round(active.reduce((a,s)=>a+Number(s.oamt||0),0)).toLocaleString()}</td><td>$${Math.round(totalInv).toLocaleString()}</td><td>৳${Math.round(totalInv*rate).toLocaleString()}</td><td>100%</td><td></td><td></td></tr></tfoot>
+<table><thead><tr><th>Buyer</th><th>Orders</th><th>CBM</th><th>Invoice (USD)</th><th>Invoice (BDT)</th><th>Share</th><th>Pay %</th><th>Inc %</th></tr></thead>
+<tbody>${sorted.map(([n,b],i)=>`<tr><td>${n}</td><td>${b.cnt}</td><td>${fNum(b.cbm)}</td><td>$${Math.round(b.inv).toLocaleString()}</td><td>৳${Math.round(b.inv*rate).toLocaleString()}</td><td>${(b.inv/totalInv*100).toFixed(2)}%</td><td>${b.cnt?Math.round(b.paid/b.cnt*100)+'%':'—'}</td><td>${b.cnt?Math.round(b.inc/b.cnt*100)+'%':'—'}</td></tr>`).join('')}</tbody>
+<tfoot><tr><td>TOTAL</td><td>${active.length}</td><td>${fNum(active.reduce((a,s)=>a+Number(s.vol||0),0))}</td><td>$${Math.round(totalInv).toLocaleString()}</td><td>৳${Math.round(totalInv*rate).toLocaleString()}</td><td>100%</td><td></td><td></td></tr></tfoot>
 </table>`;
   printBase('Buyer Analysis Report',yr,body);
 }
@@ -2165,9 +2158,9 @@ function printOngoing(yr){
 </div>
 ${barItems.length>1?`<div class="chart-section"><h3>Invoice by Buyer</h3>${svgBar(barItems,{w:500,h:150,bg:'#fff'})}</div>`:''}
 <h2>Orders In Progress</h2>
-${ongoing.length?`<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>Month</th><th>CBM</th><th>Ex-Factory</th><th>Order (USD)</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Payment</th><th>Surrender</th><th>Incentive</th></tr></thead>
-<tbody>${ongoing.map(s=>`<tr><td>${s.orderNo}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.month}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.oamt||0).toLocaleString()}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>$${Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString()}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
-<tfoot><tr><td colspan="6">TOTAL (${ongoing.length} orders)</td><td>$${Math.round(ongoing.reduce((a,s)=>a+Number(s.oamt||0),0)).toLocaleString()}</td><td>$${Math.round(tot).toLocaleString()}</td><td>$${Math.round(totDpmt).toLocaleString()}</td><td>$${Math.round(totRbal).toLocaleString()}</td><td colspan="3"></td></tr></tfoot></table>`:'<p>No orders in progress.</p>'}
+${ongoing.length?`<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>Month</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Payment</th><th>Surrender</th><th>Incentive</th></tr></thead>
+<tbody>${ongoing.map(s=>`<tr><td>${s.orderNo}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.month}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>$${Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString()}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+<tfoot><tr><td colspan="7">TOTAL (${ongoing.length} orders)</td><td>$${Math.round(tot).toLocaleString()}</td><td>$${Math.round(totDpmt).toLocaleString()}</td><td>$${Math.round(totRbal).toLocaleString()}</td><td colspan="3"></td></tr></tfoot></table>`:'<p>No orders in progress.</p>'}
 ${buyers.length?`<h2>By Buyer</h2><table><thead><tr><th>Buyer</th><th>Orders</th><th>Invoice (USD)</th><th>Invoice (BDT)</th></tr></thead><tbody>${buyers.map(([n,b])=>`<tr><td>${n}</td><td>${b.cnt}</td><td>$${Math.round(b.inv).toLocaleString()}</td><td>৳${Math.round(b.inv*rate).toLocaleString()}</td></tr>`).join('')}</tbody></table>`:''}`;
   printBase('Orders In Progress Report',yr,body);
 }
@@ -2595,7 +2588,7 @@ function openAdd(){
   document.getElementById('ship-ov').querySelector('form')?.reset();
   $('f-month').value='';$('f-orderNo').value='';$('f-party').value='';$('f-dest').value='';
   $('f-vol').value='';$('f-exf').value='';
-  $('f-oamt').value='';$('f-iamt').value='';$('f-dpmt').value='';$('f-rbal').value='';
+  $('f-iamt').value='';$('f-dpmt').value='';
   $('f-shipped').value='Order In Progress';$('f-pay').value='None';$('f-sur').value='Complete';
   $('f-inc').value='Yes';$('f-cancel').checked=false;$('f-notes').value='';
   ['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=false);$('f-id').value='';
@@ -2609,8 +2602,8 @@ function openEdit(id){
   $('f-id').value=s.id;$('f-month').value=s.month;$('f-orderNo').value=s.orderNo;
   $('f-party').value=s.party;$('f-dest').value=s.dest;$('f-vol').value=s.vol;
   $('f-exf').value=s.exf&&s.exf.includes('-')?s.exf:'';
-  $('f-oamt').value=s.oamt;$('f-iamt').value=s.iamt;
-  $('f-dpmt').value=s.dpmt||'';$('f-rbal').value=s.dpmt?Math.max(0,(s.iamt||0)-(s.dpmt||0)).toFixed(2):'';
+  $('f-iamt').value=s.iamt;
+  $('f-dpmt').value=s.dpmt||'';
   $('f-shipped').value=s.shipped||'Order In Progress';
   $('f-pay').value=s.pay;$('f-sur').value=s.sur;$('f-inc').value=s.inc;
   $('f-cancel').checked=!!s.cancelled;$('f-notes').value=s.notes||'';
@@ -2624,9 +2617,8 @@ function saveShip(){
     id:id?+id:nextId(yr),month:$('f-month').value,orderNo:$('f-orderNo').value.trim(),
     party:$('f-party').value.trim(),dest:$('f-dest').value.trim(),vol:+$('f-vol').value||0,
     exf:$('f-exf').value,
-    oamt:+$('f-oamt').value||0,iamt:+$('f-iamt').value||0,
+    iamt:+$('f-iamt').value||0,
     dpmt:+$('f-dpmt').value||0,
-    rbal:Math.max(0,(+$('f-iamt').value||0)-(+$('f-dpmt').value||0)),
     shipped:$('f-shipped').value,
     pay:$('f-pay').value,sur:$('f-sur').value,inc:$('f-inc').value,
     cancelled:$('f-cancel').checked,notes:$('f-notes').value.trim(),
@@ -2666,7 +2658,7 @@ function copyShip(id){
   $('f-id').value='';
   $('f-month').value=s.month;$('f-orderNo').value=s.orderNo+'-copy';$('f-party').value=s.party;
   $('f-dest').value=s.dest;$('f-vol').value=s.vol;$('f-exf').value='';
-  $('f-oamt').value=s.oamt;$('f-iamt').value=s.iamt;$('f-dpmt').value='';$('f-rbal').value=s.iamt||'';
+  $('f-iamt').value=s.iamt;$('f-dpmt').value='';
   $('f-shipped').value='Order In Progress';$('f-pay').value='None';
   $('f-sur').value=s.sur||'No';$('f-inc').value='No';$('f-cancel').checked=false;$('f-notes').value=s.notes||'';
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
@@ -2676,11 +2668,11 @@ function exportBuyerCSV(yr){
   const ships=getShips(yr).filter(s=>!s.cancelled);
   const cfg=getCfg(yr);const rate=cfg.usdToBdt;
   const bm={};
-  ships.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,ord:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.ord+=Number(s.oamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Full Paid')b.paid++;if(s.inc==='Yes')b.inc++});
+  ships.forEach(s=>{if(!bm[s.party])bm[s.party]={inv:0,cnt:0,cbm:0,paid:0,inc:0};const b=bm[s.party];b.inv+=Number(s.iamt||0);b.cnt++;b.cbm+=Number(s.vol||0);if(s.pay==='Full Paid')b.paid++;if(s.inc==='Yes')b.inc++});
   const sorted=Object.entries(bm).sort((a,b)=>b[1].inv-a[1].inv);
   const total=ships.reduce((a,s)=>a+Number(s.iamt||0),0)||1;
-  const cols=['Buyer','Orders','CBM','Order (USD)','Invoice (USD)','Invoice (BDT)','Share %','Pay Rate %','Incentive Rate %'];
-  const rows=sorted.map(([name,b])=>[name,b.cnt,b.cbm.toFixed(2),b.ord.toFixed(2),b.inv.toFixed(2),(b.inv*rate).toFixed(0),(b.inv/total*100).toFixed(2),b.cnt?Math.round(b.paid/b.cnt*100):0,b.cnt?Math.round(b.inc/b.cnt*100):0]);
+  const cols=['Buyer','Orders','CBM','Invoice (USD)','Invoice (BDT)','Share %','Pay Rate %','Incentive Rate %'];
+  const rows=sorted.map(([name,b])=>[name,b.cnt,b.cbm.toFixed(2),b.inv.toFixed(2),(b.inv*rate).toFixed(0),(b.inv/total*100).toFixed(2),b.cnt?Math.round(b.paid/b.cnt*100):0,b.cnt?Math.round(b.inc/b.cnt*100):0]);
   const csv=[cols,...rows].map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`buyers-${yr}.csv`;a.click();
   toast('📥 Buyer CSV exported');
@@ -2689,8 +2681,8 @@ function exportBuyerCSV(yr){
 // ── CSV EXPORT ────────────────────────────────────────────────────────────────
 function doExportCSV(){
   const yr=D.currentYear,ships=getShips(yr);
-  const cols=['Year','Month','Order No','Party','Dest','CBM','Ex-Factory','Order (USD)','Invoice (USD)','Down Payment (USD)','Remaining Balance (USD)','Shipment Status','Payment','Surrender','Incentive','Cancelled','Notes'];
-  const rows=ships.map(s=>[yr,s.month,s.orderNo,s.party,s.dest,s.vol,s.exf,s.oamt,s.iamt,s.dpmt||0,Math.max(0,(s.iamt||0)-(s.dpmt||0)),s.shipped||'Order In Progress',s.pay,s.sur,s.inc,s.cancelled?'Yes':'No',s.notes||'']);
+  const cols=['Year','Month','Order No','Party','Dest','CBM','Ex-Factory','Invoice (USD)','Down Payment (USD)','Shipment Status','Payment','Surrender','Incentive','Cancelled','Notes'];
+  const rows=ships.map(s=>[yr,s.month,s.orderNo,s.party,s.dest,s.vol,s.exf,s.iamt,s.dpmt||0,s.shipped||'Order In Progress',s.pay,s.sur,s.inc,s.cancelled?'Yes':'No',s.notes||'']);
   const csv=[cols,...rows].map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`ExportManager_${yr}.csv`;a.click();toast('CSV exported');
 }
@@ -2713,7 +2705,7 @@ function doImportShipCSV(){
         const orderNo=(c[2]||'').trim();
         if(!orderNo)return;
         if(existing.has(orderNo)){skipped++;return;}
-        newShips.push({id:0,month:c[1]||'',orderNo,party:c[3]||'',dest:c[4]||'',vol:parseFloat(c[5])||0,exf:c[6]||'',oamt:parseFloat(c[7])||0,iamt:parseFloat(c[8])||0,dpmt:parseFloat(c[9])||0,rbal:parseFloat(c[10])||0,shipped:c[11]||'Order In Progress',pay:c[12]||'None',sur:c[13]||'Complete',inc:c[14]||'No',cancelled:c[15]==='Yes',notes:c[16]||''});
+        newShips.push({id:0,month:c[1]||'',orderNo,party:c[3]||'',dest:c[4]||'',vol:parseFloat(c[5])||0,exf:c[6]||'',iamt:parseFloat(c[7])||0,dpmt:parseFloat(c[8])||0,shipped:c[9]||'Order In Progress',pay:c[10]||'None',sur:c[11]||'Complete',inc:c[12]||'No',cancelled:c[13]==='Yes',notes:c[14]||''});
         added++;
       });
       if(!newShips.length){toast(`No new shipments found. ${skipped} skipped (duplicates).`);return}
