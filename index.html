@@ -2263,9 +2263,13 @@ ${hasPnl?`
 </div>
 
 <div class="card" style="margin-bottom:18px">
-  <div class="card-title">Monthly Net Profit / Loss Trend</div>
-  <div style="font-size:11px;color:var(--muted);margin-bottom:8px">One line per year — positive values = profit, negative shown as 0 in line chart</div>
-  <div class="chart-box">${svgLine(pnlByYear.map(p=>({name:p.yr,color:p.color,values:MONTHS.map(m=>{const mx=p.months.find(x=>x.m===m);return mx?Math.max(0,mx.net):0;})})),MONTHS.map(m=>m.slice(0,3)),{w:600,h:160,prefix:'৳'})}</div>
+  <div class="card-title">📊 Monthly Net Profit / Loss Comparison</div>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px">
+    <span style="font-size:11px;color:var(--muted)">Each group = one month &nbsp;·&nbsp; Bars = selected years</span>
+    ${pnlByYear.map(p=>`<span style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>${p.yr}</span>`).join('')}
+  </div>
+  <div class="chart-box">${svgGroupedBar(MONTHS.map(m=>({label:m.slice(0,3),values:pnlByYear.map(p=>{const mx=p.months.find(x=>x.m===m);return mx&&mx.hasData?Math.max(0,mx.net):0;})})),pnlByYear.map(p=>p.yr),pnlByYear.map(p=>p.color),{w:640,h:200,prefix:'৳'})}</div>
+  <div style="font-size:10.5px;color:var(--muted);margin-top:6px">* Loss months shown as 0 — see the P&amp;L table below for exact values including losses</div>
 </div>
 
 <div class="card" style="margin-bottom:18px">
@@ -2343,8 +2347,9 @@ ${hasPnlData?`
   <div class="chart-section"><h3>Net Profit / Loss by Year</h3>${svgBar(pnlPrint.map(p=>({label:p.yr,value:Math.abs(p.net),color:p.net>=0?'#2E7D32':'#C62828'})),{w:340,h:145,bg:'#fff',prefix:'৳',showVals:true})}<p style="font-size:8pt;color:#888;margin-top:4pt">Green = Profit ▲ &nbsp; Red = Loss ▼</p></div>
   <div class="chart-section"><h3>COGS vs Gross Profit by Year</h3>${svgGroupedBar(pnlPrint.map(p=>({label:p.yr,values:[p.cogs,p.gp]})),['COGS','Gross Profit'],['#EF5350','#2E7D32'],{w:340,h:145,bg:'#fff',prefix:'৳'})}</div>
 </div>
-<h3 style="margin:12pt 0 6pt">Monthly Net P/L Trend</h3>
-${svgLine(pnlPrint.map(p=>({name:p.yr,color:p.color,values:MONTHS.map(m=>{const mx=p.months.find(x=>x.m===m);return mx?Math.max(0,mx.net):0;})})),MONTHS.map(m=>m.slice(0,3)),{w:560,h:150,bg:'#fff',prefix:'৳'})}
+<h3 style="margin:12pt 0 6pt">Monthly Net Profit / Loss Comparison</h3>
+${svgGroupedBar(MONTHS.map(m=>({label:m.slice(0,3),values:pnlPrint.map(p=>{const mx=p.months.find(x=>x.m===m);return mx&&mx.hasData?Math.max(0,mx.net):0;})})),pnlPrint.map(p=>p.yr),pnlPrint.map(p=>p.color),{w:560,h:180,bg:'#fff',prefix:'৳'})}
+<p style="font-size:8pt;color:#888;margin-top:3pt">Each group = one month · Bars = selected years (loss months shown as 0)</p>
 <h2 style="margin-top:14pt">Year-over-Year P&amp;L Summary</h2>
 <table><thead><tr><th>Metric</th>${pnlPrint.map(p=>`<th>${p.yr}</th>`).join('')}${pnlPrint.length>1?'<th>Change</th>':''}</tr></thead>
 <tbody>
