@@ -3065,7 +3065,7 @@ function printCI(id){
   </tr>`).join('');
   const w=_docPrintWin(false);
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Commercial Invoice — ${o.invoiceNo||'Draft'}</title>
+<title>HAND TOUCH</title>
 <style>${_CI_COMMON_CSS}
 @page{size:A4 portrait;margin:8mm 10mm}
 </style></head><body><div class="page">
@@ -3132,7 +3132,7 @@ function printCI(id){
   ${o.advancePayment?`<tr><td colspan="7" style="text-align:right">Less Advance Payment =</td><td style="text-align:right">(${Number(o.advancePayment).toFixed(2)})</td></tr>`:''}
   <tr><td colspan="7" style="text-align:right">Total To Pay =</td><td style="text-align:right"><strong>USD ${toPay.toFixed(2)}</strong></td></tr>
   <tr><td colspan="8"><span class="lbl">Total CTN:</span> ${totalCtn}</td></tr>
-  <tr><td colspan="8"><span class="lbl">Total in Words: USD</span> ${_numWords(toPay)}</td></tr>
+  <tr><td colspan="8"><span class="lbl">Total in Words: USD</span> ${_numWords(totalAmt)}</td></tr>
 </tfoot>
 </table>
 <table class="hdr" style="border-top:none">
@@ -3152,7 +3152,7 @@ function printCI(id){
 </tr>
 </table>
 </div>
-<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script>
+<script>window.onload=()=>setTimeout(()=>{document.title="";window.print()},400)<\/script>
 </body></html>`);
   w.document.close();
 }
@@ -3187,7 +3187,7 @@ function printPL(id){
   }).join('');
   const w=_docPrintWin(true);
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Packing List — ${plNo||'Draft'}</title>
+<title>HAND TOUCH</title>
 <style>${_CI_COMMON_CSS}
 @page{size:A4 landscape;margin:7mm 9mm}
 </style></head><body><div class="page">
@@ -3276,7 +3276,7 @@ function printPL(id){
 </tr>
 </table>
 </div>
-<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script>
+<script>window.onload=()=>setTimeout(()=>{document.title="";window.print()},400)<\/script>
 </body></html>`);
   w.document.close();
 }
