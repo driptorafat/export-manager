@@ -2302,14 +2302,14 @@ ${hasPnl?`
 <div class="sh" style="margin-top:8px"><div><div class="sh-t" style="font-size:16px">📊 Profit &amp; Loss Comparison</div><div class="sh-s">Year-over-year P&amp;L: refundable cost, gross profit, expenses, and net profit/loss</div></div></div>
 
 <div class="kpi-grid" style="margin-bottom:18px">
-  ${pnlByYear.map(p=>`<div class="kpi" style="border-top:3px solid ${p.color}">
+  ${pnlByYear.map(p=>{const pct=(v,b)=>b?`<span style="display:inline-block;margin-left:5px;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700;background:rgba(0,0,0,0.07);color:inherit">${((v/b)*100).toFixed(1)}%</span>`:'';const npPct=p.sale?((Math.abs(p.net)/p.sale)*100).toFixed(1)+'%':'—';return`<div class="kpi" style="border-top:3px solid ${p.color}">
     <div class="lbl" style="color:${p.color};font-weight:700">${p.yr} — P&amp;L</div>
-    <div style="font-size:11px;margin:6px 0 2px;color:var(--muted)">Total Sale</div><div style="font-size:14px;font-weight:700">৳${Math.round(p.sale).toLocaleString()}</div>
-    <div style="font-size:11px;margin:4px 0 2px;color:var(--err)">Ref. Cost</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.cogs).toLocaleString()})</div>
-    <div style="font-size:11px;margin:4px 0 2px;color:var(--ok)">Gross Profit</div><div style="font-size:13px;font-weight:600;color:var(--ok)">৳${Math.round(p.gp).toLocaleString()}</div>
-    <div style="font-size:11px;margin:4px 0 2px;color:var(--muted)">Expenses</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.exp).toLocaleString()})</div>
-    <div style="font-size:11px;margin:6px 0 2px;font-weight:700">Net P/L</div><div style="font-size:15px;font-weight:800;color:${p.net>=0?'var(--ok)':'var(--err)'}">৳${Math.round(Math.abs(p.net)).toLocaleString()} ${p.net>=0?'▲':'▼'}</div>
-  </div>`).join('')}
+    <div style="font-size:11px;margin:6px 0 2px;color:var(--muted)">Total Sale</div><div style="font-size:14px;font-weight:700">৳${Math.round(p.sale).toLocaleString()}${pct(p.sale,p.sale)}</div>
+    <div style="font-size:11px;margin:4px 0 2px;color:var(--err)">Ref. Cost</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.cogs).toLocaleString()})${pct(p.cogs,p.sale)}</div>
+    <div style="font-size:11px;margin:4px 0 2px;color:var(--ok)">Gross Profit</div><div style="font-size:13px;font-weight:600;color:var(--ok)">৳${Math.round(p.gp).toLocaleString()}${pct(p.gp,p.sale)}</div>
+    <div style="font-size:11px;margin:4px 0 2px;color:var(--muted)">Expenses</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.exp).toLocaleString()})${pct(p.exp,p.sale)}</div>
+    <div style="font-size:11px;margin:6px 0 2px;font-weight:700">Net P/L</div><div style="font-size:15px;font-weight:800;color:${p.net>=0?'var(--ok)':'var(--err)'}">৳${Math.round(Math.abs(p.net)).toLocaleString()} ${p.net>=0?'▲':'▼'} <span style="font-size:12px;font-weight:700;opacity:.8">${npPct}</span></div>
+  </div>`}).join('')}
 </div>
 
 <div class="g2" style="margin-bottom:18px">
@@ -2340,14 +2340,17 @@ ${hasPnl?`
   <div class="tbl-wrap"><table>
     <thead><tr><th>Metric</th>${pnlByYear.map(p=>`<th style="color:${p.color}">${p.yr}</th>`).join('')}${pnlByYear.length>1?'<th>Change</th>':''}</tr></thead>
     <tbody>
-      ${[
-        ['Total Sale (BDT)',p=>'৳'+Math.round(p.sale).toLocaleString(),p=>p.sale,'৳'],
-        ['Refundable Cost (BDT)',p=>'(৳'+Math.round(p.cogs).toLocaleString()+')',p=>p.cogs,'৳'],
-        ['Gross Profit (BDT)',p=>'৳'+Math.round(p.gp).toLocaleString(),p=>p.gp,'৳'],
-        ['Total Expenses (BDT)',p=>'(৳'+Math.round(p.exp).toLocaleString()+')',p=>p.exp,'৳'],
-        ['Net Profit/Loss (BDT)',p=>'<span style="font-weight:700;color:'+(p.net>=0?'var(--ok)':'var(--err)')+'">৳'+Math.round(Math.abs(p.net)).toLocaleString()+(p.net>=0?' ▲':' ▼')+'</span>',p=>p.net,'৳'],
-        ['Net Margin',p=>p.sale?((p.net/p.sale)*100).toFixed(1)+'%':'—',null,''],
-      ].map(([lbl,fn,vfn,pfx])=>`<tr><td>${lbl}</td>${pnlByYear.map(p=>`<td>${fn(p)}</td>`).join('')}${pnlByYear.length>1?`<td style="font-weight:700">${vfn?(()=>{const diff=vfn(pnlByYear.at(-1))-vfn(pnlByYear[0]);return(diff>=0?'<span style="color:var(--ok)">+':'<span style="color:var(--err)">') + pfx+Math.round(Math.abs(diff)).toLocaleString()+(lbl.includes('Net Profit')?diff>=0?' ▲':' ▼':'')+'</span>';})():'—'}</td>`:''}</tr>`).join('')}
+      ${(()=>{
+        const pctPill=(v,base)=>base?` <span style="font-size:10.5px;color:var(--muted);font-weight:600">(${((v/base)*100).toFixed(1)}%)</span>`:'';
+        return[
+          ['Total Sale (BDT)',p=>'৳'+Math.round(p.sale).toLocaleString()+pctPill(p.sale,p.sale),p=>p.sale,'৳'],
+          ['Refundable Cost (BDT)',p=>'(৳'+Math.round(p.cogs).toLocaleString()+')'+pctPill(p.cogs,p.sale),p=>p.cogs,'৳'],
+          ['Gross Profit (BDT)',p=>'৳'+Math.round(p.gp).toLocaleString()+pctPill(p.gp,p.sale),p=>p.gp,'৳'],
+          ['Total Expenses (BDT)',p=>'(৳'+Math.round(p.exp).toLocaleString()+')'+pctPill(p.exp,p.sale),p=>p.exp,'৳'],
+          ['Net Profit/Loss (BDT)',p=>'<span style="font-weight:700;color:'+(p.net>=0?'var(--ok)':'var(--err)')+'">৳'+Math.round(Math.abs(p.net)).toLocaleString()+(p.net>=0?' ▲':' ▼')+'</span>'+pctPill(Math.abs(p.net),p.sale),p=>p.net,'৳'],
+          ['Net Margin',p=>p.sale?((p.net/p.sale)*100).toFixed(1)+'%':'—',null,''],
+        ].map(([lbl,fn,vfn,pfx])=>`<tr><td>${lbl}</td>${pnlByYear.map(p=>`<td>${fn(p)}</td>`).join('')}${pnlByYear.length>1?`<td style="font-weight:700">${vfn?(()=>{const diff=vfn(pnlByYear.at(-1))-vfn(pnlByYear[0]);return(diff>=0?'<span style="color:var(--ok)">+':'<span style="color:var(--err)">') + pfx+Math.round(Math.abs(diff)).toLocaleString()+(lbl.includes('Net Profit')?diff>=0?' ▲':' ▼':'')+'</span>';})():'—'}</td>`:''}</tr>`).join('');
+      })()}
     </tbody>
   </table></div>
 </div>`:''}
