@@ -1450,38 +1450,40 @@ function printPnlYearly(yr) {
   const yrExpData=PNL_EXPENSES.map((e,i)=>{const tv=active.reduce((a,r)=>a+(getPnlMonth(yr,r.m).expenses[e.key]||0),0);return tv>0?{label:e.label.split(' ').slice(0,2).join(' '),value:tv,color:COLORS[i%COLORS.length]}:null;}).filter(Boolean);
   const yrExpBarSvg=yrExpData.length?svgBar(yrExpData,{w:560,h:190,prefix:'৳',showVals:true}):'';
   const yrExpDonutSvg=yrExpData.length?svgDonut(yrExpData,{size:180,prefix:'৳'}):'';
+  const tSale=tot('sale'),tCogs=tot('cogs'),tGp=tot('gp'),tExp=tot('exp'),tNet=tot('net');
+  const pPct=(v,b)=>b?`<div style="display:inline-block;margin-top:5px;padding:2px 10px;border-radius:12px;font-size:11pt;font-weight:800;background:rgba(0,0,0,0.07);color:inherit">${((v/b)*100).toFixed(1)}%</div>`:'';
   const body = `
 <div class="kpi-row">
-  <div class="kpi-box"><div class="lbl">Total Sale</div><div class="val">${fB(tot('sale'))}</div></div>
-  <div class="kpi-box"><div class="lbl">Total Refundable Cost</div><div class="val">${fB(tot('cogs'))}</div></div>
-  <div class="kpi-box"><div class="lbl">Gross Profit</div><div class="val">${fB(tot('gp'))}</div></div>
-  <div class="kpi-box"><div class="lbl">Total Expenses</div><div class="val">${fB(tot('exp'))}</div></div>
-  <div class="kpi-box" style="background:${tot('net')>=0?'#E8F5E9':'#FFEBEE'}"><div class="lbl">Net Profit/Loss</div><div class="val" style="color:${tot('net')>=0?'#2E7D32':'#C62828'}">${fB(tot('net'))}${tot('net')>=0?' ▲':' ▼'}</div></div>
+  <div class="kpi-box"><div class="lbl">Total Sale</div><div class="val">${fB(tSale)}</div>${pPct(tSale,tSale)}</div>
+  <div class="kpi-box"><div class="lbl">Total Refundable Cost</div><div class="val">${fB(tCogs)}</div>${pPct(tCogs,tSale)}</div>
+  <div class="kpi-box"><div class="lbl">Gross Profit</div><div class="val">${fB(tGp)}</div>${pPct(tGp,tSale)}</div>
+  <div class="kpi-box"><div class="lbl">Total Expenses</div><div class="val">${fB(tExp)}</div>${pPct(tExp,tSale)}</div>
+  <div class="kpi-box" style="background:${tNet>=0?'#E8F5E9':'#FFEBEE'}"><div class="lbl">Net Profit/Loss</div><div class="val" style="color:${tNet>=0?'#2E7D32':'#C62828'}">${fB(tNet)}${tNet>=0?' ▲':' ▼'}</div>${pPct(Math.abs(tNet),tSale)}</div>
 </div>
 ${netBarSvg?`<h2 style="margin-top:18pt;margin-bottom:8pt">Monthly Net Profit / Loss</h2>${netBarSvg}<p style="font-size:8pt;color:#888;margin:4pt 0 14pt">Green bars = Profit ▲ &nbsp; Red bars = Loss ▼</p>`:''}
 ${rcBarSvg?`<h2 style="margin-top:14pt;margin-bottom:8pt">Monthly Refundable Cost — ${yr}</h2>${rcBarSvg}<p style="font-size:8pt;color:#888;margin:4pt 0 14pt">Refundable Cost per month (BDT)</p>`:''}
 ${rcGroupedSvg?`<h2 style="margin-top:14pt;margin-bottom:8pt">Sale vs Ref. Cost vs Gross Profit — ${yr}</h2>${rcGroupedSvg}<p style="font-size:8pt;color:#888;margin:4pt 0 14pt">Blue = Sale &nbsp;·&nbsp; Red = Ref. Cost &nbsp;·&nbsp; Green = Gross Profit</p>`:''}
 <h2 style="margin-top:14pt">Monthly Profit &amp; Loss Breakdown</h2>
 <table><thead><tr><th>Month</th><th>Total Sale</th><th>Gross Profit</th><th>Expenses</th><th>Op. Profit</th><th>Bad Debt</th><th>Net Profit/Loss</th><th>Margin</th></tr></thead>
-<tbody>${active.map(r=>`<tr>
+<tbody>${active.map(r=>{const sp=(v,b)=>b?`<br><span style="font-size:8pt;color:#888;font-weight:600">(${((v/b)*100).toFixed(1)}%)</span>`:'';return`<tr>
   <td><strong>${r.m}</strong></td>
-  <td>৳${Math.round(r.sale).toLocaleString()}</td>
-  <td style="color:#2E7D32">৳${Math.round(r.gp).toLocaleString()}</td>
-  <td style="color:#C62828">(৳${Math.round(r.exp).toLocaleString()})</td>
-  <td>৳${Math.round(r.opProfit).toLocaleString()}</td>
-  <td style="color:#C62828">(৳${Math.round(r.bd).toLocaleString()})</td>
-  <td style="font-weight:700;color:${r.net>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(r.net)).toLocaleString()}${r.net>=0?' ▲':' ▼'}</td>
+  <td>৳${Math.round(r.sale).toLocaleString()}${sp(r.sale,r.sale)}</td>
+  <td style="color:#2E7D32">৳${Math.round(r.gp).toLocaleString()}${sp(r.gp,r.sale)}</td>
+  <td style="color:#C62828">(৳${Math.round(r.exp).toLocaleString()})${sp(r.exp,r.sale)}</td>
+  <td>৳${Math.round(r.opProfit).toLocaleString()}${sp(r.opProfit,r.sale)}</td>
+  <td style="color:#C62828">(৳${Math.round(r.bd).toLocaleString()})${sp(r.bd,r.sale)}</td>
+  <td style="font-weight:700;color:${r.net>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(r.net)).toLocaleString()}${r.net>=0?' ▲':' ▼'}${sp(Math.abs(r.net),r.sale)}</td>
   <td><strong>${r.sale?((r.net/r.sale)*100).toFixed(1)+'%':'—'}</strong></td>
-</tr>`).join('')}</tbody>
+</tr>`}).join('')}</tbody>
 <tfoot><tr>
   <td><strong>TOTAL</strong></td>
-  <td>৳${Math.round(tot('sale')).toLocaleString()}</td>
-  <td>৳${Math.round(tot('gp')).toLocaleString()}</td>
-  <td>(৳${Math.round(tot('exp')).toLocaleString()})</td>
-  <td>৳${Math.round(tot('opProfit')).toLocaleString()}</td>
-  <td>(৳${Math.round(tot('bd')).toLocaleString()})</td>
-  <td style="font-weight:800;color:${tot('net')>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(tot('net'))).toLocaleString()}${tot('net')>=0?' ▲':' ▼'}</td>
-  <td>${tot('sale')?((tot('net')/tot('sale'))*100).toFixed(1)+'%':'—'}</td>
+  <td><strong>৳${Math.round(tSale).toLocaleString()}</strong><br><span style="font-size:8pt;color:#888;font-weight:600">(100%)</span></td>
+  <td><strong>৳${Math.round(tGp).toLocaleString()}</strong><br><span style="font-size:8pt;color:#888;font-weight:600">${tSale?'('+((tGp/tSale)*100).toFixed(1)+'%)':''}</span></td>
+  <td><strong>(৳${Math.round(tExp).toLocaleString()})</strong><br><span style="font-size:8pt;color:#888;font-weight:600">${tSale?'('+((tExp/tSale)*100).toFixed(1)+'%)':''}</span></td>
+  <td><strong>৳${Math.round(tot('opProfit')).toLocaleString()}</strong><br><span style="font-size:8pt;color:#888;font-weight:600">${tSale?'('+((tot('opProfit')/tSale)*100).toFixed(1)+'%)':''}</span></td>
+  <td><strong>(৳${Math.round(tot('bd')).toLocaleString()})</strong><br><span style="font-size:8pt;color:#888;font-weight:600">${tSale?'('+((tot('bd')/tSale)*100).toFixed(1)+'%)':''}</span></td>
+  <td style="font-weight:800;color:${tNet>=0?'#2E7D32':'#C62828'}"><strong>৳${Math.round(Math.abs(tNet)).toLocaleString()}${tNet>=0?' ▲':' ▼'}</strong><br><span style="font-size:8pt;color:#888;font-weight:600">${tSale?'('+((Math.abs(tNet)/tSale)*100).toFixed(1)+'%)':''}</span></td>
+  <td><strong>${tSale?((tNet/tSale)*100).toFixed(1)+'%':'—'}</strong></td>
 </tr></tfoot></table>
 <h2 style="margin-top:16pt">Expense Distribution by Month</h2>
 <table><thead><tr><th>Expense Category</th>${active.map(r=>`<th>${r.m.slice(0,3)}</th>`).join('')}<th>Total</th></tr></thead>
