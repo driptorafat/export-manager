@@ -1445,6 +1445,8 @@ function printPnlYearly(yr) {
   // Charts for yearly report
   const netChartItems=active.map(r=>({label:r.m.slice(0,3),value:Math.abs(r.net),color:r.net>=0?'#2E7D32':'#C62828'}));
   const netBarSvg=active.length>=1?svgBar(netChartItems,{w:560,h:170,prefix:'৳',showVals:true}):'';
+  const rcBarSvg=active.length>=1?svgBar(active.map(r=>({label:r.m.slice(0,3),value:r.cogs,color:'#EF5350'})),{w:560,h:160,prefix:'৳',showVals:true,bg:'#fff'}):'';
+  const rcGroupedSvg=active.length>=1?svgGroupedBar(active.map(r=>({label:r.m.slice(0,3),values:[r.sale,r.cogs,r.gp]})),['Sale','Ref. Cost','Gross Profit'],['#1565C0','#EF5350','#2E7D32'],{w:560,h:170,bg:'#fff',prefix:'৳'}):'';
   const yrExpData=PNL_EXPENSES.map((e,i)=>{const tv=active.reduce((a,r)=>a+(getPnlMonth(yr,r.m).expenses[e.key]||0),0);return tv>0?{label:e.label.split(' ').slice(0,2).join(' '),value:tv,color:COLORS[i%COLORS.length]}:null;}).filter(Boolean);
   const yrExpBarSvg=yrExpData.length?svgBar(yrExpData,{w:560,h:190,prefix:'৳',showVals:true}):'';
   const yrExpDonutSvg=yrExpData.length?svgDonut(yrExpData,{size:180,prefix:'৳'}):'';
@@ -1457,6 +1459,8 @@ function printPnlYearly(yr) {
   <div class="kpi-box" style="background:${tot('net')>=0?'#E8F5E9':'#FFEBEE'}"><div class="lbl">Net Profit/Loss</div><div class="val" style="color:${tot('net')>=0?'#2E7D32':'#C62828'}">${fB(tot('net'))}${tot('net')>=0?' ▲':' ▼'}</div></div>
 </div>
 ${netBarSvg?`<h2 style="margin-top:18pt;margin-bottom:8pt">Monthly Net Profit / Loss</h2>${netBarSvg}<p style="font-size:8pt;color:#888;margin:4pt 0 14pt">Green bars = Profit ▲ &nbsp; Red bars = Loss ▼</p>`:''}
+${rcBarSvg?`<h2 style="margin-top:14pt;margin-bottom:8pt">Monthly Refundable Cost — ${yr}</h2>${rcBarSvg}<p style="font-size:8pt;color:#888;margin:4pt 0 14pt">Refundable Cost per month (BDT)</p>`:''}
+${rcGroupedSvg?`<h2 style="margin-top:14pt;margin-bottom:8pt">Sale vs Ref. Cost vs Gross Profit — ${yr}</h2>${rcGroupedSvg}<p style="font-size:8pt;color:#888;margin:4pt 0 14pt">Blue = Sale &nbsp;·&nbsp; Red = Ref. Cost &nbsp;·&nbsp; Green = Gross Profit</p>`:''}
 <h2 style="margin-top:14pt">Monthly Profit &amp; Loss Breakdown</h2>
 <table><thead><tr><th>Month</th><th>Total Sale</th><th>Gross Profit</th><th>Expenses</th><th>Op. Profit</th><th>Bad Debt</th><th>Net Profit/Loss</th><th>Margin</th></tr></thead>
 <tbody>${active.map(r=>`<tr>
@@ -1741,20 +1745,23 @@ function renderPnl(yr,ships,cfg){
   </div>
 </div>
 
-
 <!-- Refundable Cost chart row -->
-${pnlWithData.length?`<div class="g2" style="margin-bottom:18px">
+${(()=>{
+  const rcData=allMoPnl.filter(x=>x.sale>0||x.hasData);
+  if(!rcData.length)return'';
+  return`<div class="g2" style="margin-bottom:18px">
   <div class="card">
     <div class="card-title">💸 Monthly Refundable Cost — ${yr}</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Refundable Cost per month (BDT)</div>
-    <div class="chart-box">${svgBar(pnlWithData.map(x=>({label:x.m.slice(0,3),value:x.cogs,color:'#EF5350'})),{w:440,h:130,prefix:'৳',showVals:true})}</div>
+    <div class="chart-box">${svgBar(rcData.map(x=>({label:x.m.slice(0,3),value:x.cogs,color:'#EF5350'})),{w:440,h:130,prefix:'৳',showVals:true})}</div>
   </div>
   <div class="card">
     <div class="card-title">📈 Sale vs Ref. Cost vs Gross Profit — ${yr}</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Blue = Sale &nbsp;·&nbsp; Red = Ref. Cost &nbsp;·&nbsp; Green = Gross Profit</div>
-    <div class="chart-box">${svgGroupedBar(pnlWithData.map(x=>({label:x.m.slice(0,3),values:[x.sale,x.cogs,x.gp]})),['Sale','Ref. Cost','Gross Profit'],['#1565C0','#EF5350','#2E7D32'],{w:440,h:130,prefix:'৳'})}</div>
+    <div class="chart-box">${svgGroupedBar(rcData.map(x=>({label:x.m.slice(0,3),values:[x.sale,x.cogs,x.gp]})),['Sale','Ref. Cost','Gross Profit'],['#1565C0','#EF5350','#2E7D32'],{w:440,h:130,prefix:'৳'})}</div>
   </div>
-</div>`:''}
+</div>`;
+})()}
 
 <!-- Expense form + P&L statement -->
 <div class="g2" style="margin-bottom:18px">
