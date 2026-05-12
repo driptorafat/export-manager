@@ -1622,15 +1622,16 @@ function printPnl(yr,mo){
   <h2>EXPORT SALE — Profit &amp; Loss Statement</h2>
   <h3>Month of ${mo} ${yr} &nbsp;|&nbsp; Printed: ${new Date().toLocaleDateString()}</h3>
   <table>
-    <tr><td class="lbl">Total Sale</td><td class="amt">৳ ${fmtN(totalSale)}</td></tr>
-    <tr><td class="lbl">Refundable Cost (${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff. — fixed amt'):d.cogsPct+'%'})</td><td class="amt" style="color:#C62828">(৳ ${fmtN(cogs)})</td></tr>
-    <tr class="total"><td>Gross Profit (${totalSale?((grossProfit/totalSale)*100).toFixed(1)+'%':'—'})</td><td class="amt">৳ ${fmtN(grossProfit)}</td></tr>
-    <tr><td colspan="2" class="sect">Administrative &amp; Other Costs</td></tr>
-    ${PNL_EXPENSES.filter(e=>d.expenses[e.key]).map(e=>`<tr><td class="lbl">${e.label}${e.code?' ('+e.code+')':''}</td><td class="amt" style="color:#555">৳ ${fmtN(d.expenses[e.key])}</td></tr>`).join('')}
-    <tr class="total"><td>Total Expense</td><td class="amt" style="color:#C62828">(৳ ${fmtN(totalExp)})</td></tr>
-    <tr><td class="lbl">Profit / Loss</td><td class="amt" style="color:${profitLoss>=0?'#2E7D32':'#C62828'}">৳ ${fmtN(profitLoss)}</td></tr>
-    <tr><td class="lbl">Bad Debts (${d.badDebtPct}%)</td><td class="amt" style="color:#C62828">(৳ ${fmtN(badDebt)})</td></tr>
-    <tr class="${netProfit>=0?'net-profit':'net-loss'}"><td>Net Profit / Loss</td><td class="amt">৳ ${fmtN(netProfit)}</td></tr>
+    <colgroup><col style="width:55%"><col style="width:25%"><col style="width:20%"></colgroup>
+    <tr><td class="lbl">Total Sale</td><td class="amt">৳ ${fmtN(totalSale)}</td><td class="amt" style="color:#555;font-size:11.5px">100%</td></tr>
+    <tr><td class="lbl">Refundable Cost (${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff. — fixed amt'):d.cogsPct+'%'})</td><td class="amt" style="color:#C62828">(৳ ${fmtN(cogs)})</td><td class="amt" style="color:#C62828;font-size:11.5px">${totalSale?(d.cogsOverride!=null?(d.cogsOverride/totalSale*100).toFixed(1):d.cogsPct)+'%':'—'}</td></tr>
+    <tr class="total"><td>Gross Profit</td><td class="amt">৳ ${fmtN(grossProfit)}</td><td class="amt" style="font-size:11.5px">${totalSale?((grossProfit/totalSale)*100).toFixed(1)+'%':'—'}</td></tr>
+    <tr><td colspan="3" class="sect">Administrative &amp; Other Costs</td></tr>
+    ${PNL_EXPENSES.filter(e=>d.expenses[e.key]).map(e=>`<tr><td class="lbl">${e.label}${e.code?' ('+e.code+')':''}</td><td class="amt" style="color:#555">৳ ${fmtN(d.expenses[e.key])}</td><td class="amt" style="color:#888;font-size:11px">${totalSale?((d.expenses[e.key]/totalSale)*100).toFixed(1)+'%':'—'}</td></tr>`).join('')}
+    <tr class="total"><td>Total Expense</td><td class="amt" style="color:#C62828">(৳ ${fmtN(totalExp)})</td><td class="amt" style="color:#C62828;font-size:11.5px">${totalSale?((totalExp/totalSale)*100).toFixed(1)+'%':'—'}</td></tr>
+    <tr><td class="lbl">Profit / Loss</td><td class="amt" style="color:${profitLoss>=0?'#2E7D32':'#C62828'}">৳ ${fmtN(profitLoss)}</td><td></td></tr>
+    <tr><td class="lbl">Bad Debts (${d.badDebtPct}%)</td><td class="amt" style="color:#C62828">(৳ ${fmtN(badDebt)})</td><td></td></tr>
+    <tr class="${netProfit>=0?'net-profit':'net-loss'}"><td>Net Profit / Loss</td><td class="amt">৳ ${fmtN(netProfit)}</td><td class="amt" style="font-size:12px">${totalSale?(netProfit>=0?'▲ ':'▼ ')+Math.abs((netProfit/totalSale)*100).toFixed(1)+'%':'—'}</td></tr>
   </table>
   ${expBarSvg?`<h4>Expense Breakdown — ${mo} ${yr}</h4>${expBarSvg}`:''}
   ${expDonutSvg&&expItems.length?`<h4>Expense Distribution</h4><div class="chart-row">${expDonutSvg}<div style="flex:1;min-width:140px;padding-top:8px">${expItems.map(e=>`<div class="leg"><span class="dot" style="background:${e.color}"></span><span style="flex:1">${e.label}</span><strong>৳${Math.round(e.value).toLocaleString()}</strong></div>`).join('')}</div></div>`:''}
@@ -1724,13 +1725,17 @@ function renderPnl(yr,ships,cfg){
 </div>
 
 <!-- KPI grid — P&L -->
-<div class="kpi-grid" style="margin-bottom:20px">
-  <div class="kpi acc"><div class="lbl">Total Sale (BDT)</div><div class="val" style="font-size:19px">${fB(totalSale)}</div><div class="sub">${autoSaleUSD?fUSD(autoSaleUSD)+' · '+moShips.length+' shipment'+(moShips.length!==1?'s':''):'No shipments this month'}</div></div>
-  <div class="kpi err"><div class="lbl">Refundable Cost — ${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff.'):(d.cogsPct+'%')}</div><div class="val" style="font-size:19px;color:var(--err)">${totalSale?'('+fB(cogs)+')':'—'}</div><div class="sub">${d.cogsOverride!=null?'Fixed amount override':'% of total sale'}</div></div>
-  <div class="kpi ok"><div class="lbl">Gross Profit — ${totalSale?((grossProfit/totalSale)*100).toFixed(1)+'%':'—'}</div><div class="val" style="font-size:19px">${fB(grossProfit)}</div><div class="sub">Sale minus Refundable Cost</div></div>
+${(()=>{
+  const pct=(v,base)=>base?'<span style="display:inline-block;margin-top:5px;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:800;background:rgba(0,0,0,0.07);color:inherit;letter-spacing:.2px">'+((v/base)*100).toFixed(1)+'%</span>':'';
+  const cogsPctEff=totalSale?(d.cogsOverride!=null?(d.cogsOverride/totalSale*100).toFixed(1):d.cogsPct):d.cogsPct;
+  return`<div class="kpi-grid" style="margin-bottom:20px">
+  <div class="kpi acc"><div class="lbl">Total Sale (BDT)</div><div class="val" style="font-size:19px">${fB(totalSale)}</div>${totalSale?pct(totalSale,totalSale):''}  <div class="sub" style="margin-top:5px">${autoSaleUSD?fUSD(autoSaleUSD)+' · '+moShips.length+' shipment'+(moShips.length!==1?'s':''):'No shipments this month'}</div></div>
+  <div class="kpi err"><div class="lbl">Refundable Cost${d.cogsOverride!=null?' <span style="font-size:9px;font-weight:600;background:#EF5350;color:#fff;border-radius:3px;padding:1px 5px;vertical-align:middle">Override</span>':''}</div><div class="val" style="font-size:19px;color:var(--err)">${totalSale?'('+fB(cogs)+')':'—'}</div>${totalSale?`<span style="display:inline-block;margin-top:5px;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:800;background:rgba(239,83,80,0.15);color:var(--err);letter-spacing:.2px">${cogsPctEff}%</span>`:''}  <div class="sub" style="margin-top:5px">${d.cogsOverride!=null?'Fixed amount override':'% of total sale'}</div></div>
+  <div class="kpi ok"><div class="lbl">Gross Profit</div><div class="val" style="font-size:19px">${fB(grossProfit)}</div>${totalSale?`<span style="display:inline-block;margin-top:5px;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:800;background:rgba(46,125,50,0.13);color:var(--ok);letter-spacing:.2px">${((grossProfit/totalSale)*100).toFixed(1)}%</span>`:''}  <div class="sub" style="margin-top:5px">Sale minus Refundable Cost</div></div>
   <div class="kpi ${totalExp>0?'warn':''}"><div class="lbl">Total Expenses</div><div class="val" style="font-size:19px;color:${totalExp>0?'var(--err)':'var(--muted)'}">${totalExp>0?fB(totalExp):'—'}</div><div class="sub">${PNL_EXPENSES.filter(e=>d.expenses[e.key]).length} line items</div></div>
-  <div class="kpi ${netProfit>=0?'ok':'err'}"><div class="lbl">Net Profit / Loss</div><div class="val" style="font-size:19px;color:${netProfit>=0?'var(--ok)':'var(--err)'}">${totalSale?fB(Math.abs(netProfit)):'—'}</div><div class="sub">${totalSale?(netProfit>=0?'▲ +'+npPct+'% margin':'▼ '+npPct+'% loss'):'Enter data to calculate'}</div></div>
-</div>
+  <div class="kpi ${netProfit>=0?'ok':'err'}"><div class="lbl">Net Profit / Loss</div><div class="val" style="font-size:19px;color:${netProfit>=0?'var(--ok)':'var(--err)'}">${totalSale?fB(Math.abs(netProfit)):'—'}</div>${totalSale?`<span style="display:inline-block;margin-top:5px;padding:2px 9px;border-radius:12px;font-size:12px;font-weight:800;background:${netProfit>=0?'rgba(46,125,50,0.13)':'rgba(198,40,40,0.13)'};color:${netProfit>=0?'var(--ok)':'var(--err)'};letter-spacing:.2px">${netProfit>=0?'▲ +':' ▼ '}${npPct}%</span>`:''}  <div class="sub" style="margin-top:5px">${totalSale?'Net margin':'Enter data to calculate'}</div></div>
+</div>`;
+})()}
 
 <!-- Charts row 1: Net P/L bar + Expense donut -->
 <div class="g2" style="margin-bottom:18px">
@@ -1841,14 +1846,15 @@ ${(()=>{
     <thead><tr><th>Month</th><th>Ships</th><th>Invoice (USD)</th><th>Sale (BDT)</th><th style="color:#C62828">Ref. Cost (BDT)</th><th style="color:#2E7D32">Gross Profit</th><th>Net P/L</th><th>Margin</th></tr></thead>
     <tbody>${fin.mData.map((m,i)=>{
       const pd=allMoPnl[i];const hasP=pd.hasData||pd.sale>0;
+      const sp=v=>pd.sale?` <span style="font-size:10px;color:var(--muted);font-weight:600">(${((v/pd.sale)*100).toFixed(1)}%)</span>`:'';
       return`<tr style="${m.month===mo?'background:var(--pril)':''}">
         <td><strong>${m.month}</strong></td>
         <td>${m.cnt}</td>
         <td>${m.inv?fUSD(m.inv):'—'}</td>
-        <td>${hasP?'৳'+Math.round(pd.sale).toLocaleString():'—'}</td>
-        <td style="color:var(--err)">${hasP?'(৳'+Math.round(pd.cogs).toLocaleString()+')':'—'}</td>
-        <td style="color:var(--ok)">${hasP?'৳'+Math.round(pd.gp).toLocaleString():'—'}</td>
-        <td style="color:${pd.net>=0?'var(--ok)':'var(--err)'};font-weight:700">${hasP?'৳'+Math.round(Math.abs(pd.net)).toLocaleString()+(pd.net>=0?' ▲':' ▼'):'—'}</td>
+        <td>${hasP?'৳'+Math.round(pd.sale).toLocaleString()+sp(pd.sale):'—'}</td>
+        <td style="color:var(--err)">${hasP?'(৳'+Math.round(pd.cogs).toLocaleString()+')'+sp(pd.cogs):'—'}</td>
+        <td style="color:var(--ok)">${hasP?'৳'+Math.round(pd.gp).toLocaleString()+sp(pd.gp):'—'}</td>
+        <td style="color:${pd.net>=0?'var(--ok)':'var(--err)'};font-weight:700">${hasP?'৳'+Math.round(Math.abs(pd.net)).toLocaleString()+(pd.net>=0?' ▲':' ▼')+sp(Math.abs(pd.net)):'—'}</td>
         <td>${pd.sale&&hasP?'<span class="bdg '+(pd.net>=0?'bdg-ok':'bdg-err')+'">'+((pd.net/pd.sale)*100).toFixed(1)+'%</span>':'—'}</td>
       </tr>`;
     }).join('')}</tbody>
