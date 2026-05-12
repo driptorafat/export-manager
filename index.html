@@ -1451,7 +1451,7 @@ function printPnlYearly(yr) {
   const body = `
 <div class="kpi-row">
   <div class="kpi-box"><div class="lbl">Total Sale</div><div class="val">${fB(tot('sale'))}</div></div>
-  <div class="kpi-box"><div class="lbl">Total COGS</div><div class="val">${fB(tot('cogs'))}</div></div>
+  <div class="kpi-box"><div class="lbl">Total Refundable Cost</div><div class="val">${fB(tot('cogs'))}</div></div>
   <div class="kpi-box"><div class="lbl">Gross Profit</div><div class="val">${fB(tot('gp'))}</div></div>
   <div class="kpi-box"><div class="lbl">Total Expenses</div><div class="val">${fB(tot('exp'))}</div></div>
   <div class="kpi-box" style="background:${tot('net')>=0?'#E8F5E9':'#FFEBEE'}"><div class="lbl">Net Profit/Loss</div><div class="val" style="color:${tot('net')>=0?'#2E7D32':'#C62828'}">${fB(tot('net'))}${tot('net')>=0?' ▲':' ▼'}</div></div>
@@ -1588,7 +1588,7 @@ function printPnl(yr,mo){
   const expBarSvg=expItems.length?svgBar(expItems,{w:560,h:180,prefix:'৳',showVals:true}):'';
   const expDonutSvg=expItems.length?svgDonut(expItems,{size:180,prefix:'৳'}):'';
   const summaryBarItems=[
-    {label:'COGS',value:cogs,color:'#EF5350'},
+    {label:'Ref. Cost',value:cogs,color:'#EF5350'},
     {label:'Expenses',value:totalExp,color:'#FB8C00'},
     {label:'Bad Debt',value:badDebt,color:'#AB47BC'},
     {label:'Net '+(netProfit>=0?'Profit':'Loss'),value:Math.abs(netProfit),color:netProfit>=0?'#43A047':'#E53935'},
@@ -1619,7 +1619,7 @@ function printPnl(yr,mo){
   <h3>Month of ${mo} ${yr} &nbsp;|&nbsp; Printed: ${new Date().toLocaleDateString()}</h3>
   <table>
     <tr><td class="lbl">Total Sale</td><td class="amt">৳ ${fmtN(totalSale)}</td></tr>
-    <tr><td class="lbl">Cost of Goods Sold (${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff. — fixed amt'):d.cogsPct+'%'})</td><td class="amt" style="color:#C62828">(৳ ${fmtN(cogs)})</td></tr>
+    <tr><td class="lbl">Refundable Cost (${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff. — fixed amt'):d.cogsPct+'%'})</td><td class="amt" style="color:#C62828">(৳ ${fmtN(cogs)})</td></tr>
     <tr class="total"><td>Gross Profit (${totalSale?((grossProfit/totalSale)*100).toFixed(1)+'%':'—'})</td><td class="amt">৳ ${fmtN(grossProfit)}</td></tr>
     <tr><td colspan="2" class="sect">Administrative &amp; Other Costs</td></tr>
     ${PNL_EXPENSES.filter(e=>d.expenses[e.key]).map(e=>`<tr><td class="lbl">${e.label}${e.code?' ('+e.code+')':''}</td><td class="amt" style="color:#555">৳ ${fmtN(d.expenses[e.key])}</td></tr>`).join('')}
@@ -1722,8 +1722,8 @@ function renderPnl(yr,ships,cfg){
 <!-- KPI grid — P&L -->
 <div class="kpi-grid" style="margin-bottom:20px">
   <div class="kpi acc"><div class="lbl">Total Sale (BDT)</div><div class="val" style="font-size:19px">${fB(totalSale)}</div><div class="sub">${autoSaleUSD?fUSD(autoSaleUSD)+' · '+moShips.length+' shipment'+(moShips.length!==1?'s':''):'No shipments this month'}</div></div>
-  <div class="kpi err"><div class="lbl">COGS — ${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff.'):(d.cogsPct+'%')}</div><div class="val" style="font-size:19px;color:var(--err)">${totalSale?'('+fB(cogs)+')':'—'}</div><div class="sub">${d.cogsOverride!=null?'Fixed amount override':'% of total sale'}</div></div>
-  <div class="kpi ok"><div class="lbl">Gross Profit — ${totalSale?((grossProfit/totalSale)*100).toFixed(1)+'%':'—'}</div><div class="val" style="font-size:19px">${fB(grossProfit)}</div><div class="sub">Sale minus COGS</div></div>
+  <div class="kpi err"><div class="lbl">Refundable Cost — ${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff.'):(d.cogsPct+'%')}</div><div class="val" style="font-size:19px;color:var(--err)">${totalSale?'('+fB(cogs)+')':'—'}</div><div class="sub">${d.cogsOverride!=null?'Fixed amount override':'% of total sale'}</div></div>
+  <div class="kpi ok"><div class="lbl">Gross Profit — ${totalSale?((grossProfit/totalSale)*100).toFixed(1)+'%':'—'}</div><div class="val" style="font-size:19px">${fB(grossProfit)}</div><div class="sub">Sale minus Refundable Cost</div></div>
   <div class="kpi ${totalExp>0?'warn':''}"><div class="lbl">Total Expenses</div><div class="val" style="font-size:19px;color:${totalExp>0?'var(--err)':'var(--muted)'}">${totalExp>0?fB(totalExp):'—'}</div><div class="sub">${PNL_EXPENSES.filter(e=>d.expenses[e.key]).length} line items</div></div>
   <div class="kpi ${netProfit>=0?'ok':'err'}"><div class="lbl">Net Profit / Loss</div><div class="val" style="font-size:19px;color:${netProfit>=0?'var(--ok)':'var(--err)'}">${totalSale?fB(Math.abs(netProfit)):'—'}</div><div class="sub">${totalSale?(netProfit>=0?'▲ +'+npPct+'% margin':'▼ '+npPct+'% loss'):'Enter data to calculate'}</div></div>
 </div>
@@ -1742,17 +1742,17 @@ function renderPnl(yr,ships,cfg){
 </div>
 
 
-<!-- COGS chart row -->
+<!-- Refundable Cost chart row -->
 ${pnlWithData.length?`<div class="g2" style="margin-bottom:18px">
   <div class="card">
-    <div class="card-title">💸 Monthly COGS — ${yr}</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Cost of Goods Sold per month (BDT)</div>
+    <div class="card-title">💸 Monthly Refundable Cost — ${yr}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Refundable Cost per month (BDT)</div>
     <div class="chart-box">${svgBar(pnlWithData.map(x=>({label:x.m.slice(0,3),value:x.cogs,color:'#EF5350'})),{w:440,h:130,prefix:'৳',showVals:true})}</div>
   </div>
   <div class="card">
-    <div class="card-title">📈 Sale vs COGS vs Gross Profit — ${yr}</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Blue = Sale &nbsp;·&nbsp; Red = COGS &nbsp;·&nbsp; Green = Gross Profit</div>
-    <div class="chart-box">${svgGroupedBar(pnlWithData.map(x=>({label:x.m.slice(0,3),values:[x.sale,x.cogs,x.gp]})),['Sale','COGS','Gross Profit'],['#1565C0','#EF5350','#2E7D32'],{w:440,h:130,prefix:'৳'})}</div>
+    <div class="card-title">📈 Sale vs Ref. Cost vs Gross Profit — ${yr}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Blue = Sale &nbsp;·&nbsp; Red = Ref. Cost &nbsp;·&nbsp; Green = Gross Profit</div>
+    <div class="chart-box">${svgGroupedBar(pnlWithData.map(x=>({label:x.m.slice(0,3),values:[x.sale,x.cogs,x.gp]})),['Sale','Ref. Cost','Gross Profit'],['#1565C0','#EF5350','#2E7D32'],{w:440,h:130,prefix:'৳'})}</div>
   </div>
 </div>`:''}
 
@@ -1771,21 +1771,21 @@ ${pnlWithData.length?`<div class="g2" style="margin-bottom:18px">
     </div>
     <div style="background:${d.cogsOverride!=null?'#FFF3E0':'var(--pril)'};border:1.5px solid ${d.cogsOverride!=null?'#FB8C00':'#BBDEFB'};border-radius:8px;padding:11px 14px;margin-bottom:16px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${d.cogsOverride!=null?'#E65100':'var(--prid)'};margin-bottom:8px">
-        💸 COGS (Cost of Goods Sold) — ${d.cogsOverride!=null?`<span style="background:#E65100;color:#fff;border-radius:3px;padding:1px 6px;font-size:10px">Using Amount Override</span>`:`<span style="background:var(--pri);color:#fff;border-radius:3px;padding:1px 6px;font-size:10px">Using Percentage</span>`}
+        💸 Refundable Cost — ${d.cogsOverride!=null?`<span style="background:#E65100;color:#fff;border-radius:3px;padding:1px 6px;font-size:10px">Using Amount Override</span>`:`<span style="background:var(--pri);color:#fff;border-radius:3px;padding:1px 6px;font-size:10px">Using Percentage</span>`}
       </div>
       <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center">
         <div class="fg" style="margin:0">
-          <label style="font-size:11px">COGS % <span style="color:var(--muted);font-weight:400">(of total sale)</span></label>
+          <label style="font-size:11px">Ref. Cost % <span style="color:var(--muted);font-weight:400">(of total sale)</span></label>
           <input id="pnl-cogs-pct" type="number" min="0" max="100" step="0.1" value="${d.cogsPct}" oninput="$('pnl-cogs-override').value=''" placeholder="70">
         </div>
         <div style="text-align:center;font-size:12px;font-weight:700;color:var(--muted);padding-top:18px">OR</div>
         <div class="fg" style="margin:0">
-          <label style="font-size:11px">COGS Amount (BDT) <span style="color:var(--muted);font-weight:400">(actual value)</span></label>
+          <label style="font-size:11px">Ref. Cost Amount (BDT) <span style="color:var(--muted);font-weight:400">(actual value)</span></label>
           <input id="pnl-cogs-override" type="number" min="0" step="1" value="${d.cogsOverride!=null?d.cogsOverride:''}" placeholder="${totalSale?'e.g. '+Math.round(totalSale*d.cogsPct/100).toLocaleString():'Enter amount'}" oninput="if(this.value)$('pnl-cogs-pct').style.opacity='0.4';else $('pnl-cogs-pct').style.opacity='1'">
         </div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:6px">
-        ${d.cogsOverride!=null?`✓ Using fixed amount: <strong>${fB(d.cogsOverride)}</strong> (ignores % field) — effective rate: <strong>${totalSale?((d.cogsOverride/totalSale)*100).toFixed(1)+'%':'—'}</strong>`:`Using ${d.cogsPct}% → COGS = <strong>${totalSale?fB(cogs):'—'}</strong> · Enter an amount above to override`}
+        ${d.cogsOverride!=null?`✓ Using fixed amount: <strong>${fB(d.cogsOverride)}</strong> (ignores % field) — effective rate: <strong>${totalSale?((d.cogsOverride/totalSale)*100).toFixed(1)+'%':'—'}</strong>`:`Using ${d.cogsPct}% → Refundable Cost = <strong>${totalSale?fB(cogs):'—'}</strong> · Enter an amount above to override`}
       </div>
     </div>
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--bdr)">Administrative &amp; Operational Costs (BDT)</div>
@@ -1802,7 +1802,7 @@ ${pnlWithData.length?`<div class="g2" style="margin-bottom:18px">
     <div class="card" style="margin-bottom:16px">
       <div class="card-title">📊 Profit &amp; Loss Statement — ${mo} ${yr}</div>
       <div class="sr"><span class="sk">Total Sale</span><span class="sv">${fB(totalSale)}</span></div>
-      <div class="sr"><span class="sk" style="color:var(--err)">COGS (${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff. · fixed amt'):d.cogsPct+'%'})</span><span class="sv" style="color:var(--err)">(${fB(cogs)})</span></div>
+      <div class="sr"><span class="sk" style="color:var(--err)">Refundable Cost (${d.cogsOverride!=null?((totalSale?(d.cogsOverride/totalSale*100).toFixed(1):0)+'% eff. · fixed amt'):d.cogsPct+'%'})</span><span class="sv" style="color:var(--err)">(${fB(cogs)})</span></div>
       <div class="sr" style="border-top:2px solid var(--bdr);padding-top:11px"><span class="sk" style="font-weight:700;color:var(--ok)">Gross Profit (${totalSale?((grossProfit/totalSale)*100).toFixed(1)+'%':'—'})</span><span class="sv" style="color:var(--ok)">${fB(grossProfit)}</span></div>
       ${totalExp>0?`<div class="sr"><span class="sk" style="color:var(--err)">Total Admin Expenses</span><span class="sv" style="color:var(--err)">(${fB(totalExp)})</span></div>`:''}
       <div class="sr"><span class="sk" style="font-weight:700">Operating Profit / Loss</span><span class="sv">${fBSign(profitLoss)}</span></div>
@@ -1831,7 +1831,7 @@ ${pnlWithData.length?`<div class="g2" style="margin-bottom:18px">
 <div class="card" style="margin-bottom:18px">
   <div class="card-title">📅 Monthly Breakdown — ${yr}</div>
   <div class="tbl-wrap"><table>
-    <thead><tr><th>Month</th><th>Ships</th><th>Invoice (USD)</th><th>Sale (BDT)</th><th style="color:#C62828">COGS (BDT)</th><th style="color:#2E7D32">Gross Profit</th><th>Net P/L</th><th>Margin</th></tr></thead>
+    <thead><tr><th>Month</th><th>Ships</th><th>Invoice (USD)</th><th>Sale (BDT)</th><th style="color:#C62828">Ref. Cost (BDT)</th><th style="color:#2E7D32">Gross Profit</th><th>Net P/L</th><th>Margin</th></tr></thead>
     <tbody>${fin.mData.map((m,i)=>{
       const pd=allMoPnl[i];const hasP=pd.hasData||pd.sale>0;
       return`<tr style="${m.month===mo?'background:var(--pril)':''}">
@@ -1958,7 +1958,7 @@ function renderReports(yr){
   </div>
   <div class="rpt-card" style="border-color:#2E7D32">
     <h4>📄 Profit &amp; Loss — Single Month</h4>
-    <p>Detailed profit &amp; loss statement for one month: sale, COGS, gross profit, all expense lines, bad debts, and net profit/loss.</p>
+    <p>Detailed profit &amp; loss statement for one month: sale, refundable cost, gross profit, all expense lines, bad debts, and net profit/loss.</p>
     <div class="rbt"><button class="btn btn-pri btn-sm" onclick="openPnlPrint(window._pnlMo||MONTHS[new Date().getMonth()])">🖨 Select Month & Print</button></div>
   </div>
   <div class="rpt-card" style="border-color:#2E7D32">
@@ -2286,13 +2286,13 @@ ${sel.length>1?`<div class="card" style="margin-bottom:18px">
 </div>`:''}
 
 ${hasPnl?`
-<div class="sh" style="margin-top:8px"><div><div class="sh-t" style="font-size:16px">📊 Profit &amp; Loss Comparison</div><div class="sh-s">Year-over-year P&amp;L: COGS, gross profit, expenses, and net profit/loss</div></div></div>
+<div class="sh" style="margin-top:8px"><div><div class="sh-t" style="font-size:16px">📊 Profit &amp; Loss Comparison</div><div class="sh-s">Year-over-year P&amp;L: refundable cost, gross profit, expenses, and net profit/loss</div></div></div>
 
 <div class="kpi-grid" style="margin-bottom:18px">
   ${pnlByYear.map(p=>`<div class="kpi" style="border-top:3px solid ${p.color}">
     <div class="lbl" style="color:${p.color};font-weight:700">${p.yr} — P&amp;L</div>
     <div style="font-size:11px;margin:6px 0 2px;color:var(--muted)">Total Sale</div><div style="font-size:14px;font-weight:700">৳${Math.round(p.sale).toLocaleString()}</div>
-    <div style="font-size:11px;margin:4px 0 2px;color:var(--err)">COGS</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.cogs).toLocaleString()})</div>
+    <div style="font-size:11px;margin:4px 0 2px;color:var(--err)">Ref. Cost</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.cogs).toLocaleString()})</div>
     <div style="font-size:11px;margin:4px 0 2px;color:var(--ok)">Gross Profit</div><div style="font-size:13px;font-weight:600;color:var(--ok)">৳${Math.round(p.gp).toLocaleString()}</div>
     <div style="font-size:11px;margin:4px 0 2px;color:var(--muted)">Expenses</div><div style="font-size:13px;font-weight:600;color:var(--err)">(৳${Math.round(p.exp).toLocaleString()})</div>
     <div style="font-size:11px;margin:6px 0 2px;font-weight:700">Net P/L</div><div style="font-size:15px;font-weight:800;color:${p.net>=0?'var(--ok)':'var(--err)'}">৳${Math.round(Math.abs(p.net)).toLocaleString()} ${p.net>=0?'▲':'▼'}</div>
@@ -2306,9 +2306,9 @@ ${hasPnl?`
     <div class="chart-box">${svgBar(pnlByYear.map(p=>({label:p.yr,value:Math.abs(p.net),color:p.net>=0?'#2E7D32':'#C62828'})),{w:440,h:150,prefix:'৳',showVals:true})}</div>
   </div>
   <div class="card">
-    <div class="card-title">COGS vs Gross Profit by Year</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Red = COGS &nbsp;·&nbsp; Green = Gross Profit</div>
-    <div class="chart-box">${svgGroupedBar(pnlByYear.map(p=>({label:p.yr,values:[p.cogs,p.gp]})),['COGS','Gross Profit'],['#EF5350','#2E7D32'],{w:440,h:150,prefix:'৳'})}</div>
+    <div class="card-title">Ref. Cost vs Gross Profit by Year</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Red = Ref. Cost &nbsp;·&nbsp; Green = Gross Profit</div>
+    <div class="chart-box">${svgGroupedBar(pnlByYear.map(p=>({label:p.yr,values:[p.cogs,p.gp]})),['Ref. Cost','Gross Profit'],['#EF5350','#2E7D32'],{w:440,h:150,prefix:'৳'})}</div>
   </div>
 </div>
 
@@ -2329,7 +2329,7 @@ ${hasPnl?`
     <tbody>
       ${[
         ['Total Sale (BDT)',p=>'৳'+Math.round(p.sale).toLocaleString(),p=>p.sale,'৳'],
-        ['COGS (BDT)',p=>'(৳'+Math.round(p.cogs).toLocaleString()+')',p=>p.cogs,'৳'],
+        ['Refundable Cost (BDT)',p=>'(৳'+Math.round(p.cogs).toLocaleString()+')',p=>p.cogs,'৳'],
         ['Gross Profit (BDT)',p=>'৳'+Math.round(p.gp).toLocaleString(),p=>p.gp,'৳'],
         ['Total Expenses (BDT)',p=>'(৳'+Math.round(p.exp).toLocaleString()+')',p=>p.exp,'৳'],
         ['Net Profit/Loss (BDT)',p=>'<span style="font-weight:700;color:'+(p.net>=0?'var(--ok)':'var(--err)')+'">৳'+Math.round(Math.abs(p.net)).toLocaleString()+(p.net>=0?' ▲':' ▼')+'</span>',p=>p.net,'৳'],
@@ -2392,10 +2392,10 @@ function printComparison(){
 </table>
 ${hasPnlData?`
 <h2 style="margin-top:18pt;border-top:2pt solid #1565C0;padding-top:12pt">Profit &amp; Loss Comparison</h2>
-<div class="kpi-row">${pnlPrint.map(p=>`<div class="kpi-box" style="border-top:2pt solid ${p.color}"><div class="lbl" style="color:${p.color}">${p.yr}</div><div class="val" style="color:${p.net>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(p.net)).toLocaleString()}${p.net>=0?' ▲':' ▼'}</div><div class="sub">Net Profit/Loss</div><div style="font-size:8pt;margin-top:4pt">Sale: ৳${Math.round(p.sale).toLocaleString()}</div><div style="font-size:8pt">COGS: (৳${Math.round(p.cogs).toLocaleString()})</div><div style="font-size:8pt">GP: ৳${Math.round(p.gp).toLocaleString()}</div><div style="font-size:8pt">Exp: (৳${Math.round(p.exp).toLocaleString()})</div></div>`).join('')}</div>
+<div class="kpi-row">${pnlPrint.map(p=>`<div class="kpi-box" style="border-top:2pt solid ${p.color}"><div class="lbl" style="color:${p.color}">${p.yr}</div><div class="val" style="color:${p.net>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(p.net)).toLocaleString()}${p.net>=0?' ▲':' ▼'}</div><div class="sub">Net Profit/Loss</div><div style="font-size:8pt;margin-top:4pt">Sale: ৳${Math.round(p.sale).toLocaleString()}</div><div style="font-size:8pt">Ref. Cost: (৳${Math.round(p.cogs).toLocaleString()})</div><div style="font-size:8pt">GP: ৳${Math.round(p.gp).toLocaleString()}</div><div style="font-size:8pt">Exp: (৳${Math.round(p.exp).toLocaleString()})</div></div>`).join('')}</div>
 <div class="two-col">
   <div class="chart-section"><h3>Net Profit / Loss by Year</h3>${svgBar(pnlPrint.map(p=>({label:p.yr,value:Math.abs(p.net),color:p.net>=0?'#2E7D32':'#C62828'})),{w:340,h:145,bg:'#fff',prefix:'৳',showVals:true})}<p style="font-size:8pt;color:#888;margin-top:4pt">Green = Profit ▲ &nbsp; Red = Loss ▼</p></div>
-  <div class="chart-section"><h3>COGS vs Gross Profit by Year</h3>${svgGroupedBar(pnlPrint.map(p=>({label:p.yr,values:[p.cogs,p.gp]})),['COGS','Gross Profit'],['#EF5350','#2E7D32'],{w:340,h:145,bg:'#fff',prefix:'৳'})}</div>
+  <div class="chart-section"><h3>Ref. Cost vs Gross Profit by Year</h3>${svgGroupedBar(pnlPrint.map(p=>({label:p.yr,values:[p.cogs,p.gp]})),['Ref. Cost','Gross Profit'],['#EF5350','#2E7D32'],{w:340,h:145,bg:'#fff',prefix:'৳'})}</div>
 </div>
 <h3 style="margin:12pt 0 6pt">Monthly Net Profit / Loss Comparison</h3>
 ${svgGroupedBar(MONTHS.map(m=>({label:m.slice(0,3),values:pnlPrint.map(p=>{const mx=p.months.find(x=>x.m===m);return mx&&mx.hasData?Math.max(0,mx.net):0;})})),pnlPrint.map(p=>p.yr),pnlPrint.map(p=>p.color),{w:560,h:180,bg:'#fff',prefix:'৳'})}
@@ -2404,7 +2404,7 @@ ${svgGroupedBar(MONTHS.map(m=>({label:m.slice(0,3),values:pnlPrint.map(p=>{const
 <table><thead><tr><th>Metric</th>${pnlPrint.map(p=>`<th>${p.yr}</th>`).join('')}${pnlPrint.length>1?'<th>Change</th>':''}</tr></thead>
 <tbody>
   <tr><td>Total Sale (BDT)</td>${pnlPrint.map(p=>`<td>৳${Math.round(p.sale).toLocaleString()}</td>`).join('')}${pnlPrint.length>1?`<td>${(()=>{const d=pnlPrint.at(-1).sale-pnlPrint[0].sale;return(d>=0?'+':'-')+'৳'+Math.round(Math.abs(d)/1000)+'k'})()}</td>`:''}</tr>
-  <tr><td>COGS (BDT)</td>${pnlPrint.map(p=>`<td>(৳${Math.round(p.cogs).toLocaleString()})</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
+  <tr><td>Refundable Cost (BDT)</td>${pnlPrint.map(p=>`<td>(৳${Math.round(p.cogs).toLocaleString()})</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
   <tr><td>Gross Profit (BDT)</td>${pnlPrint.map(p=>`<td>৳${Math.round(p.gp).toLocaleString()}</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
   <tr><td>Total Expenses (BDT)</td>${pnlPrint.map(p=>`<td>(৳${Math.round(p.exp).toLocaleString()})</td>`).join('')}${pnlPrint.length>1?'<td>—</td>':''}</tr>
   <tr style="font-weight:700"><td>Net Profit/Loss (BDT)</td>${pnlPrint.map(p=>`<td style="color:${p.net>=0?'#2E7D32':'#C62828'}">৳${Math.round(Math.abs(p.net)).toLocaleString()}${p.net>=0?' ▲':' ▼'}</td>`).join('')}${pnlPrint.length>1?`<td style="font-weight:800">${(()=>{const d=pnlPrint.at(-1).net-pnlPrint[0].net;return`<span style="color:${d>=0?'#2E7D32':'#C62828'}">${d>=0?'+':''}৳${Math.round(Math.abs(d)).toLocaleString()}${d>=0?' ▲':' ▼'}</span>`})()}</td>`:''}</tr>
