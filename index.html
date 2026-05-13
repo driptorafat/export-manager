@@ -3068,7 +3068,8 @@ function printCI(id){
 <title>${o.invoiceNo||"Commercial-Invoice"}</title>
 <style>${_CI_COMMON_CSS}
 @page{size:A4 portrait;margin:0}
-.page{padding:8mm 10mm;width:210mm;max-width:210mm;overflow:hidden}
+html,body{width:210mm}
+.page{padding:8mm 10mm;width:210mm;box-sizing:border-box}
 table.items{table-layout:fixed;word-break:break-word}
 </style></head><body><div class="page">
 <img src="${_DOCS_HEADER}" class="doc-header" style="width:100%;max-height:80pt;object-fit:contain;object-position:left">
@@ -3192,13 +3193,17 @@ function printPL(id){
 <title>${plNo||"Packing-List"}</title>
 <style>${_CI_COMMON_CSS}
 @page{size:A4 landscape;margin:0}
-.page{padding:6mm 8mm;width:297mm;max-width:297mm;overflow:hidden}
+html,body{width:297mm;height:210mm}
+.page{padding:6mm 10mm;width:297mm;box-sizing:border-box}
+table.hdr{font-size:8.5pt}
+table.hdr td{padding:3.5pt 5pt;font-size:8.5pt}
 table.items{table-layout:fixed;word-break:break-word}
-table.items th{padding:3pt 3pt;font-size:7pt;line-height:1.2}
-table.items td{padding:3pt 3pt;font-size:7.5pt;line-height:1.3}
-table.items tfoot td{padding:3pt 3pt;font-size:7.5pt}
-table.hdr td{font-size:8pt;padding:3pt 5pt}
-.doc-title{font-size:13pt;padding:5pt}
+table.items th{padding:4pt 4pt;font-size:7.5pt;line-height:1.25;text-align:center;vertical-align:middle}
+table.items th.lft{text-align:left}
+table.items td{padding:4pt 5pt;font-size:8.5pt;line-height:1.4}
+table.items tfoot td{padding:4pt 5pt;font-size:8.5pt}
+.doc-title{font-size:14pt;padding:5pt;letter-spacing:4px}
+.decl{font-size:8pt;line-height:1.6}
 </style></head><body><div class="page">
 <img src="${_DOCS_HEADER}" class="doc-header" style="width:100%;max-height:70pt;object-fit:contain;object-position:left">
 <div class="doc-title">PACKING LIST</div>
@@ -3246,14 +3251,14 @@ table.hdr td{font-size:8pt;padding:3pt 5pt}
 </table>
 <table class="items" style="border-top:none">
 <thead><tr>
-  <th style="width:7%">Order No.</th><th style="width:5%">Item No.</th><th style="width:21%">Description / Color / CTN Size</th>
-  <th style="width:10%">Container No.</th><th style="width:7%">Carton No.</th>
-  <th style="width:6%;text-align:right">No. of CTN</th>
-  <th style="width:7%;text-align:right">Qty/CTN (pcs)</th>
-  <th style="width:8%;text-align:right">Total Pcs</th>
-  <th style="width:9%;text-align:right">Net Wt/CTN (kg)</th>
-  <th style="width:10%;text-align:right">Gross Wt/CTN (kg)</th>
-  <th style="width:10%;text-align:right">Total CBM</th>
+  <th class="lft" style="width:7%">Order No.</th><th class="lft" style="width:5%">Item No.</th><th class="lft" style="width:21%">Description /<br>Color / CTN Size</th>
+  <th style="width:9%">Container No.</th><th style="width:7%">Carton No.</th>
+  <th style="width:6%">No. of<br>CTN</th>
+  <th style="width:7%">Qty/CTN<br>(pcs)</th>
+  <th style="width:7%">Total<br>Pcs</th>
+  <th style="width:9%">Net Wt/<br>CTN (kg)</th>
+  <th style="width:10%">Gross Wt/<br>CTN (kg)</th>
+  <th style="width:8%">Total<br>CBM</th>
 </tr></thead>
 <tbody>${itemRows}</tbody>
 <tfoot>
