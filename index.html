@@ -3065,9 +3065,10 @@ function printCI(id){
   </tr>`).join('');
   const w=_docPrintWin(false);
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>HAND TOUCH</title>
+<title>${o.invoiceNo||"Commercial-Invoice"}</title>
 <style>${_CI_COMMON_CSS}
-@page{size:A4 portrait;margin:8mm 10mm}
+@page{size:A4 portrait;margin:0}
+.page{padding:10mm 12mm}
 </style></head><body><div class="page">
 <img src="${_DOCS_HEADER}" class="doc-header" style="width:100%;max-height:80pt;object-fit:contain;object-position:left">
 <div class="doc-title">COMMERCIAL INVOICE</div>
@@ -3152,7 +3153,7 @@ function printCI(id){
 </tr>
 </table>
 </div>
-<script>window.onload=()=>setTimeout(()=>{document.title="";window.print()},400)<\/script>
+<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script>
 </body></html>`);
   w.document.close();
 }
@@ -3187,9 +3188,10 @@ function printPL(id){
   }).join('');
   const w=_docPrintWin(true);
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>HAND TOUCH</title>
+<title>${plNo||"Packing-List"}</title>
 <style>${_CI_COMMON_CSS}
-@page{size:A4 landscape;margin:7mm 9mm}
+@page{size:A4 landscape;margin:0}
+.page{padding:7mm 9mm}
 </style></head><body><div class="page">
 <img src="${_DOCS_HEADER}" class="doc-header" style="width:100%;max-height:70pt;object-fit:contain;object-position:left">
 <div class="doc-title">PACKING LIST</div>
@@ -3276,7 +3278,7 @@ function printPL(id){
 </tr>
 </table>
 </div>
-<script>window.onload=()=>setTimeout(()=>{document.title="";window.print()},400)<\/script>
+<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script>
 </body></html>`);
   w.document.close();
 }
