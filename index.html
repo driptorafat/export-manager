@@ -318,6 +318,8 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
     <div class="nav-lbl">Shipments</div>
     <div class="ni" id="ni-shipments" onclick="nav('shipments')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>All Shipments</div>
     <div class="ni" id="ni-orders" onclick="nav('orders')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Orders &amp; Documents</div>
+    <div class="ni" id="ni-costing" onclick="nav('costing')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>Costing</div>
+    <div class="ni" id="ni-quotation" onclick="nav('quotation')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Quotation</div>
     <div class="ni" id="ni-calendar" onclick="nav('calendar')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Monthly View</div>
     <div class="ni" id="ni-ongoing" onclick="nav('ongoing')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Orders In Progress</div>
     <div class="ni" id="ni-container" onclick="nav('container')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Container Planner</div>
@@ -791,7 +793,7 @@ function svgGroupedBar(groups,seriesNames,colors,{w=460,h=170,title='',prefix='$
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
-const PAGE_TITLES={dashboard:'Dashboard',shipments:'All Shipments',calendar:'Monthly View',ongoing:'Orders In Progress',container:'Container Planner',buyers:'Buyers Analysis',financials:'Financials',personal:'Personal Earnings',pnl:'Profit & Loss Statement',reports:'Print Reports',settings:'Settings',compare:'Multi-Year Comparison',years:'Manage Years',contacts:'B2B Contacts'};
+const PAGE_TITLES={dashboard:'Dashboard',shipments:'All Shipments',calendar:'Monthly View',ongoing:'Orders In Progress',container:'Container Planner',buyers:'Buyers Analysis',financials:'Financials',personal:'Personal Earnings',pnl:'Profit & Loss Statement',reports:'Print Reports',settings:'Settings',compare:'Multi-Year Comparison',years:'Manage Years',contacts:'B2B Contacts',costing:'Costing Calculator',quotation:'Quotations'};
 function nav(page){
   ST.page=page;
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('active'));
@@ -823,6 +825,8 @@ function render(){
   else if(ST.page==='years')c.innerHTML=renderYears();
   else if(ST.page==='contacts')c.innerHTML=renderContacts();
   else if(ST.page==='orders')c.innerHTML=renderOrders();
+  else if(ST.page==='costing')c.innerHTML=renderCosting();
+  else if(ST.page==='quotation')c.innerHTML=renderQuotation();
 }
 
 // ── SHARED TABLE ─────────────────────────────────────────────────────────────
@@ -2788,6 +2792,388 @@ async function doPull(){
     saveAll(D);updateYrSel();render();
     setSyncStatus('ok','Pulled '+new Date().toLocaleTimeString());toast('☁ Pulled from cloud');
   }catch(e){setSyncStatus('err','Pull error');toast('Pull error: '+e.message)}
+}
+
+// ── COSTING CALCULATOR ────────────────────────────────────────────────────────
+function getCostings(){if(!D.costings)D.costings=[];return D.costings}
+function setCostings(list){D.costings=list;saveAll(D)}
+function getQuotations(){if(!D.quotations)D.quotations=[];return D.quotations}
+function setQuotations(list){D.quotations=list;saveAll(D)}
+
+function calcCosting(c){
+  const ctnL=+c.ctnL||0,ctnW=+c.ctnW||0,ctnH=+c.ctnH||0;
+  const qtyPerCtn=+c.qtyPerCtn||1;
+  const containerCap=+c.containerCap||65;
+  const costPerPcs=+c.costPerPcs||0;
+  const cnfCost=+c.cnfCost||0,blCost=+c.blCost||0,transportCost=+c.transportCost||0;
+  const wastagePct=+c.wastagePct||0;
+  const overheadPct=+c.overheadPct||0;
+  const profitPct=+c.profitPct||0;
+  const exchangeRate=+c.exchangeRate||120;
+  const cbmPerCtn=ctnL*ctnW*ctnH/1000000;
+  const totalCtnIn40=cbmPerCtn>0?Math.floor(containerCap/cbmPerCtn):0;
+  const totalQtyIn40=totalCtnIn40*qtyPerCtn;
+  const totalQty=+c.totalQty>0?+c.totalQty:totalQtyIn40;
+  const totalCtn=qtyPerCtn>0?Math.ceil(totalQty/qtyPerCtn):0;
+  const dirMatCost=costPerPcs*totalQty;
+  const fixedCosts=cnfCost+blCost+transportCost;
+  const wastage=dirMatCost*wastagePct/100;
+  const dirCost=dirMatCost+fixedCosts+wastage;
+  const overhead=dirCost*overheadPct/100;
+  const gross=dirCost+overhead;
+  const profit=dirCost*profitPct/100;
+  const total=gross+profit;
+  const perPcsBDT=totalQty>0?total/totalQty:0;
+  const perPcsUSD=perPcsBDT/exchangeRate;
+  return{cbmPerCtn,totalCtnIn40,totalQtyIn40,totalQty,totalCtn,dirMatCost,fixedCosts,wastage,dirCost,overhead,gross,profit,total,perPcsBDT,perPcsUSD};
+}
+
+let _editCostingId=null;
+function renderCosting(){
+  const list=getCostings();
+  return`<div class="sh"><div><div class="sh-t">🧮 Costing Calculator</div><div class="sh-s">${list.length} saved costing${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openCosting(null)">+ New Costing</button></div></div>
+${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Product Name</th><th>Item No</th><th>Material</th><th>Size</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);return`<tr><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.material||'—'}</td><td>${c.sizeDesc||'—'}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
+<div class="ov" id="costing-ov"><div class="modal" style="max-width:1000px;width:98vw;max-height:94vh;overflow-y:auto">
+<div class="mh"><h3 id="costing-title">New Costing</h3><button class="xbtn" onclick="closeModal('costing-ov')">×</button></div>
+<div class="mb" id="costing-body" style="padding:18px"></div>
+<div class="mf"><button class="btn btn-ghost" onclick="closeModal('costing-ov')">Cancel</button><button class="btn btn-pri" onclick="saveCosting()">💾 Save Costing</button></div>
+</div></div>`;
+}
+
+function _costingFormHTML(c){
+  const r=calcCosting(c);
+  const fN=v=>v===undefined||v===null||v===''?'':v;
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+<div>
+<div class="fg-grid">
+  <div class="fg full"><label>Product Name</label><input id="cf-name" value="${fN(c.name)}" placeholder="e.g. Seagrass Basket"></div>
+  <div class="fg"><label>Item No</label><input id="cf-itemNo" value="${fN(c.itemNo)}" placeholder="HT-001"></div>
+  <div class="fg"><label>Material</label><input id="cf-material" value="${fN(c.material)}" placeholder="Seagrass"></div>
+  <div class="fg full"><label>Size Description</label><input id="cf-sizeDesc" value="${fN(c.sizeDesc)}" placeholder="L30×W20×H15 cm"></div>
+</div>
+<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 10px">Carton Dimensions</div>
+<div class="fg-grid">
+  <div class="fg"><label>Carton L (cm)</label><input type="number" id="cf-ctnL" value="${fN(c.ctnL)}" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Carton W (cm)</label><input type="number" id="cf-ctnW" value="${fN(c.ctnW)}" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Carton H (cm)</label><input type="number" id="cf-ctnH" value="${fN(c.ctnH)}" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Qty per Carton</label><input type="number" id="cf-qtyPerCtn" value="${fN(c.qtyPerCtn)||''}" placeholder="12" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Container Cap (m³)</label><input type="number" id="cf-containerCap" value="${fN(c.containerCap)||'65'}" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Total Qty Override</label><input type="number" id="cf-totalQty" value="${fN(c.totalQty)}" placeholder="Auto" oninput="recalcCostingLive()"></div>
+</div>
+<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 10px">Cost Inputs (BDT)</div>
+<div class="fg-grid">
+  <div class="fg"><label>Cost per Piece (BDT)</label><input type="number" id="cf-costPerPcs" value="${fN(c.costPerPcs)}" placeholder="0" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>C&amp;F / Container (BDT)</label><input type="number" id="cf-cnfCost" value="${fN(c.cnfCost)}" placeholder="0" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>B/L Cost (BDT)</label><input type="number" id="cf-blCost" value="${fN(c.blCost)}" placeholder="0" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Transport Cost (BDT)</label><input type="number" id="cf-transportCost" value="${fN(c.transportCost)}" placeholder="0" oninput="recalcCostingLive()"></div>
+</div>
+<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 10px">Percentages &amp; Rate</div>
+<div class="fg-grid">
+  <div class="fg"><label>Wastage %</label><input type="number" id="cf-wastagePct" value="${c.wastagePct!==undefined?c.wastagePct:2}" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Overhead %</label><input type="number" id="cf-overheadPct" value="${c.overheadPct!==undefined?c.overheadPct:15}" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Profit %</label><input type="number" id="cf-profitPct" value="${c.profitPct!==undefined?c.profitPct:10}" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Exchange Rate (BDT/USD)</label><input type="number" id="cf-exchangeRate" value="${c.exchangeRate!==undefined?c.exchangeRate:120}" oninput="recalcCostingLive()"></div>
+</div>
+</div>
+<div>
+<div class="card" style="position:sticky;top:0">
+<div class="card-title">Live Results</div>
+<div class="sr"><span class="sk">CBM per Carton</span><span class="sv" id="cr-cbm">${r.cbmPerCtn.toFixed(6)}</span></div>
+<div class="sr"><span class="sk">Total CTN in 40' HC</span><span class="sv" id="cr-totalCtn40">${r.totalCtnIn40.toLocaleString()}</span></div>
+<div class="sr"><span class="sk">Total Qty in 40' HC</span><span class="sv" id="cr-totalQty40">${r.totalQtyIn40.toLocaleString()}</span></div>
+<div class="sr"><span class="sk">Working Total Qty</span><span class="sv" id="cr-totalQty">${r.totalQty.toLocaleString()}</span></div>
+<div class="sr"><span class="sk">Total Cartons</span><span class="sv" id="cr-totalCtn">${r.totalCtn.toLocaleString()}</span></div>
+<hr class="div" style="margin:6px 0">
+<div class="sr"><span class="sk">Direct Material Cost</span><span class="sv" id="cr-dirMat">${fBDT(r.dirMatCost)}</span></div>
+<div class="sr"><span class="sk">Fixed Costs (C&F+BL+Transport)</span><span class="sv" id="cr-fixed">${fBDT(r.fixedCosts)}</span></div>
+<div class="sr"><span class="sk">Wastage</span><span class="sv" id="cr-wastage">${fBDT(r.wastage)}</span></div>
+<div class="sr" style="font-weight:700"><span class="sk">Direct Cost</span><span class="sv" id="cr-dirCost">${fBDT(r.dirCost)}</span></div>
+<div class="sr"><span class="sk">Admin Overhead</span><span class="sv" id="cr-overhead">${fBDT(r.overhead)}</span></div>
+<div class="sr"><span class="sk">Gross Price</span><span class="sv" id="cr-gross">${fBDT(r.gross)}</span></div>
+<div class="sr"><span class="sk">Profit</span><span class="sv" id="cr-profit">${fBDT(r.profit)}</span></div>
+<hr class="div" style="margin:6px 0">
+<div class="sr" style="font-weight:700;font-size:14px"><span class="sk">Total Cost</span><span class="sv" id="cr-total">${fBDT(r.total)}</span></div>
+<div class="sr" style="font-weight:700"><span class="sk">Per Piece (BDT)</span><span class="sv" id="cr-perPcsBDT">${fBDT(r.perPcsBDT)}</span></div>
+<div class="sr" style="font-weight:700;color:var(--ok)"><span class="sk">Per Piece (USD) — Suggested FOB</span><span class="sv" id="cr-perPcsUSD">$${r.perPcsUSD.toFixed(4)}</span></div>
+</div>
+</div>
+</div>`;
+}
+
+function recalcCostingLive(){
+  const g=id=>($('cf-'+id)||{}).value||'';
+  const c={ctnL:g('ctnL'),ctnW:g('ctnW'),ctnH:g('ctnH'),qtyPerCtn:g('qtyPerCtn'),containerCap:g('containerCap'),totalQty:g('totalQty'),costPerPcs:g('costPerPcs'),cnfCost:g('cnfCost'),blCost:g('blCost'),transportCost:g('transportCost'),wastagePct:g('wastagePct'),overheadPct:g('overheadPct'),profitPct:g('profitPct'),exchangeRate:g('exchangeRate')};
+  const r=calcCosting(c);
+  const set=(id,v)=>{const el=$('cr-'+id);if(el)el.textContent=v};
+  set('cbm',r.cbmPerCtn.toFixed(6));
+  set('totalCtn40',r.totalCtnIn40.toLocaleString());
+  set('totalQty40',r.totalQtyIn40.toLocaleString());
+  set('totalQty',r.totalQty.toLocaleString());
+  set('totalCtn',r.totalCtn.toLocaleString());
+  set('dirMat',fBDT(r.dirMatCost));
+  set('fixed',fBDT(r.fixedCosts));
+  set('wastage',fBDT(r.wastage));
+  set('dirCost',fBDT(r.dirCost));
+  set('overhead',fBDT(r.overhead));
+  set('gross',fBDT(r.gross));
+  set('profit',fBDT(r.profit));
+  set('total',fBDT(r.total));
+  set('perPcsBDT',fBDT(r.perPcsBDT));
+  set('perPcsUSD','$'+r.perPcsUSD.toFixed(4));
+}
+
+function openCosting(id){
+  _editCostingId=id;
+  const c=id?getCostings().find(x=>x.id===id):null;
+  const def={name:'',itemNo:'',material:'',sizeDesc:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',containerCap:65,totalQty:'',costPerPcs:'',cnfCost:'',blCost:'',transportCost:'',wastagePct:2,overheadPct:15,profitPct:10,exchangeRate:120};
+  const data=c?{...c}:def;
+  $('costing-title').textContent=c?`Edit Costing — ${c.name||'Draft'}`:'New Costing';
+  $('costing-body').innerHTML=_costingFormHTML(data);
+  $('costing-ov').classList.add('open');
+}
+
+function saveCosting(){
+  const g=id=>($('cf-'+id)||{}).value||'';
+  const n=v=>v===''?'':+v;
+  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),sizeDesc:g('sizeDesc'),ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
+  const list=getCostings();
+  if(_editCostingId){const idx=list.findIndex(x=>x.id===_editCostingId);if(idx>=0)list[idx]={...list[idx],...data};}
+  else{data.id=Date.now();list.push(data);}
+  setCostings(list);closeModal('costing-ov');render();toast('✅ Costing saved');
+}
+
+function deleteCosting(id){
+  confirm2('Delete Costing','Delete this costing record?',()=>{setCostings(getCostings().filter(x=>x.id!==id));render();toast('Costing deleted')},'Delete','btn-err');
+}
+
+function printCosting(id){
+  const c=getCostings().find(x=>x.id===id);if(!c){toast('Costing not found');return}
+  const r=calcCosting(c);
+  const w=_docPrintWin(false);
+  const fM=v=>isNaN(+v)||+v===0?'—':Number(v).toLocaleString('en-US',{maximumFractionDigits:0});
+  const fBDTp=v=>'৳'+Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Costing — ${c.name||'Sheet'}</title>
+<style>${_CI_COMMON_CSS}
+@page{size:A4 portrait;margin:0}
+html,body{width:210mm}
+.page{padding:8mm 10mm;width:210mm;box-sizing:border-box}
+.cost-tbl{width:100%;border-collapse:collapse;margin-top:12pt}
+.cost-tbl td{border:1pt solid #000;padding:5pt 8pt;font-size:9.5pt}
+.cost-tbl td:last-child{text-align:right;width:36%}
+.cost-tbl tr.sub td{background:#f5f5f5;font-weight:700}
+.cost-tbl tr.total-row td{background:#1a237e;color:#fff;font-weight:900;font-size:11pt}
+.cost-tbl tr.highlight td{background:#e8f5e9;font-weight:700}
+.info-tbl{width:100%;border-collapse:collapse;margin-top:8pt}
+.info-tbl td{border:1pt solid #000;padding:5pt 8pt;font-size:9pt}
+h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.5pt solid #000;padding:6pt;margin-bottom:0}
+.section-hdr{background:#e8eaf6;font-weight:700;font-size:9pt;padding:4pt 8pt;border:1pt solid #000;border-bottom:none;margin-top:10pt}
+</style></head><body><div class="page">
+<img src="${_DOCS_HEADER}" style="display:block;width:100%;height:auto;max-height:90pt;margin-bottom:4pt">
+<h2>COSTING SHEET</h2>
+<table class="info-tbl" style="border-top:none">
+<tr><td style="width:33%"><strong>Product:</strong> ${c.name||'—'}</td><td style="width:33%"><strong>Item No:</strong> ${c.itemNo||'—'}</td><td style="width:34%"><strong>Material:</strong> ${c.material||'—'}</td></tr>
+<tr><td colspan="3"><strong>Size:</strong> ${c.sizeDesc||'—'}</td></tr>
+<tr><td><strong>Carton:</strong> ${c.ctnL||0}×${c.ctnW||0}×${c.ctnH||0} cm</td><td><strong>Qty/Ctn:</strong> ${c.qtyPerCtn||0}</td><td><strong>CBM/Ctn:</strong> ${r.cbmPerCtn.toFixed(4)}</td></tr>
+<tr><td><strong>Container Cap:</strong> ${c.containerCap||65} m³</td><td><strong>Total CTN in 40'HC:</strong> ${fM(r.totalCtnIn40)}</td><td><strong>Total Qty in 40'HC:</strong> ${fM(r.totalQtyIn40)}</td></tr>
+</table>
+<div class="section-hdr">Cost Breakdown (BDT)</div>
+<table class="cost-tbl" style="border-top:none">
+<tr><td>Direct Material Cost (${fM(r.totalQty)} pcs × ৳${c.costPerPcs||0})</td><td>${fBDTp(r.dirMatCost)}</td></tr>
+<tr><td>C&amp;F / Container</td><td>${fBDTp(r.fixedCosts?c.cnfCost||0:0)}</td></tr>
+<tr><td>B/L Cost</td><td>${fBDTp(c.blCost||0)}</td></tr>
+<tr><td>Transport to Port</td><td>${fBDTp(c.transportCost||0)}</td></tr>
+<tr><td>Wastage (${c.wastagePct||0}%)</td><td>${fBDTp(r.wastage)}</td></tr>
+<tr class="sub"><td>Direct Cost</td><td>${fBDTp(r.dirCost)}</td></tr>
+<tr><td>Admin Overhead (${c.overheadPct||0}%)</td><td>${fBDTp(r.overhead)}</td></tr>
+<tr><td>Gross Price</td><td>${fBDTp(r.gross)}</td></tr>
+<tr><td>Profit (${c.profitPct||0}%)</td><td>${fBDTp(r.profit)}</td></tr>
+<tr class="sub"><td>Total Cost</td><td>${fBDTp(r.total)}</td></tr>
+<tr class="highlight"><td>Per Piece (BDT)</td><td>${fBDTp(r.perPcsBDT)}</td></tr>
+<tr><td>Exchange Rate</td><td>${c.exchangeRate||120} BDT/USD</td></tr>
+<tr class="total-row"><td>★ Suggested FOB Price (USD) per Piece</td><td>$${r.perPcsUSD.toFixed(4)}</td></tr>
+</table>
+</div>
+<script>window.onload=function(){var imgs=document.images,done=0,total=imgs.length;if(!total){setTimeout(window.print,500);return;}function check(){if(++done>=total)setTimeout(window.print,300);}for(var i=0;i<total;i++){if(imgs[i].complete)check();else{imgs[i].onload=check;imgs[i].onerror=check;}}}<\/script>
+</body></html>`);
+  w.document.close();
+}
+
+// ── QUOTATIONS ────────────────────────────────────────────────────────────────
+let _editQuotationId=null,_qItemIds=[];
+
+function renderQuotation(){
+  const list=getQuotations();
+  return`<div class="sh"><div><div class="sh-t">📋 Quotations</div><div class="sh-s">${list.length} saved quotation${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openQuotation(null)">+ New Quotation</button></div></div>
+${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Buyer</th><th>Subject</th><th>Items</th><th>Actions</th></tr></thead><tbody>${list.map(q=>`<tr><td>${q.date||'—'}</td><td><strong>${q.buyer||'—'}</strong></td><td>${q.subject||'—'}</td><td style="text-align:center">${(q.items||[]).length}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openQuotation(${q.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printQuotation(${q.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteQuotation(${q.id})">🗑</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No quotations yet. Click "+ New Quotation" to get started.</div>'}
+<div class="ov" id="quotation-ov"><div class="modal" style="max-width:1100px;width:98vw;max-height:94vh;overflow-y:auto">
+<div class="mh"><h3 id="quotation-title">New Quotation</h3><button class="xbtn" onclick="closeModal('quotation-ov')">×</button></div>
+<div class="mb" id="quotation-body" style="padding:18px"></div>
+<div class="mf"><button class="btn btn-ghost" onclick="closeModal('quotation-ov')">Cancel</button><button class="btn btn-pri" onclick="saveQuotation()">💾 Save Quotation</button></div>
+</div></div>`;
+}
+
+function _qItemHTML(it,idx){
+  const costings=getCostings();
+  const costingOpts=`<option value="">— None —</option>${costings.map(c=>`<option value="${c.id}" ${it.costingId==c.id?'selected':''}>${c.name||'Item'} (${c.itemNo||''})</option>`).join('')}`;
+  return`<div style="border:1px solid var(--bdr);border-radius:8px;padding:14px;margin-bottom:12px" id="qitem-${it.id}">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><strong style="font-size:13px">Item ${idx+1}</strong><button class="btn btn-err btn-xs" onclick="removeQItem(${it.id})">Remove</button></div>
+<div class="fg-grid">
+  <div class="fg"><label>Item No</label><input id="qi-itemNo-${it.id}" value="${it.itemNo||''}"></div>
+  <div class="fg"><label>Description</label><input id="qi-description-${it.id}" value="${it.description||''}"></div>
+  <div class="fg"><label>Dimensions (text)</label><input id="qi-dimensions-${it.id}" value="${it.dimensions||''}"></div>
+  <div class="fg"><label>Rate USD (FOB)</label><input type="number" step="0.0001" id="qi-rateUSD-${it.id}" value="${it.rateUSD||''}"></div>
+  <div class="fg"><label>Carton L (cm)</label><input type="number" id="qi-ctnL-${it.id}" value="${it.ctnL||''}"></div>
+  <div class="fg"><label>Carton W (cm)</label><input type="number" id="qi-ctnW-${it.id}" value="${it.ctnW||''}"></div>
+  <div class="fg"><label>Carton H (cm)</label><input type="number" id="qi-ctnH-${it.id}" value="${it.ctnH||''}"></div>
+  <div class="fg"><label>Qty per Carton</label><input type="number" id="qi-qtyPerCtn-${it.id}" value="${it.qtyPerCtn||''}"></div>
+  <div class="fg"><label>Total Qty in 40'HC</label><input type="number" id="qi-totalQtyIn40-${it.id}" value="${it.totalQtyIn40||''}"></div>
+  <div class="fg"><label>Lead Time</label><input id="qi-leadTime-${it.id}" value="${it.leadTime||''}" placeholder="e.g. 60 days"></div>
+  <div class="fg full"><label>Link Costing (auto-fills fields)</label><select id="qi-costing-${it.id}" onchange="linkQItemCosting(${it.id},this.value)">${costingOpts}</select></div>
+</div>
+</div>`;
+}
+
+function _quotationFormHTML(q){
+  const items=(q.items||[]);
+  return`<div class="fg-grid">
+  <div class="fg"><label>Buyer / To</label><input id="qf-buyer" value="${q.buyer||''}"></div>
+  <div class="fg"><label>Date</label><input type="date" id="qf-date" value="${q.date||''}"></div>
+  <div class="fg full"><label>Subject</label><input id="qf-subject" value="${q.subject||''}" placeholder="e.g. Quotation for Seagrass Baskets 2026"></div>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px">
+  <strong>Items</strong>
+  <button class="btn btn-out btn-sm" onclick="addQItem()">+ Add Item</button>
+</div>
+<div id="qitems-container">${items.map((it,i)=>_qItemHTML(it,i)).join('')}${items.length===0?'<div class="empty" id="qitems-empty">No items yet.</div>':''}</div>`;
+}
+
+function addQItem(){
+  const id=Date.now();
+  _qItemIds.push(id);
+  const cont=$('qitems-container');
+  const empty=$('qitems-empty');
+  if(empty)empty.remove();
+  const div=document.createElement('div');
+  div.innerHTML=_qItemHTML({id},_qItemIds.length-1);
+  cont.appendChild(div.firstChild);
+}
+
+function removeQItem(id){
+  _qItemIds=_qItemIds.filter(x=>x!==id);
+  const el=$('qitem-'+id);if(el)el.remove();
+}
+
+function linkQItemCosting(itemId,costingId){
+  if(!costingId)return;
+  const c=getCostings().find(x=>x.id==costingId);if(!c)return;
+  const r=calcCosting(c);
+  const setVal=(id,v)=>{const el=$(id);if(el&&v!==undefined&&v!=='')el.value=v};
+  setVal('qi-rateUSD-'+itemId,r.perPcsUSD.toFixed(4));
+  setVal('qi-dimensions-'+itemId,c.sizeDesc||'');
+  setVal('qi-ctnL-'+itemId,c.ctnL||'');
+  setVal('qi-ctnW-'+itemId,c.ctnW||'');
+  setVal('qi-ctnH-'+itemId,c.ctnH||'');
+  setVal('qi-qtyPerCtn-'+itemId,c.qtyPerCtn||'');
+  setVal('qi-totalQtyIn40-'+itemId,r.totalQtyIn40||'');
+}
+
+function openQuotation(id){
+  _editQuotationId=id;
+  const q=id?getQuotations().find(x=>x.id===id):null;
+  _qItemIds=q?(q.items||[]).map(x=>x.id):[];
+  $('quotation-title').textContent=q?`Edit Quotation — ${q.buyer||'Draft'}`:'New Quotation';
+  $('quotation-body').innerHTML=_quotationFormHTML(q||{});
+  $('quotation-ov').classList.add('open');
+}
+
+function _readQItems(){
+  return _qItemIds.map(id=>{
+    const g=fid=>($('qi-'+fid+'-'+id)||{}).value||'';
+    const costSel=$('qi-costing-'+id);
+    return{id,itemNo:g('itemNo'),description:g('description'),dimensions:g('dimensions'),rateUSD:+g('rateUSD')||0,ctnL:+g('ctnL')||0,ctnW:+g('ctnW')||0,ctnH:+g('ctnH')||0,qtyPerCtn:+g('qtyPerCtn')||0,totalQtyIn40:+g('totalQtyIn40')||0,leadTime:g('leadTime'),costingId:costSel?costSel.value||'':''};
+  });
+}
+
+function saveQuotation(){
+  const gv=id=>($('qf-'+id)||{}).value||'';
+  const data={buyer:gv('buyer'),date:gv('date'),subject:gv('subject'),items:_readQItems()};
+  const list=getQuotations();
+  if(_editQuotationId){const idx=list.findIndex(x=>x.id===_editQuotationId);if(idx>=0)list[idx]={...list[idx],...data};}
+  else{data.id=Date.now();list.push(data);}
+  setQuotations(list);closeModal('quotation-ov');render();toast('✅ Quotation saved');
+}
+
+function deleteQuotation(id){
+  confirm2('Delete Quotation','Delete this quotation?',()=>{setQuotations(getQuotations().filter(x=>x.id!==id));render();toast('Quotation deleted')},'Delete','btn-err');
+}
+
+function printQuotation(id){
+  const q=getQuotations().find(x=>x.id===id);if(!q){toast('Quotation not found');return}
+  const items=q.items||[];
+  const itemRows=items.map(it=>{
+    const cbm=it.ctnL&&it.ctnW&&it.ctnH?(it.ctnL*it.ctnW*it.ctnH/1000000).toFixed(4):'—';
+    return`<tr>
+      <td>${it.itemNo||'—'}</td>
+      <td style="text-align:center">${it.photo?`<img src="${it.photo}" style="max-width:60pt;max-height:60pt;object-fit:contain">`:'—'}</td>
+      <td>${it.description||'—'}</td>
+      <td>${it.dimensions||'—'}</td>
+      <td style="text-align:center"><strong>${it.rateUSD?'$'+Number(it.rateUSD).toFixed(2):'—'}</strong></td>
+      <td style="text-align:center">${it.ctnL||'—'}</td>
+      <td style="text-align:center">${it.ctnW||'—'}</td>
+      <td style="text-align:center">${it.ctnH||'—'}</td>
+      <td style="text-align:center">${cbm}</td>
+      <td style="text-align:center">${it.qtyPerCtn||'—'}</td>
+      <td style="text-align:center">${it.totalQtyIn40?Number(it.totalQtyIn40).toLocaleString():'—'}</td>
+      <td>${it.leadTime||'—'}</td>
+    </tr>`;
+  }).join('');
+  const w=_docPrintWin(true);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Quotation — ${q.buyer||''}</title>
+<style>${_CI_COMMON_CSS}
+@page{size:A4 landscape;margin:0}
+html,body{width:297mm}
+.page{padding:7mm 9mm;width:297mm;box-sizing:border-box}
+.qt-tbl{width:100%;border-collapse:collapse;margin-top:10pt;font-size:8.5pt}
+.qt-tbl th{background:#1a237e;color:#fff;padding:5pt 4pt;text-align:center;border:1pt solid #000;font-size:8pt}
+.qt-tbl td{padding:4pt;border:1pt solid #ccc;vertical-align:middle;font-size:8.5pt}
+.qt-tbl tbody tr:nth-child(even) td{background:#f8f9ff}
+h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.5pt solid #000;padding:5pt;margin-bottom:0}
+.meta-tbl{width:100%;border-collapse:collapse;margin-top:8pt}
+.meta-tbl td{padding:4pt 8pt;border:1pt solid #000;font-size:9pt}
+.sign-wrap{text-align:right;margin-top:24pt}
+.sign-box{display:inline-block;text-align:center;padding:8pt;min-width:160pt;border-top:1pt solid #000}
+</style></head><body><div class="page">
+<img src="${_DOCS_HEADER}" style="display:block;width:100%;height:auto;max-height:80pt;margin-bottom:4pt">
+<h2>QUOTATION</h2>
+<table class="meta-tbl" style="border-top:none">
+<tr><td style="width:60%"><strong>To:</strong> ${q.buyer||'—'}</td><td><strong>Date:</strong> ${q.date||'—'}</td></tr>
+<tr><td colspan="2"><strong>Subject:</strong> ${q.subject||'—'}</td></tr>
+</table>
+<table class="qt-tbl">
+<thead><tr>
+  <th style="width:6%">Item No</th>
+  <th style="width:8%">Picture</th>
+  <th style="width:18%">Description of Product</th>
+  <th style="width:10%">Dimensions (cm)</th>
+  <th style="width:8%">Rate USD (FOB)</th>
+  <th style="width:5%">Ctn L</th>
+  <th style="width:5%">W</th>
+  <th style="width:5%">H</th>
+  <th style="width:7%">CBM/Box</th>
+  <th style="width:6%">Qty/Ctn</th>
+  <th style="width:10%">Total Qty in 1×40'HC</th>
+  <th style="width:12%">Lead Time</th>
+</tr></thead>
+<tbody>${itemRows}</tbody>
+</table>
+<div class="sign-wrap">
+  <img src="${_DOCS_SIG}" style="height:70pt;object-fit:contain;display:block;margin-left:auto;margin-right:0;margin-bottom:4pt">
+  <div class="sign-box"><strong>Rafat Khan</strong><br>General Manager (Export)<br>HAND TOUCH</div>
+</div>
+</div>
+<script>window.onload=function(){var imgs=document.images,done=0,total=imgs.length;if(!total){setTimeout(window.print,500);return;}function check(){if(++done>=total)setTimeout(window.print,300);}for(var i=0;i<total;i++){if(imgs[i].complete)check();else{imgs[i].onload=check;imgs[i].onerror=check;}}}<\/script>
+</body></html>`);
+  w.document.close();
 }
 
 // ── ORDERS & DOCUMENTS (Commercial Invoice + Packing List) ───────────────────
