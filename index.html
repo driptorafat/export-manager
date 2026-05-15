@@ -104,6 +104,7 @@ tfoot td{background:#F8F9FA;font-weight:700;padding:9px 11px;border-top:2px soli
 .fg label{font-size:11.5px;font-weight:700;color:var(--muted)}
 .fg input,.fg select,.fg textarea{padding:7px 11px;border:1.5px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;color:var(--txt)}
 .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--pri)}
+.srch-inp{padding:7px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;background:var(--card);color:var(--txt)}.srch-inp:focus{outline:none;border-color:var(--pri)}
 .fg-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .fg-grid .full{grid-column:1/-1}
 @media(max-width:520px){.fg-grid{grid-template-columns:1fr}}
@@ -2830,6 +2831,27 @@ function calcCosting(c){
   return{cbmPerCtn,totalCtnIn40,totalQtyIn40,totalQty,totalCtn,dirMatCost,totalCartonCost,fixedCosts,wastage,dirCost,overhead,gross,profit,total,perPcsBDT,perPcsUSD};
 }
 
+function _fmtDims(obj){
+  const parts=[];
+  if(+obj.dimHeight)parts.push('H:'+obj.dimHeight+'cm');
+  if(+obj.dimTopDia)parts.push('TD:'+obj.dimTopDia+'cm');
+  if(+obj.dimBottomDia)parts.push('BD:'+obj.dimBottomDia+'cm');
+  if(+obj.dimWidth)parts.push('W:'+obj.dimWidth+'cm');
+  return parts.join(' / ')||'—';
+}
+function filterCostingList(){
+  const q=($('costing-search')||{}).value||'';const ql=q.toLowerCase().trim();
+  document.querySelectorAll('#costing-tbl tbody tr').forEach(row=>{
+    row.style.display=ql&&!(row.dataset.search||'').includes(ql)?'none':'';
+  });
+}
+function filterQuotationList(){
+  const q=($('quotation-search')||{}).value||'';const ql=q.toLowerCase().trim();
+  document.querySelectorAll('#quotation-tbl tbody tr').forEach(row=>{
+    row.style.display=ql&&!(row.dataset.search||'').includes(ql)?'none':'';
+  });
+}
+
 let _editCostingId=null,_costingPhoto='';
 
 function uploadCostingPhoto(inp){
@@ -2857,7 +2879,8 @@ function uploadQItemPhoto(id,inp){
 function renderCosting(){
   const list=getCostings();
   return`<div class="sh"><div><div class="sh-t">🧮 Costing Calculator</div><div class="sh-s">${list.length} saved costing${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openCosting(null)">+ New Costing</button></div></div>
-${list.length?`<div class="tbl-wrap"><table><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Material</th><th>Size</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);return`<tr><td>${c.photo?`<img src="${c.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.material||'—'}</td><td>${c.sizeDesc||'—'}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
+<div style="margin-bottom:12px"><input class="srch-inp" id="costing-search" placeholder="🔍 Search by buyer, material, dimensions…" oninput="filterCostingList()" style="width:100%;max-width:420px"></div>
+${list.length?`<div class="tbl-wrap"><table id="costing-tbl"><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Buyer</th><th>Material</th><th>Dimensions</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);const dims=_fmtDims(c);const srch=[c.name,c.itemNo,c.buyer,c.material,dims].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${c.photo?`<img src="${c.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.buyer||'—'}</td><td>${c.material||'—'}</td><td style="font-size:11px">${dims}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
 <div class="ov" id="costing-ov"><div class="modal" style="max-width:1000px;width:98vw;max-height:94vh;overflow-y:auto">
 <div class="mh"><h3 id="costing-title">New Costing</h3><button class="xbtn" onclick="closeModal('costing-ov')">×</button></div>
 <div class="mb" id="costing-body" style="padding:18px"></div>
@@ -2874,7 +2897,11 @@ function _costingFormHTML(c){
   <div class="fg full"><label>Product Name</label><input id="cf-name" value="${fN(c.name)}" placeholder="e.g. Seagrass Basket"></div>
   <div class="fg"><label>Item No</label><input id="cf-itemNo" value="${fN(c.itemNo)}" placeholder="HT-001"></div>
   <div class="fg"><label>Material</label><input id="cf-material" value="${fN(c.material)}" placeholder="Seagrass"></div>
-  <div class="fg full"><label>Size Description</label><input id="cf-sizeDesc" value="${fN(c.sizeDesc)}" placeholder="L30×W20×H15 cm"></div>
+  <div class="fg full"><label>Buyer / To</label><input id="cf-buyer" value="${fN(c.buyer)}" placeholder="e.g. IKEA Germany"></div>
+  <div class="fg"><label>Height (cm)</label><input type="number" step="0.1" id="cf-dimHeight" value="${fN(c.dimHeight)}" placeholder="0"></div>
+  <div class="fg"><label>Top Dia (cm)</label><input type="number" step="0.1" id="cf-dimTopDia" value="${fN(c.dimTopDia)}" placeholder="0"></div>
+  <div class="fg"><label>Bottom Dia (cm)</label><input type="number" step="0.1" id="cf-dimBottomDia" value="${fN(c.dimBottomDia)}" placeholder="0"></div>
+  <div class="fg"><label>Width (cm)</label><input type="number" step="0.1" id="cf-dimWidth" value="${fN(c.dimWidth)}" placeholder="0"></div>
   <div class="fg" style="grid-column:1/-1;display:flex;align-items:flex-end;gap:12px">
     <div style="flex:1"><label>Product Photo</label><input type="file" id="cf-photo-inp" accept="image/*" onchange="uploadCostingPhoto(this)" style="font-size:11px;padding:3px;width:100%"></div>
     <div id="cf-photo-prev" style="flex-shrink:0">${c.photo?`<img src="${c.photo}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
@@ -2957,7 +2984,7 @@ function recalcCostingLive(){
 function openCosting(id){
   _editCostingId=id;_costingPhoto='';
   const c=id?getCostings().find(x=>x.id===id):null;
-  const def={name:'',itemNo:'',material:'',sizeDesc:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',containerCap:65,totalQty:'',costPerPcs:'',cnfCost:'',blCost:'',transportCost:'',wastagePct:2,overheadPct:15,profitPct:10,exchangeRate:120};
+  const def={name:'',itemNo:'',material:'',buyer:'',dimHeight:'',dimTopDia:'',dimBottomDia:'',dimWidth:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',containerCap:65,totalQty:'',costPerPcs:'',cartonCostPerCtn:'',cnfCost:'',blCost:'',transportCost:'',wastagePct:2,overheadPct:15,profitPct:10,exchangeRate:120};
   const data=c?{...c}:def;
   $('costing-title').textContent=c?`Edit Costing — ${c.name||'Draft'}`:'New Costing';
   $('costing-body').innerHTML=_costingFormHTML(data);
@@ -2969,7 +2996,7 @@ function saveCosting(){
   const n=v=>v===''?'':+v;
   const existingPhoto=_editCostingId?(getCostings().find(x=>x.id===_editCostingId)||{}).photo||'':'';
   const photo=_costingPhoto||existingPhoto;
-  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),sizeDesc:g('sizeDesc'),photo,ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cartonCostPerCtn:n(g('cartonCostPerCtn')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
+  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),buyer:g('buyer'),dimHeight:n(g('dimHeight')),dimTopDia:n(g('dimTopDia')),dimBottomDia:n(g('dimBottomDia')),dimWidth:n(g('dimWidth')),photo,ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cartonCostPerCtn:n(g('cartonCostPerCtn')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
   const list=getCostings();
   if(_editCostingId){const idx=list.findIndex(x=>x.id===_editCostingId);if(idx>=0)list[idx]={...list[idx],...data};}
   else{data.id=Date.now();list.push(data);}
@@ -3009,7 +3036,8 @@ h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.
   ${c.photo?`<td rowspan="4" style="width:18%;text-align:center;vertical-align:middle"><img src="${c.photo}" style="max-width:100%;max-height:90pt;object-fit:contain"></td>`:''}
   <td style="width:${c.photo?'27%':'33%'}"><strong>Product:</strong> ${c.name||'—'}</td><td style="width:${c.photo?'27%':'33%'}"><strong>Item No:</strong> ${c.itemNo||'—'}</td><td><strong>Material:</strong> ${c.material||'—'}</td>
 </tr>
-<tr><td colspan="3"><strong>Size:</strong> ${c.sizeDesc||'—'}</td></tr>
+<tr><td><strong>Height:</strong> ${c.dimHeight||'—'} cm</td><td><strong>Top Dia:</strong> ${c.dimTopDia||'—'} cm</td><td><strong>Bottom Dia / Width:</strong> ${c.dimBottomDia||'—'} / ${c.dimWidth||'—'} cm</td></tr>
+<tr><td colspan="3"><strong>Buyer:</strong> ${c.buyer||'—'}</td></tr>
 <tr><td><strong>Carton:</strong> ${c.ctnL||0}×${c.ctnW||0}×${c.ctnH||0} cm</td><td><strong>Qty/Ctn:</strong> ${c.qtyPerCtn||0}</td><td><strong>CBM/Ctn:</strong> ${r.cbmPerCtn.toFixed(4)}</td></tr>
 <tr><td><strong>Container Cap:</strong> ${c.containerCap||65} m³</td><td><strong>Total CTN in 40'HC:</strong> ${fM(r.totalCtnIn40)}</td><td><strong>Total Qty in 40'HC:</strong> ${fM(r.totalQtyIn40)}</td></tr>
 </table>
@@ -3042,7 +3070,8 @@ let _editQuotationId=null,_qItemIds=[],_qItemPhotos={};
 function renderQuotation(){
   const list=getQuotations();
   return`<div class="sh"><div><div class="sh-t">📋 Quotations</div><div class="sh-s">${list.length} saved quotation${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openQuotation(null)">+ New Quotation</button></div></div>
-${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Buyer</th><th>Subject</th><th>Items</th><th>Actions</th></tr></thead><tbody>${list.map(q=>`<tr><td>${q.date||'—'}</td><td><strong>${q.buyer||'—'}</strong></td><td>${q.subject||'—'}</td><td style="text-align:center">${(q.items||[]).length}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openQuotation(${q.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printQuotation(${q.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteQuotation(${q.id})">🗑</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No quotations yet. Click "+ New Quotation" to get started.</div>'}
+<div style="margin-bottom:12px"><input class="srch-inp" id="quotation-search" placeholder="🔍 Search by buyer, subject, material, dimensions…" oninput="filterQuotationList()" style="width:100%;max-width:420px"></div>
+${list.length?`<div class="tbl-wrap"><table id="quotation-tbl"><thead><tr><th>Date</th><th>Buyer</th><th>Subject</th><th>Items</th><th>Actions</th></tr></thead><tbody>${list.map(q=>{const srch=[q.date,q.buyer,q.subject,...(q.items||[]).map(it=>[it.description,_fmtDims(it)].join(' '))].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${q.date||'—'}</td><td><strong>${q.buyer||'—'}</strong></td><td>${q.subject||'—'}</td><td style="text-align:center">${(q.items||[]).length}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openQuotation(${q.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printQuotation(${q.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteQuotation(${q.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No quotations yet. Click "+ New Quotation" to get started.</div>'}
 <div class="ov" id="quotation-ov"><div class="modal" style="max-width:1100px;width:98vw;max-height:94vh;overflow-y:auto">
 <div class="mh"><h3 id="quotation-title">New Quotation</h3><button class="xbtn" onclick="closeModal('quotation-ov')">×</button></div>
 <div class="mb" id="quotation-body" style="padding:18px"></div>
@@ -3058,8 +3087,11 @@ function _qItemHTML(it,idx){
 <div class="fg-grid">
   <div class="fg"><label>Item No</label><input id="qi-itemNo-${it.id}" value="${it.itemNo||''}"></div>
   <div class="fg"><label>Description</label><input id="qi-description-${it.id}" value="${it.description||''}"></div>
-  <div class="fg"><label>Dimensions (text)</label><input id="qi-dimensions-${it.id}" value="${it.dimensions||''}"></div>
   <div class="fg"><label>Rate USD (FOB)</label><input type="number" step="0.0001" id="qi-rateUSD-${it.id}" value="${it.rateUSD||''}"></div>
+  <div class="fg"><label>Height (cm)</label><input type="number" step="0.1" id="qi-dimHeight-${it.id}" value="${it.dimHeight||''}"></div>
+  <div class="fg"><label>Top Dia (cm)</label><input type="number" step="0.1" id="qi-dimTopDia-${it.id}" value="${it.dimTopDia||''}"></div>
+  <div class="fg"><label>Bottom Dia (cm)</label><input type="number" step="0.1" id="qi-dimBottomDia-${it.id}" value="${it.dimBottomDia||''}"></div>
+  <div class="fg"><label>Width (cm)</label><input type="number" step="0.1" id="qi-dimWidth-${it.id}" value="${it.dimWidth||''}"></div>
   <div class="fg"><label>Carton L (cm)</label><input type="number" id="qi-ctnL-${it.id}" value="${it.ctnL||''}"></div>
   <div class="fg"><label>Carton W (cm)</label><input type="number" id="qi-ctnW-${it.id}" value="${it.ctnW||''}"></div>
   <div class="fg"><label>Carton H (cm)</label><input type="number" id="qi-ctnH-${it.id}" value="${it.ctnH||''}"></div>
@@ -3111,7 +3143,10 @@ function linkQItemCosting(itemId,costingId){
   const r=calcCosting(c);
   const setVal=(id,v)=>{const el=$(id);if(el&&v!==undefined&&v!=='')el.value=v};
   setVal('qi-rateUSD-'+itemId,r.perPcsUSD.toFixed(4));
-  setVal('qi-dimensions-'+itemId,c.sizeDesc||'');
+  setVal('qi-dimHeight-'+itemId,c.dimHeight||'');
+  setVal('qi-dimTopDia-'+itemId,c.dimTopDia||'');
+  setVal('qi-dimBottomDia-'+itemId,c.dimBottomDia||'');
+  setVal('qi-dimWidth-'+itemId,c.dimWidth||'');
   setVal('qi-ctnL-'+itemId,c.ctnL||'');
   setVal('qi-ctnW-'+itemId,c.ctnW||'');
   setVal('qi-ctnH-'+itemId,c.ctnH||'');
@@ -3136,7 +3171,7 @@ function _readQItems(){
     const costSel=$('qi-costing-'+id);
     const existingPhoto=(_editQuotationId?(getQuotations().find(x=>x.id===_editQuotationId)||{items:[]}).items.find(it=>it.id===id)||{}:{}).photo||'';
     const photo=_qItemPhotos[id]||existingPhoto;
-    return{id,itemNo:g('itemNo'),description:g('description'),dimensions:g('dimensions'),photo,rateUSD:+g('rateUSD')||0,ctnL:+g('ctnL')||0,ctnW:+g('ctnW')||0,ctnH:+g('ctnH')||0,qtyPerCtn:+g('qtyPerCtn')||0,totalQtyIn40:+g('totalQtyIn40')||0,leadTime:g('leadTime'),costingId:costSel?costSel.value||'':''};
+    return{id,itemNo:g('itemNo'),description:g('description'),dimHeight:+g('dimHeight')||0,dimTopDia:+g('dimTopDia')||0,dimBottomDia:+g('dimBottomDia')||0,dimWidth:+g('dimWidth')||0,photo,rateUSD:+g('rateUSD')||0,ctnL:+g('ctnL')||0,ctnW:+g('ctnW')||0,ctnH:+g('ctnH')||0,qtyPerCtn:+g('qtyPerCtn')||0,totalQtyIn40:+g('totalQtyIn40')||0,leadTime:g('leadTime'),costingId:costSel?costSel.value||'':''};
   });
 }
 
@@ -3163,7 +3198,7 @@ function printQuotation(id){
       <td>${it.itemNo||'—'}</td>
       <td style="text-align:center">${it.photo?`<img src="${it.photo}" style="max-width:60pt;max-height:60pt;object-fit:contain">`:'—'}</td>
       <td>${it.description||'—'}</td>
-      <td>${it.dimensions||'—'}</td>
+      <td style="font-size:7.5pt">${_fmtDims(it)}</td>
       <td style="text-align:center"><strong>${it.rateUSD?'$'+Number(it.rateUSD).toFixed(2):'—'}</strong></td>
       <td style="text-align:center">${it.ctnL||'—'}</td>
       <td style="text-align:center">${it.ctnW||'—'}</td>
