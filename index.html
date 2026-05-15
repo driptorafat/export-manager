@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="root-html">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Export Manager</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--pri:#1565C0;--prid:#0D47A1;--pril:#E3F2FD;--acc:#F57C00;--accl:#FFF3E0;--ok:#2E7D32;--okl:#E8F5E9;--warn:#F9A825;--warnl:#FFFDE7;--err:#C62828;--errl:#FFEBEE;--bg:#F0F4F8;--card:#fff;--bdr:#DEE2E6;--txt:#212529;--muted:#6C757D;--sw:230px}
+[data-theme="dark"]{--bg:#0f1117;--card:#1a1d27;--bdr:#2d3044;--txt:#e2e8f0;--muted:#8b95a8;--prid:#1a2a5e;--pril:#1e2d5a;--accl:#2a1f0a;--okl:#0d2010;--warnl:#2a2000;--errl:#2a0a0a}
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden;display:flex;flex-direction:column}
 button{cursor:pointer;font-family:inherit}
 #app{display:flex;flex:1;overflow:hidden;height:100vh}
@@ -302,7 +303,8 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
 <nav id="sb">
   <div class="sb-logo">
     <span style="font-size:22px">📦</span>
-    <div><h2>Export Manager</h2><span>Shipment Calendar</span></div>
+    <div style="flex:1"><h2>Export Manager</h2><span>Shipment Calendar</span></div>
+    <button id="dark-toggle" onclick="toggleDark()" title="Toggle dark/light mode" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0">🌙</button>
   </div>
   <div class="yr-wrap">
     <div class="yr-label">Active Year</div>
@@ -633,6 +635,8 @@ function loadAll(){
   return d;
 }
 function saveAll(d){localStorage.setItem('em_v2',JSON.stringify(d))}
+function toggleDark(){const h=document.getElementById('root-html');const isDark=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',isDark?'light':'dark');localStorage.setItem('em_theme',isDark?'light':'dark');const btn=$('dark-toggle');if(btn)btn.textContent=isDark?'🌙 Dark Mode':'☀️ Light Mode';}
+(function(){const t=localStorage.getItem('em_theme')||'light';document.getElementById('root-html').setAttribute('data-theme',t);document.addEventListener('DOMContentLoaded',function(){const btn=document.getElementById('dark-toggle');if(btn)btn.textContent=t==='dark'?'☀️':'🌙';});})();
 function getShips(yr){return (D.years[yr]||{}).shipments||[]}
 function setShips(yr,list){if(!D.years[yr])D.years[yr]={shipments:[],settings:{...DEF_SETTINGS}};D.years[yr].shipments=list;saveAll(D)}
 function getCfg(yr){return Object.assign({...DEF_SETTINGS},(D.years[yr]||{}).settings||{})}
@@ -1016,6 +1020,8 @@ ${ongoing.length?`<div class="kpi-grid" style="margin-bottom:18px">
 // ── CONTAINER PLANNER ────────────────────────────────────────────────────────
 function renderContainer(yr,ships){
   const CTYPES={['20ft']:{cbm:25,label:"20' Standard (25 CBM)"},['40ft']:{cbm:67,label:"40' Standard (67 CBM)"},['40HQ']:{cbm:76,label:"40' High Cube (76 CBM)"}};
+  // Costing-based scenarios
+  const costings=getCostings().filter(c=>(+c.ctnL)&&(+c.ctnW)&&(+c.ctnH)&&(+c.qtyPerCtn));
   const unshipped=ships.filter(s=>!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress'&&Number(s.vol||0)>0).sort((a,b)=>Number(b.vol||0)-Number(a.vol||0));
   const totalCbm=unshipped.reduce((a,s)=>a+Number(s.vol||0),0);
   const ct=ST.containerType||'40ft';
@@ -1044,7 +1050,12 @@ function renderContainer(yr,ships){
 </div>
 <div class="card"><div class="card-title">All Unshipped Orders</div>
 ${!unshipped.length?'<div class="empty">No unshipped orders found.</div>':`<div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Party</th><th>Dest</th><th>Month</th><th>CBM</th><th>Invoice (USD)</th><th>Payment</th></tr></thead><tbody>${unshipped.map(s=>`<tr><td><strong>${s.orderNo}</strong></td><td>${s.party}</td><td><span class="tag">${s.dest}</span></td><td>${s.month}</td><td>${s.vol}</td><td>${fUSD(s.iamt)}</td><td>${payBdg(s.pay)}</td></tr>`).join('')}</tbody><tfoot><tr><td>TOTAL</td><td></td><td></td><td></td><td><strong>${fNum(totalCbm)}</strong></td><td><strong>${fUSD(unshipped.reduce((a,s)=>a+Number(s.iamt||0),0))}</strong></td><td></td></tr></tfoot></table></div>`}
-</div>`;
+</div>
+${costings.length?`<div class="card" style="margin-top:18px"><div class="card-title">📐 Costing-Based Container Scenarios</div>
+<p style="font-size:12.5px;color:var(--muted);margin-bottom:12px">How many containers each saved costing product would fill — useful for planning before shipments exist.</p>
+<div class="tbl-wrap"><table><thead><tr><th>Product</th><th>Item No</th><th>Ctn Size (cm)</th><th>CBM/Ctn</th><th>Qty/Ctn</th><th>CTN in 20ft</th><th>Qty in 20ft</th><th>CTN in 40ft</th><th>Qty in 40ft</th><th>CTN in 40HQ</th><th>Qty in 40HQ</th></tr></thead>
+<tbody>${costings.map(c=>{const r=calcCosting(c);const cbm=r.cbmPerCtn;const c20=cbm>0?Math.floor(25/cbm):0;const c40=cbm>0?Math.floor(67/cbm):0;const c40hq=cbm>0?Math.floor(76/cbm):0;const q=+c.qtyPerCtn||1;return`<tr><td><strong>${c.name||'—'}</strong>${c.buyer?`<br><span style="font-size:11px;color:var(--muted)">${c.buyer}</span>`:''}</td><td style="font-size:12px">${c.itemNo||'—'}</td><td style="font-size:12px">${c.ctnL}×${c.ctnW}×${c.ctnH}</td><td>${cbm.toFixed(4)}</td><td>${q}</td><td style="font-weight:700">${c20}</td><td style="color:var(--ok)">${(c20*q).toLocaleString()}</td><td style="font-weight:700">${c40}</td><td style="color:var(--ok)">${(c40*q).toLocaleString()}</td><td style="font-weight:700">${c40hq}</td><td style="color:var(--ok)">${(c40hq*q).toLocaleString()}</td></tr>`}).join('')}</tbody></table></div></div>`:''}
+`;
 }
 
 // ── BUYERS ────────────────────────────────────────────────────────────────────
@@ -1916,6 +1927,9 @@ function renderSettings(yr,cfg){
     <div class="fg"><label>Personal Profit %</label><input type="number" id="s-pers-prof" value="${cfg.personalProfitPct||1}" step="0.1" min="0" max="100"></div>
     <div class="fg"><label>Personal Incentive %</label><input type="number" id="s-pers-inc" value="${cfg.personalIncPct||1}" step="0.1" min="0" max="100"></div>
     <button class="btn btn-pri" onclick="saveSettings('${yr}')">Save Settings</button>
+    <hr class="div">
+    <div class="card-title">Appearance</div>
+    <button class="btn btn-ghost btn-sm" onclick="toggleDark()" style="margin-top:4px">🌙 Toggle Dark / Light Mode</button>
   </div>
   <div class="card"><div class="card-title">☁ Cloud Sync (GitHub Gist)</div>
     <div class="print-note">Cloud sync lets colleagues access your data at the same URL. Data is stored in a private GitHub Gist.</div>
@@ -2965,7 +2979,7 @@ function renderCosting(){
   const list=getCostings();
   return`<div class="sh"><div><div class="sh-t">🧮 Costing Calculator</div><div class="sh-s">${list.length} saved costing${list.length!==1?'s':''}</div></div><div><button class="btn btn-ghost" onclick="exportCostingCSV()">📥 Export CSV</button> <button class="btn btn-pri" onclick="openCosting(null)">+ New Costing</button></div></div>
 <div style="margin-bottom:12px"><input class="srch-inp" id="costing-search" placeholder="🔍 Search by buyer, material, dimensions…" oninput="filterCostingList()" style="width:100%;max-width:420px"></div>
-${list.length?`<div class="tbl-wrap"><table id="costing-tbl"><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Buyer</th><th>Material</th><th>Dimensions</th><th>Date</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);const dims=_fmtDims(c);const srch=[c.name,c.itemNo,c.buyer,c.material,dims,c.date].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${c.photo?`<img src="${c.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.buyer||'—'}</td><td>${c.material||'—'}</td><td style="font-size:11px">${dims}</td><td style="font-size:11px">${c.date?_fmtDate(c.date):'—'}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-ok btn-sm" onclick="newQuotationFromCosting(${c.id})" title="Create a new Quotation from this costing">📝 Quote</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
+${list.length?`<div class="tbl-wrap"><table id="costing-tbl"><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Buyer</th><th>Material</th><th>Dimensions</th><th>Date</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);const dims=_fmtDims(c);const srch=[c.name,c.itemNo,c.buyer,c.material,dims,c.date].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${c.photo?`<img src="${c.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.buyer||'—'}</td><td>${c.material||'—'}</td><td style="font-size:11px">${dims}</td><td style="font-size:11px">${c.date?_fmtDate(c.date):'—'}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-ok btn-sm" onclick="newQuotationFromCosting(${c.id})" title="Create a new Quotation from this costing">📝 Quote</button> <button class="btn btn-ghost btn-sm" onclick="addCostingToCatalog(${c.id})" title="Save this product to the Product Catalog">📚 Catalog</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
 <div class="ov" id="costing-ov"><div class="modal" style="max-width:1000px;width:98vw;max-height:94vh;overflow-y:auto">
 <div class="mh"><h3 id="costing-title">New Costing</h3><button class="xbtn" onclick="closeModal('costing-ov')">×</button></div>
 <div class="mb" id="costing-body" style="padding:18px"></div>
@@ -3154,6 +3168,20 @@ h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.
 let _editQuotationId=null,_qItemIds=[],_qItemPhotos={};
 
 function _qStatusBadge(s){const cfg={Draft:{bg:'#eee',c:'#555'},Sent:{bg:'#dbeafe',c:'#1d4ed8'},'Under Review':{bg:'#fef9c3',c:'#854d0e'},Accepted:{bg:'#dcfce7',c:'#166534'},Rejected:{bg:'#fee2e2',c:'#991b1b'},Expired:{bg:'#f3f4f6',c:'#6b7280'}};const t=cfg[s]||cfg.Draft;return`<span class="bdg" style="background:${t.bg};color:${t.c}">${s||'Draft'}</span>`}
+function addCostingToCatalog(cid){
+  const c=getCostings().find(x=>x.id===cid);if(!c){toast('Costing not found');return}
+  const r=calcCosting(c);
+  const existing=getCatalog().find(x=>x.itemNo&&x.itemNo===c.itemNo&&x.name===c.name);
+  if(existing){confirm2('Already in Catalog',`"${c.name||c.itemNo}" is already in the Product Catalog. Update it with the latest costing data?`,()=>{
+    const list=getCatalog();const idx=list.findIndex(x=>x.id===existing.id);
+    list[idx]={...existing,name:c.name,itemNo:c.itemNo,material:c.material,buyer:c.buyer,photo:c.photo||existing.photo,dimHeight:c.dimHeight,dimTopDia:c.dimTopDia,dimBottomDia:c.dimBottomDia,dimWidth:c.dimWidth,ctnL:c.ctnL,ctnW:c.ctnW,ctnH:c.ctnH,qtyPerCtn:c.qtyPerCtn,stdRateUSD:r.perPcsUSD};
+    setCatalog(list);toast('✅ Catalog updated from costing');
+  },'Update','btn-ok');return;}
+  const item={id:Date.now(),name:c.name||'',itemNo:c.itemNo||'',material:c.material||'',buyer:c.buyer||'',photo:c.photo||'',dimHeight:c.dimHeight||'',dimTopDia:c.dimTopDia||'',dimBottomDia:c.dimBottomDia||'',dimWidth:c.dimWidth||'',ctnL:c.ctnL||'',ctnW:c.ctnW||'',ctnH:c.ctnH||'',qtyPerCtn:c.qtyPerCtn||'',stdRateUSD:r.perPcsUSD,notes:''};
+  const list=getCatalog();list.push(item);setCatalog(list);
+  toast('✅ Added to Product Catalog');
+}
+
 function newQuotationFromCosting(cid){
   const c=getCostings().find(x=>x.id===cid);if(!c){toast('Costing not found');return}
   const r=calcCosting(c);
