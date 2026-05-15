@@ -2805,6 +2805,7 @@ function calcCosting(c){
   const qtyPerCtn=+c.qtyPerCtn||1;
   const containerCap=+c.containerCap||65;
   const costPerPcs=+c.costPerPcs||0;
+  const cartonCostPerCtn=+c.cartonCostPerCtn||0;
   const cnfCost=+c.cnfCost||0,blCost=+c.blCost||0,transportCost=+c.transportCost||0;
   const wastagePct=+c.wastagePct||0;
   const overheadPct=+c.overheadPct||0;
@@ -2816,19 +2817,43 @@ function calcCosting(c){
   const totalQty=+c.totalQty>0?+c.totalQty:totalQtyIn40;
   const totalCtn=qtyPerCtn>0?Math.ceil(totalQty/qtyPerCtn):0;
   const dirMatCost=costPerPcs*totalQty;
+  const totalCartonCost=cartonCostPerCtn*totalCtn;
   const fixedCosts=cnfCost+blCost+transportCost;
   const wastage=dirMatCost*wastagePct/100;
-  const dirCost=dirMatCost+fixedCosts+wastage;
+  const dirCost=dirMatCost+totalCartonCost+fixedCosts+wastage;
   const overhead=dirCost*overheadPct/100;
   const gross=dirCost+overhead;
   const profit=dirCost*profitPct/100;
   const total=gross+profit;
   const perPcsBDT=totalQty>0?total/totalQty:0;
   const perPcsUSD=perPcsBDT/exchangeRate;
-  return{cbmPerCtn,totalCtnIn40,totalQtyIn40,totalQty,totalCtn,dirMatCost,fixedCosts,wastage,dirCost,overhead,gross,profit,total,perPcsBDT,perPcsUSD};
+  return{cbmPerCtn,totalCtnIn40,totalQtyIn40,totalQty,totalCtn,dirMatCost,totalCartonCost,fixedCosts,wastage,dirCost,overhead,gross,profit,total,perPcsBDT,perPcsUSD};
 }
 
-let _editCostingId=null;
+let _editCostingId=null,_costingPhoto='';
+
+function uploadCostingPhoto(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _costingPhoto=e.target.result;
+    const prev=$('cf-photo-prev');
+    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function uploadQItemPhoto(id,inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _qItemPhotos[id]=e.target.result;
+    const prev=$('qi-photo-prev-'+id);
+    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
 function renderCosting(){
   const list=getCostings();
   return`<div class="sh"><div><div class="sh-t">🧮 Costing Calculator</div><div class="sh-s">${list.length} saved costing${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openCosting(null)">+ New Costing</button></div></div>
@@ -2850,9 +2875,9 @@ function _costingFormHTML(c){
   <div class="fg"><label>Item No</label><input id="cf-itemNo" value="${fN(c.itemNo)}" placeholder="HT-001"></div>
   <div class="fg"><label>Material</label><input id="cf-material" value="${fN(c.material)}" placeholder="Seagrass"></div>
   <div class="fg full"><label>Size Description</label><input id="cf-sizeDesc" value="${fN(c.sizeDesc)}" placeholder="L30×W20×H15 cm"></div>
-  <div class="fg full" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end">
-    <div><label>Product Photo</label><input type="file" id="cf-photo-inp" accept="image/*" onchange="(function(inp){const r=new FileReader();r.onload=e=>{inp.dataset.b64=e.target.result;const p=$('cf-photo-prev');if(p)p.innerHTML='<img src=\''+e.target.result+'\' style=\'height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)\'>'};r.readAsDataURL(inp.files[0])})(this)" style="font-size:11px;padding:3px"></div>
-    <div id="cf-photo-prev">${c.photo?`<img src="${c.photo}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
+  <div class="fg" style="grid-column:1/-1;display:flex;align-items:flex-end;gap:12px">
+    <div style="flex:1"><label>Product Photo</label><input type="file" id="cf-photo-inp" accept="image/*" onchange="uploadCostingPhoto(this)" style="font-size:11px;padding:3px;width:100%"></div>
+    <div id="cf-photo-prev" style="flex-shrink:0">${c.photo?`<img src="${c.photo}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
   </div>
 </div>
 <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 10px">Carton Dimensions</div>
@@ -2867,6 +2892,7 @@ function _costingFormHTML(c){
 <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 10px">Cost Inputs (BDT)</div>
 <div class="fg-grid">
   <div class="fg"><label>Cost per Piece (BDT)</label><input type="number" id="cf-costPerPcs" value="${fN(c.costPerPcs)}" placeholder="0" oninput="recalcCostingLive()"></div>
+  <div class="fg"><label>Carton Cost / CTN (BDT)</label><input type="number" id="cf-cartonCostPerCtn" value="${fN(c.cartonCostPerCtn)}" placeholder="0" oninput="recalcCostingLive()"></div>
   <div class="fg"><label>C&amp;F / Container (BDT)</label><input type="number" id="cf-cnfCost" value="${fN(c.cnfCost)}" placeholder="0" oninput="recalcCostingLive()"></div>
   <div class="fg"><label>B/L Cost (BDT)</label><input type="number" id="cf-blCost" value="${fN(c.blCost)}" placeholder="0" oninput="recalcCostingLive()"></div>
   <div class="fg"><label>Transport Cost (BDT)</label><input type="number" id="cf-transportCost" value="${fN(c.transportCost)}" placeholder="0" oninput="recalcCostingLive()"></div>
@@ -2889,6 +2915,7 @@ function _costingFormHTML(c){
 <div class="sr"><span class="sk">Total Cartons</span><span class="sv" id="cr-totalCtn">${r.totalCtn.toLocaleString()}</span></div>
 <hr class="div" style="margin:6px 0">
 <div class="sr"><span class="sk">Direct Material Cost</span><span class="sv" id="cr-dirMat">${fBDT(r.dirMatCost)}</span></div>
+<div class="sr"><span class="sk">Carton Cost (Total)</span><span class="sv" id="cr-cartonCost">${fBDT(r.totalCartonCost)}</span></div>
 <div class="sr"><span class="sk">Fixed Costs (C&F+BL+Transport)</span><span class="sv" id="cr-fixed">${fBDT(r.fixedCosts)}</span></div>
 <div class="sr"><span class="sk">Wastage</span><span class="sv" id="cr-wastage">${fBDT(r.wastage)}</span></div>
 <div class="sr" style="font-weight:700"><span class="sk">Direct Cost</span><span class="sv" id="cr-dirCost">${fBDT(r.dirCost)}</span></div>
@@ -2906,7 +2933,7 @@ function _costingFormHTML(c){
 
 function recalcCostingLive(){
   const g=id=>($('cf-'+id)||{}).value||'';
-  const c={ctnL:g('ctnL'),ctnW:g('ctnW'),ctnH:g('ctnH'),qtyPerCtn:g('qtyPerCtn'),containerCap:g('containerCap'),totalQty:g('totalQty'),costPerPcs:g('costPerPcs'),cnfCost:g('cnfCost'),blCost:g('blCost'),transportCost:g('transportCost'),wastagePct:g('wastagePct'),overheadPct:g('overheadPct'),profitPct:g('profitPct'),exchangeRate:g('exchangeRate')};
+  const c={ctnL:g('ctnL'),ctnW:g('ctnW'),ctnH:g('ctnH'),qtyPerCtn:g('qtyPerCtn'),containerCap:g('containerCap'),totalQty:g('totalQty'),costPerPcs:g('costPerPcs'),cartonCostPerCtn:g('cartonCostPerCtn'),cnfCost:g('cnfCost'),blCost:g('blCost'),transportCost:g('transportCost'),wastagePct:g('wastagePct'),overheadPct:g('overheadPct'),profitPct:g('profitPct'),exchangeRate:g('exchangeRate')};
   const r=calcCosting(c);
   const set=(id,v)=>{const el=$('cr-'+id);if(el)el.textContent=v};
   set('cbm',r.cbmPerCtn.toFixed(6));
@@ -2915,6 +2942,7 @@ function recalcCostingLive(){
   set('totalQty',r.totalQty.toLocaleString());
   set('totalCtn',r.totalCtn.toLocaleString());
   set('dirMat',fBDT(r.dirMatCost));
+  set('cartonCost',fBDT(r.totalCartonCost));
   set('fixed',fBDT(r.fixedCosts));
   set('wastage',fBDT(r.wastage));
   set('dirCost',fBDT(r.dirCost));
@@ -2927,7 +2955,7 @@ function recalcCostingLive(){
 }
 
 function openCosting(id){
-  _editCostingId=id;
+  _editCostingId=id;_costingPhoto='';
   const c=id?getCostings().find(x=>x.id===id):null;
   const def={name:'',itemNo:'',material:'',sizeDesc:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',containerCap:65,totalQty:'',costPerPcs:'',cnfCost:'',blCost:'',transportCost:'',wastagePct:2,overheadPct:15,profitPct:10,exchangeRate:120};
   const data=c?{...c}:def;
@@ -2939,10 +2967,9 @@ function openCosting(id){
 function saveCosting(){
   const g=id=>($('cf-'+id)||{}).value||'';
   const n=v=>v===''?'':+v;
-  const photoInp=$('cf-photo-inp');
   const existingPhoto=_editCostingId?(getCostings().find(x=>x.id===_editCostingId)||{}).photo||'':'';
-  const photo=photoInp&&photoInp.dataset.b64?photoInp.dataset.b64:existingPhoto;
-  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),sizeDesc:g('sizeDesc'),photo,ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
+  const photo=_costingPhoto||existingPhoto;
+  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),sizeDesc:g('sizeDesc'),photo,ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cartonCostPerCtn:n(g('cartonCostPerCtn')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
   const list=getCostings();
   if(_editCostingId){const idx=list.findIndex(x=>x.id===_editCostingId);if(idx>=0)list[idx]={...list[idx],...data};}
   else{data.id=Date.now();list.push(data);}
@@ -2989,7 +3016,8 @@ h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.
 <div class="section-hdr">Cost Breakdown (BDT)</div>
 <table class="cost-tbl" style="border-top:none">
 <tr><td>Direct Material Cost (${fM(r.totalQty)} pcs × ৳${c.costPerPcs||0})</td><td>${fBDTp(r.dirMatCost)}</td></tr>
-<tr><td>C&amp;F / Container</td><td>${fBDTp(r.fixedCosts?c.cnfCost||0:0)}</td></tr>
+<tr><td>Carton Cost (${fM(r.totalCtn)} ctns × ৳${c.cartonCostPerCtn||0})</td><td>${fBDTp(r.totalCartonCost)}</td></tr>
+<tr><td>C&amp;F / Container</td><td>${fBDTp(c.cnfCost||0)}</td></tr>
 <tr><td>B/L Cost</td><td>${fBDTp(c.blCost||0)}</td></tr>
 <tr><td>Transport to Port</td><td>${fBDTp(c.transportCost||0)}</td></tr>
 <tr><td>Wastage (${c.wastagePct||0}%)</td><td>${fBDTp(r.wastage)}</td></tr>
@@ -3009,7 +3037,7 @@ h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.
 }
 
 // ── QUOTATIONS ────────────────────────────────────────────────────────────────
-let _editQuotationId=null,_qItemIds=[];
+let _editQuotationId=null,_qItemIds=[],_qItemPhotos={};
 
 function renderQuotation(){
   const list=getQuotations();
@@ -3039,9 +3067,9 @@ function _qItemHTML(it,idx){
   <div class="fg"><label>Total Qty in 40'HC</label><input type="number" id="qi-totalQtyIn40-${it.id}" value="${it.totalQtyIn40||''}"></div>
   <div class="fg"><label>Lead Time</label><input id="qi-leadTime-${it.id}" value="${it.leadTime||''}" placeholder="e.g. 60 days"></div>
   <div class="fg full"><label>Link Costing (auto-fills fields)</label><select id="qi-costing-${it.id}" onchange="linkQItemCosting(${it.id},this.value)">${costingOpts}</select></div>
-  <div class="fg" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
-    <div><label>Product Photo</label><input type="file" id="qi-photo-inp-${it.id}" accept="image/*" onchange="(function(inp,id){const r=new FileReader();r.onload=e=>{inp.dataset.b64=e.target.result;const p=$('qi-photo-prev-'+id);if(p)p.innerHTML='<img src=\''+e.target.result+'\' style=\'height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)\'>'};r.readAsDataURL(inp.files[0])})(this,${it.id})" style="font-size:11px;padding:3px"></div>
-    <div id="qi-photo-prev-${it.id}">${it.photo?`<img src="${it.photo}" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
+  <div class="fg" style="display:flex;align-items:flex-end;gap:10px;grid-column:1/-1">
+    <div style="flex:1"><label>Product Photo</label><input type="file" id="qi-photo-inp-${it.id}" accept="image/*" onchange="uploadQItemPhoto(${it.id},this)" style="font-size:11px;padding:3px;width:100%"></div>
+    <div id="qi-photo-prev-${it.id}" style="flex-shrink:0">${it.photo?`<img src="${it.photo}" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
   </div>
 </div>
 </div>`;
@@ -3063,7 +3091,7 @@ function _quotationFormHTML(q){
 
 function addQItem(){
   const id=Date.now();
-  _qItemIds.push(id);
+  _qItemIds.push(id);_qItemPhotos[id]='';
   const cont=$('qitems-container');
   const empty=$('qitems-empty');
   if(empty)empty.remove();
@@ -3095,6 +3123,8 @@ function openQuotation(id){
   _editQuotationId=id;
   const q=id?getQuotations().find(x=>x.id===id):null;
   _qItemIds=q?(q.items||[]).map(x=>x.id):[];
+  _qItemPhotos={};
+  if(q)(q.items||[]).forEach(it=>{if(it.photo)_qItemPhotos[it.id]=it.photo;});
   $('quotation-title').textContent=q?`Edit Quotation — ${q.buyer||'Draft'}`:'New Quotation';
   $('quotation-body').innerHTML=_quotationFormHTML(q||{});
   $('quotation-ov').classList.add('open');
@@ -3104,9 +3134,8 @@ function _readQItems(){
   return _qItemIds.map(id=>{
     const g=fid=>($('qi-'+fid+'-'+id)||{}).value||'';
     const costSel=$('qi-costing-'+id);
-    const photoInp=$('qi-photo-inp-'+id);
     const existingPhoto=(_editQuotationId?(getQuotations().find(x=>x.id===_editQuotationId)||{items:[]}).items.find(it=>it.id===id)||{}:{}).photo||'';
-    const photo=photoInp&&photoInp.dataset.b64?photoInp.dataset.b64:existingPhoto;
+    const photo=_qItemPhotos[id]||existingPhoto;
     return{id,itemNo:g('itemNo'),description:g('description'),dimensions:g('dimensions'),photo,rateUSD:+g('rateUSD')||0,ctnL:+g('ctnL')||0,ctnW:+g('ctnW')||0,ctnH:+g('ctnH')||0,qtyPerCtn:+g('qtyPerCtn')||0,totalQtyIn40:+g('totalQtyIn40')||0,leadTime:g('leadTime'),costingId:costSel?costSel.value||'':''};
   });
 }
