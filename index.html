@@ -2995,12 +2995,12 @@ html,body{width:210mm}
 .cost-tbl td{border:1pt solid #000;padding:5pt 8pt;font-size:9.5pt}
 .cost-tbl td:last-child{text-align:right;width:36%}
 .cost-tbl tr.sub td{background:#f5f5f5;font-weight:700}
-.cost-tbl tr.total-row td{background:#C2185B;color:#fff;font-weight:900;font-size:11pt}
-.cost-tbl tr.highlight td{background:#FCE4EC;color:#880E4F;font-weight:700}
+.cost-tbl tr.total-row td{background:#1B5E20;color:#fff;font-weight:900;font-size:11pt}
+.cost-tbl tr.highlight td{background:#e8f5e9;font-weight:700}
 .info-tbl{width:100%;border-collapse:collapse;margin-top:8pt}
 .info-tbl td{border:1pt solid #000;padding:5pt 8pt;font-size:9pt}
 h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.5pt solid #000;padding:6pt;margin-bottom:0}
-.section-hdr{background:#FCE4EC;color:#880E4F;font-weight:700;font-size:9pt;padding:4pt 8pt;border:1pt solid #000;border-bottom:none;margin-top:10pt}
+.section-hdr{background:#e8f5e9;font-weight:700;font-size:9pt;padding:4pt 8pt;border:1pt solid #000;border-bottom:none;margin-top:10pt}
 </style></head><body><div class="page">
 <img src="${_DOCS_HEADER}" style="display:block;max-width:100%;height:auto;max-height:80pt;margin:0 auto 4pt">
 <h2>COSTING SHEET</h2>
@@ -3181,7 +3181,7 @@ function printQuotation(id){
 html,body{width:297mm}
 .page{padding:7mm 9mm;width:297mm;box-sizing:border-box}
 .qt-tbl{width:100%;border-collapse:collapse;margin-top:10pt;font-size:8.5pt}
-.qt-tbl th{background:#FCE4EC;color:#880E4F;padding:5pt 4pt;text-align:center;border:1pt solid #C2185B;font-size:8pt;font-weight:700}
+.qt-tbl th{background:#1B5E20;color:#fff;padding:5pt 4pt;text-align:center;border:1pt solid #000;font-size:8pt}
 .qt-tbl td{padding:4pt;border:1pt solid #ccc;vertical-align:middle;font-size:8.5pt}
 .qt-tbl tbody tr:nth-child(even) td{background:#f8f9ff}
 h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.5pt solid #000;padding:5pt;margin-bottom:0}
@@ -3212,10 +3212,10 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
   <th style="width:12%">Lead Time</th>
 </tr></thead>
 <tbody>${itemRows}</tbody>
-<tfoot><tr style="background:#FCE4EC;font-weight:700;color:#880E4F">
-  <td colspan="4" style="text-align:right;border:1pt solid #C2185B;padding:5pt 8pt;font-size:9pt">TOTAL AMOUNT (FOB):</td>
-  <td style="text-align:center;border:1pt solid #C2185B;padding:5pt;font-size:9.5pt;color:#C2185B"><strong>${totalAmt>0?'USD $'+totalAmt.toFixed(2):'—'}</strong></td>
-  <td colspan="7" style="border:1pt solid #C2185B;padding:5pt 8pt;font-size:8pt;color:#880E4F">${totalAmt>0?'Total in Words: USD '+_numWords(totalAmt):''}</td>
+<tfoot><tr style="background:#e8f5e9;font-weight:700">
+  <td colspan="4" style="text-align:right;border:1pt solid #000;padding:5pt 8pt;font-size:9pt">TOTAL AMOUNT (FOB):</td>
+  <td style="text-align:center;border:1pt solid #000;padding:5pt;font-size:9.5pt;color:#1B5E20"><strong>${totalAmt>0?'USD $'+totalAmt.toFixed(2):'—'}</strong></td>
+  <td colspan="7" style="border:1pt solid #000;padding:5pt 8pt;font-size:8pt;color:#555">${totalAmt>0?'Total in Words: USD '+_numWords(totalAmt):''}</td>
 </tr></tfoot>
 </table>
 <div class="sign-wrap">
