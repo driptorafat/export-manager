@@ -898,6 +898,7 @@ function render(){
   else if(ST.page==='costing')c.innerHTML=renderCosting();
   else if(ST.page==='quotation')c.innerHTML=renderQuotation();
   else if(ST.page==='catalog')c.innerHTML=renderCatalog();
+  else if(ST.page==='catalog-detail')c.innerHTML=renderCatalogDetail();
 }
 
 // ── SHARED TABLE ─────────────────────────────────────────────────────────────
@@ -4083,11 +4084,13 @@ if(isLoggedIn()) {
   setTimeout(() => gel('l-user').focus(), 100);
 }
 
+function viewCatalogDetail(id){ST.catalogDetailId=id;nav('catalog-detail')}
+
 function renderCatalog(){
   const list=getCatalog();
-  return`<div class="sh"><div><div class="sh-t">📚 Product Catalog</div><div class="sh-s">${list.length} product${list.length!==1?'s':''} — reusable specs for quick Quotations</div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="exportCatalogCSV()">📥 Export CSV</button><button class="btn btn-pri" onclick="openCatalogItem(null)">+ Add Product</button></div></div>
+  return`<div class="sh"><div><div class="sh-t">📚 Product Catalog</div><div class="sh-s">${list.length} product${list.length!==1?'s':''} — click a product name to view its detail page</div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="exportCatalogCSV()">📥 Export CSV</button><button class="btn btn-pri" onclick="openCatalogItem(null)">+ Add Product</button></div></div>
 <div style="margin-bottom:12px"><input class="srch-inp" id="catalog-search" placeholder="🔍 Search by name, material, item no, buyer…" oninput="filterCatalogList()" style="width:100%;max-width:440px"></div>
-${list.length?`<div class="tbl-wrap"><table id="catalog-tbl"><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Material</th><th>Dimensions</th><th>Std. Rate (USD)</th><th>Buyer</th><th>Actions</th></tr></thead><tbody>${list.map(p=>{const srch=[p.name,p.itemNo,p.material,p.buyer,_fmtDims(p)].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${p.photo?`<img src="${p.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${p.name||'—'}</strong></td><td style="font-size:12px">${p.itemNo||'—'}</td><td>${p.material||'—'}</td><td style="font-size:11px">${_fmtDims(p)}</td><td style="font-weight:700;color:var(--ok)">${p.stdRateUSD?'$'+Number(p.stdRateUSD).toFixed(4):'—'}</td><td style="font-size:12px">${p.buyer||'—'}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCatalogItem(${p.id})">✏️ Edit</button> <button class="btn btn-ok btn-sm" onclick="addCatalogItemToQuotation(${p.id})" title="Create a new Quotation pre-filled with this product">📝 Quote</button> <button class="btn btn-err btn-sm" onclick="deleteCatalogItem(${p.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:`<div class="empty">No products yet. Click "+ Add Product" to build your catalog.</div>`}
+${list.length?`<div class="tbl-wrap"><table id="catalog-tbl"><thead><tr><th style="width:56px">Photo</th><th>Product Name</th><th>Item No</th><th>Material</th><th>Dimensions</th><th>Std. Rate (USD)</th><th>Buyer</th><th>Actions</th></tr></thead><tbody>${list.map(p=>{const srch=[p.name,p.itemNo,p.material,p.buyer,_fmtDims(p)].join(' ').toLowerCase();return`<tr data-search="${srch}" style="cursor:pointer" onclick="viewCatalogDetail(${p.id})"><td onclick="viewCatalogDetail(${p.id})">${p.photo?`<img src="${p.photo}" style="width:48px;height:48px;object-fit:contain;border-radius:6px;border:1px solid var(--bdr)">`:'-'}</td><td><strong style="color:var(--pri);cursor:pointer">${p.name||'—'}</strong>${p.notes?`<br><span style="font-size:11px;color:var(--muted)">${p.notes.slice(0,40)}${p.notes.length>40?'…':''}</span>`:''}</td><td style="font-size:12px">${p.itemNo||'—'}</td><td>${p.material||'—'}</td><td style="font-size:11px">${_fmtDims(p)}</td><td style="font-weight:700;color:var(--ok)">${p.stdRateUSD?'$'+Number(p.stdRateUSD).toFixed(4):'—'}</td><td style="font-size:12px">${p.buyer||'—'}</td><td style="white-space:nowrap" onclick="event.stopPropagation()"><button class="btn btn-ghost btn-sm" onclick="viewCatalogDetail(${p.id})">👁 View</button> <button class="btn btn-ghost btn-sm" onclick="openCatalogItem(${p.id})">✏️ Edit</button> <button class="btn btn-ok btn-sm" onclick="addCatalogItemToQuotation(${p.id})">📝 Quote</button> <button class="btn btn-err btn-sm" onclick="deleteCatalogItem(${p.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:`<div class="empty">No products yet. Click "+ Add Product" to build your catalog.</div>`}
 <div class="ov" id="catalog-ov"><div class="modal" style="max-width:700px;width:98vw;max-height:94vh;overflow-y:auto">
 <div class="mh"><h3 id="catalog-title">New Product</h3><button class="xbtn" onclick="closeModal('catalog-ov')">×</button></div>
 <div class="mb" id="catalog-body" style="padding:18px"></div>
@@ -4138,12 +4141,14 @@ function saveCatalogItem(){
   const list=getCatalog();
   if(_editCatalogId){const idx=list.findIndex(x=>x.id===_editCatalogId);if(idx>=0)list[idx]={...list[idx],...data};}
   else{data.id=Date.now();list.push(data);}
-  setCatalog(list);closeModal('catalog-ov');render();toast('✅ Product saved to catalog');
+  const savedId=_editCatalogId||data.id;
+  setCatalog(list);closeModal('catalog-ov');
+  ST.catalogDetailId=savedId;ST.page='catalog-detail';render();toast('✅ Product saved to catalog');
 }
 
 function deleteCatalogItem(id){
   confirm2('Delete product?','Remove this product from the catalog?',()=>{
-    setCatalog(getCatalog().filter(x=>x.id!==id));render();toast('Product deleted');
+    setCatalog(getCatalog().filter(x=>x.id!==id));nav('catalog');toast('Product deleted');
   },'Delete','btn-err');
 }
 
@@ -4152,6 +4157,114 @@ function filterCatalogList(){
   document.querySelectorAll('#catalog-tbl tbody tr').forEach(row=>{
     row.style.display=ql&&!(row.dataset.search||'').includes(ql)?'none':'';
   });
+}
+
+function renderCatalogDetail(){
+  const id=ST.catalogDetailId;
+  const p=getCatalog().find(x=>x.id===id);
+  if(!p)return`<div class="empty">Product not found. <button class="btn btn-ghost btn-sm" onclick="nav('catalog')">← Back to Catalog</button></div>`;
+  const cbmPerCtn=(+p.ctnL||0)*(+p.ctnW||0)*(+p.ctnH||0)/1000000;
+  const ctn20=cbmPerCtn>0?Math.floor(25/cbmPerCtn):0;
+  const ctn40=cbmPerCtn>0?Math.floor(67/cbmPerCtn):0;
+  const ctn40hq=cbmPerCtn>0?Math.floor(76/cbmPerCtn):0;
+  const qty=+p.qtyPerCtn||1;
+  const list=getCatalog();
+  const idx=list.findIndex(x=>x.id===id);
+  const prev=list[idx-1];
+  const next=list[idx+1];
+  return`
+<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+  <button class="btn btn-ghost btn-sm" onclick="nav('catalog')">← Back to Catalog</button>
+  <span style="color:var(--muted);font-size:12.5px">${idx+1} of ${list.length}</span>
+  ${prev?`<button class="btn btn-ghost btn-sm" onclick="viewCatalogDetail(${prev.id})">‹ Prev</button>`:''}
+  ${next?`<button class="btn btn-ghost btn-sm" onclick="viewCatalogDetail(${next.id})">Next ›</button>`:''}
+  <div style="flex:1"></div>
+  <button class="btn btn-ghost btn-sm" onclick="openCatalogItem(${p.id})">✏️ Edit</button>
+  <button class="btn btn-ok btn-sm" onclick="addCatalogItemToQuotation(${p.id})">📝 Create Quotation</button>
+  <button class="btn btn-err btn-sm" onclick="deleteCatalogItem(${p.id})">🗑 Delete</button>
+</div>
+
+<div style="display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start">
+
+  <!-- LEFT: Photo + identity -->
+  <div>
+    <div class="card" style="padding:0;overflow:hidden;border-radius:14px">
+      <div style="background:var(--card2);min-height:320px;display:flex;align-items:center;justify-content:center;padding:16px;border-radius:14px 14px 0 0">
+        ${p.photo
+          ?`<img src="${p.photo}" style="max-width:100%;max-height:360px;object-fit:contain;border-radius:8px;display:block;margin:0 auto">`
+          :`<div style="text-align:center;color:var(--muted)"><div style="font-size:72px;margin-bottom:12px">📦</div><div style="font-size:13px">No photo uploaded</div></div>`}
+      </div>
+      <div style="padding:18px">
+        <div style="font-size:20px;font-weight:800;color:var(--htxt);margin-bottom:4px">${p.name||'Unnamed Product'}</div>
+        ${p.itemNo?`<div style="font-size:13px;color:var(--muted);margin-bottom:6px">Item No: <strong style="color:var(--txt)">${p.itemNo}</strong></div>`:''}
+        ${p.buyer?`<div style="display:inline-flex;align-items:center;gap:6px;background:var(--pril);color:var(--pri);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:6px">👤 ${p.buyer}</div>`:''}
+        ${p.stdRateUSD?`<div style="margin-top:10px;padding:12px;background:var(--okl);border-radius:8px;text-align:center"><div style="font-size:11px;color:var(--ok);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Standard FOB Rate</div><div style="font-size:26px;font-weight:900;color:var(--ok)">$${Number(p.stdRateUSD).toFixed(4)}</div><div style="font-size:11px;color:var(--muted)">per piece (USD)</div></div>`:''}
+      </div>
+    </div>
+    ${p.notes?`<div class="card" style="margin-top:14px"><div class="card-title">📝 Notes</div><p style="font-size:13.5px;color:var(--txt);line-height:1.65">${p.notes}</p></div>`:''}
+  </div>
+
+  <!-- RIGHT: Specs -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- Product Dimensions -->
+    <div class="card">
+      <div class="card-title">📐 Product Dimensions</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${[['Height','dimHeight'],['Top Diameter','dimTopDia'],['Bottom Diameter','dimBottomDia'],['Width','dimWidth']].map(([lbl,key])=>`
+        <div style="background:var(--card2);border-radius:10px;padding:14px;text-align:center;border:1px solid var(--bdr)">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${lbl}</div>
+          <div style="font-size:24px;font-weight:800;color:var(--htxt)">${p[key]||'—'}</div>
+          ${p[key]?`<div style="font-size:11px;color:var(--muted)">cm</div>`:''}
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:10px;padding:10px;background:var(--card2);border-radius:8px;text-align:center;border:1px solid var(--bdr)">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px">FULL DIMENSIONS</div>
+        <div style="font-size:14px;font-weight:700;color:var(--txt)">${_fmtDims(p)||'No dimensions entered'}</div>
+      </div>
+    </div>
+
+    <!-- Material -->
+    <div class="card">
+      <div class="card-title">🌿 Material</div>
+      <div style="font-size:18px;font-weight:700;color:var(--txt)">${p.material||'—'}</div>
+    </div>
+
+    <!-- Carton & Packaging -->
+    <div class="card">
+      <div class="card-title">📦 Carton & Packaging</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+        <div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--bdr)">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Carton Size</div>
+          <div style="font-size:14px;font-weight:800;color:var(--txt)">${(+p.ctnL&&+p.ctnW&&+p.ctnH)?`${p.ctnL}×${p.ctnW}×${p.ctnH}`:'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">L × W × H (cm)</div>
+        </div>
+        <div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--bdr)">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Qty / Carton</div>
+          <div style="font-size:22px;font-weight:800;color:var(--htxt)">${p.qtyPerCtn||'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">pcs per ctn</div>
+        </div>
+        <div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--bdr)">
+          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">CBM / Carton</div>
+          <div style="font-size:22px;font-weight:800;color:var(--htxt)">${cbmPerCtn>0?cbmPerCtn.toFixed(4):'—'}</div>
+          <div style="font-size:11px;color:var(--muted)">m³</div>
+        </div>
+      </div>
+      ${cbmPerCtn>0?`<div style="border-top:1px solid var(--divider);padding-top:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Container Capacity</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          ${[["20' ft",ctn20,25],["40' ft",ctn40,67],["40' HQ",ctn40hq,76]].map(([lbl,ctns,cap])=>`
+          <div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--bdr)">
+            <div style="font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px">${lbl}</div>
+            <div style="font-size:18px;font-weight:800;color:var(--pri)">${ctns} <span style="font-size:11px;font-weight:400">ctns</span></div>
+            <div style="font-size:12px;color:var(--ok);font-weight:700">${(ctns*qty).toLocaleString()} pcs</div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+    </div>
+
+  </div>
+</div>`;
 }
 
 function addCatalogItemToQuotation(pid){
