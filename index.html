@@ -321,6 +321,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
     <div class="ni" id="ni-orders" onclick="nav('orders')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Orders &amp; Documents</div>
     <div class="ni" id="ni-costing" onclick="nav('costing')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>Costing</div>
     <div class="ni" id="ni-quotation" onclick="nav('quotation')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Quotation</div>
+    <div class="ni" id="ni-catalog" onclick="nav('catalog')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Product Catalog</div>
     <div class="ni" id="ni-calendar" onclick="nav('calendar')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Monthly View</div>
     <div class="ni" id="ni-ongoing" onclick="nav('ongoing')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Orders In Progress</div>
     <div class="ni" id="ni-container" onclick="nav('container')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Container Planner</div>
@@ -828,6 +829,7 @@ function render(){
   else if(ST.page==='orders')c.innerHTML=renderOrders();
   else if(ST.page==='costing')c.innerHTML=renderCosting();
   else if(ST.page==='quotation')c.innerHTML=renderQuotation();
+  else if(ST.page==='catalog')c.innerHTML=renderCatalog();
 }
 
 // ── SHARED TABLE ─────────────────────────────────────────────────────────────
@@ -879,6 +881,7 @@ function renderDash(yr,ships,cfg){
   <div class="card"><div class="card-title">Monthly Invoice ${yr} (USD)</div><div class="chart-box">${svgBar(barItems,{w:440,h:155,prefix:'$'})}</div></div>
   <div class="card"><div class="card-title">Buyer Share</div><div style="display:flex;justify-content:center">${svgDonut(donutItems.length?donutItems:[{label:'No data',value:1,color:'#ddd'}],{size:180})}</div></div>
 </div>
+<div class="card" style="margin-bottom:18px"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center">📊 Sales Pipeline <div style="display:flex;gap:8px"><button class="btn btn-ghost btn-xs" onclick="nav('quotation')">Quotations →</button><button class="btn btn-ghost btn-xs" onclick="nav('costing')">Costings →</button></div></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">${(()=>{const qs=getQuotations();const cs=getCostings();const open=qs.filter(q=>q.status==='Sent'||q.status==='Under Review');const pipeVal=open.reduce((a,q)=>a+(q.items||[]).reduce((b,it)=>b+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0),0);const accepted=qs.filter(q=>q.status==='Accepted').length;return`<div class="kpi" style="padding:12px"><div class="lbl">Open Quotations</div><div class="val" style="font-size:20px">${open.length}</div><div class="sub">Sent + Under Review</div></div><div class="kpi ok" style="padding:12px"><div class="lbl">Pipeline Value</div><div class="val" style="font-size:18px">$${pipeVal.toFixed(0)}</div><div class="sub">USD (open quotes)</div></div><div class="kpi" style="padding:12px"><div class="lbl">Accepted</div><div class="val" style="font-size:20px">${accepted}</div><div class="sub">Quotations accepted</div></div><div class="kpi acc" style="padding:12px"><div class="lbl">Costings</div><div class="val" style="font-size:20px">${cs.length}</div><div class="sub">Saved calculations</div></div>`;})()}</div></div>
 <div class="card"><div class="card-title" style="display:flex;justify-content:space-between">Recent Shipments <button class="btn btn-ghost btn-xs" onclick="nav('shipments')">View All →</button></div>${shipTable(ships.slice().reverse().slice(0,8),false)}</div>
 ${(()=>{
   const curMo=MONTHS[new Date().getMonth()];
@@ -1993,7 +1996,58 @@ function renderReports(yr){
     <p>Compare ${yr} against other years. Charts: yearly totals bar, monthly trend lines, buyer evolution.</p>
     <div class="rbt"><button class="btn btn-pri btn-sm" onclick="nav('compare')">Go to Compare →</button></div>
   </div>
+  <div class="rpt-card">
+    <h4>📋 Quotation Summary</h4>
+    <p>All quotations with status, buyer, total value, validity. Useful for reviewing your active sales pipeline.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printQuotationSummary()">🖨 Print</button></div>
+  </div>
 </div>`;
+}
+function printQuotationSummary(){
+  const list=getQuotations();
+  if(!list.length){toast('No quotations to print');return}
+  const totalPipeline=list.filter(q=>q.status==='Sent'||q.status==='Under Review').reduce((a,q)=>a+(q.items||[]).reduce((b,it)=>b+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0),0);
+  const rows=list.map(q=>{
+    const tv=(q.items||[]).reduce((a,it)=>a+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0);
+    const stColors={Draft:'#eee//#555',Sent:'#dbeafe//#1d4ed8','Under Review':'#fef9c3//#854d0e',Accepted:'#dcfce7//#166534',Rejected:'#fee2e2//#991b1b',Expired:'#f3f4f6//#6b7280'};
+    const sc=(stColors[q.status||'Draft']||'#eee//#555').split('//');
+    return`<tr>
+      <td>${q.date||'—'}</td>
+      <td><strong>${q.buyer||'—'}</strong></td>
+      <td>${q.subject||'—'}</td>
+      <td><span style="background:${sc[0]};color:${sc[1]};padding:2pt 6pt;border-radius:4pt;font-size:8pt;font-weight:700">${q.status||'Draft'}</span></td>
+      <td>${q.validUntil?_fmtDate(q.validUntil):'—'}</td>
+      <td style="text-align:center">${(q.items||[]).length}</td>
+      <td style="text-align:right;font-weight:700">${tv>0?'$'+tv.toFixed(2):'—'}</td>
+    </tr>`;
+  }).join('');
+  const w=_docPrintWin(false);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Quotation Summary</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:9pt;color:#000;background:#fff}
+.page{padding:8mm 10mm;width:210mm}
+@page{size:A4 portrait;margin:0}
+html,body{width:210mm}
+h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:2px;border:1.5pt solid #000;padding:5pt;margin-bottom:8pt}
+table{width:100%;border-collapse:collapse;margin-top:8pt}
+th{background:#1B5E20;color:#fff;padding:5pt 6pt;font-size:8pt;text-align:left;border:1pt solid #000}
+td{padding:4pt 6pt;border:1pt solid #ccc;font-size:8.5pt;vertical-align:middle}
+tfoot td{font-weight:700;background:#e8f5e9;border:1pt solid #000}
+.meta{margin-bottom:8pt;font-size:9pt;display:flex;gap:24pt}
+</style></head><body><div class="page">
+<img src="${_DOCS_HEADER}" style="display:block;max-width:100%;height:auto;max-height:80pt;margin:0 auto 4pt">
+<h2>QUOTATION SUMMARY</h2>
+<div class="meta"><span><strong>Generated:</strong> ${new Date().toLocaleDateString('en-GB')}</span><span><strong>Total Quotations:</strong> ${list.length}</span><span><strong>Active Pipeline:</strong> $${totalPipeline.toFixed(2)}</span></div>
+<table>
+<thead><tr><th style="width:8%">Date</th><th style="width:18%">Buyer</th><th style="width:25%">Subject</th><th style="width:10%">Status</th><th style="width:9%">Valid Until</th><th style="width:5%">Items</th><th style="width:12%">Total Value</th></tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr><td colspan="6" style="text-align:right">TOTAL PIPELINE (Sent + Under Review):</td><td style="text-align:right">$${totalPipeline.toFixed(2)}</td></tr></tfoot>
+</table>
+</div>
+<script>window.onload=function(){var imgs=document.images,done=0,total=imgs.length;if(!total){setTimeout(window.print,500);return;}function check(){if(++done>=total)setTimeout(window.print,300);}for(var i=0;i<total;i++){if(imgs[i].complete)check();else{imgs[i].onload=check;imgs[i].onerror=check;}}}<\/script>
+</body></html>`);
+  w.document.close();
 }
 function openMonthPicker(){$('mthpick-ov').classList.add('open')}
 function doPrintMonthly(){const m=$('mthpick-sel').value;closeModal('mthpick-ov');printMonthly(D.currentYear,m)}
@@ -2539,6 +2593,7 @@ function renderContacts(){
     <td>${status}${srcBdg}${noteEl}</td>
     <td style="white-space:nowrap;vertical-align:top">
       ${c.e?`<button class="btn btn-ghost btn-xs" onclick="copyEmail('${c.e.replace(/'/g,"\\'")}')">📋 Copy</button> `:''}
+      ${c.e?`<button class="btn btn-ghost btn-xs" onclick="window.open('mailto:${c.e.replace(/'/g,"\\'")}?subject=Partnership%20Inquiry%20-%20HAND%20TOUCH&body=Dear%20${encodeURIComponent(c.n||'Sir/Madam')}%2C%0A%0AWe%20are%20HAND%20TOUCH%2C%20a%20manufacturer%20of%20natural%20fiber%20products%20from%20Bangladesh.%0A%0ABest%20regards%2C%0ARafat%20Khan%0AGeneral%20Manager%20(Export)','_blank')" title="Draft email in mail client">✉️ Draft</button> `:''}
       <button class="btn btn-xs ${m.emailed?'btn-ok':'btn-out'}" onclick="toggleEmailed(${c.id})">${m.emailed?'✓ Emailed':'Mark Emailed'}</button>
     </td>
   </tr>`}).join('')}
@@ -2796,6 +2851,8 @@ async function doPull(){
 }
 
 // ── COSTING CALCULATOR ────────────────────────────────────────────────────────
+function getCatalog(){if(!D.catalog)D.catalog=[];return D.catalog}
+function setCatalog(list){D.catalog=list;saveAll(D)}
 function getCostings(){if(!D.costings)D.costings=[];return D.costings}
 function setCostings(list){D.costings=list;saveAll(D)}
 function getQuotations(){if(!D.quotations)D.quotations=[];return D.quotations}
@@ -2876,11 +2933,39 @@ function uploadQItemPhoto(id,inp){
   reader.readAsDataURL(file);
 }
 
+let _editCatalogId=null,_catalogPhoto='';
+function uploadCatalogPhoto(inp){
+  const file=inp.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _catalogPhoto=e.target.result;
+    const prev=$('cat-photo-prev');
+    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function exportCostingCSV(){
+  const list=getCostings();if(!list.length){toast('No costings to export');return}
+  const rows=[['ID','Name','Item No','Buyer','Date','Material','Height','Top Dia','Bottom Dia','Width','Carton L','Carton W','Carton H','Qty/Ctn','Container Cap','Total Qty','Cost/Pcs','Carton Cost/Ctn','CNF','BL Cost','Transport','Wastage%','Overhead%','Profit%','Exchange Rate','Per Pcs BDT','Per Pcs USD']];
+  list.forEach(c=>{const r=calcCosting(c);rows.push([c.id,c.name,c.itemNo,c.buyer,c.date,c.material,c.dimHeight,c.dimTopDia,c.dimBottomDia,c.dimWidth,c.ctnL,c.ctnW,c.ctnH,c.qtyPerCtn,c.containerCap,r.totalQty,c.costPerPcs,c.cartonCostPerCtn,c.cnfCost,c.blCost,c.transportCost,c.wastagePct,c.overheadPct,c.profitPct,c.exchangeRate,r.perPcsBDT.toFixed(4),r.perPcsUSD.toFixed(4)])});
+  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='costings.csv';a.click();toast('📥 Costings exported');
+}
+
+function exportQuotationCSV(){
+  const list=getQuotations();if(!list.length){toast('No quotations to export');return}
+  const rows=[['Quotation ID','Date','Buyer','Subject','Status','Valid Until','Total Value USD','Items Count']];
+  list.forEach(q=>{const tv=(q.items||[]).reduce((a,it)=>a+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0);rows.push([q.id,q.date,q.buyer,q.subject,q.status||'Draft',q.validUntil,tv.toFixed(2),(q.items||[]).length])});
+  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='quotations.csv';a.click();toast('📥 Quotations exported');
+}
+
 function renderCosting(){
   const list=getCostings();
-  return`<div class="sh"><div><div class="sh-t">🧮 Costing Calculator</div><div class="sh-s">${list.length} saved costing${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openCosting(null)">+ New Costing</button></div></div>
+  return`<div class="sh"><div><div class="sh-t">🧮 Costing Calculator</div><div class="sh-s">${list.length} saved costing${list.length!==1?'s':''}</div></div><div><button class="btn btn-ghost" onclick="exportCostingCSV()">📥 Export CSV</button> <button class="btn btn-pri" onclick="openCosting(null)">+ New Costing</button></div></div>
 <div style="margin-bottom:12px"><input class="srch-inp" id="costing-search" placeholder="🔍 Search by buyer, material, dimensions…" oninput="filterCostingList()" style="width:100%;max-width:420px"></div>
-${list.length?`<div class="tbl-wrap"><table id="costing-tbl"><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Buyer</th><th>Material</th><th>Dimensions</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);const dims=_fmtDims(c);const srch=[c.name,c.itemNo,c.buyer,c.material,dims].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${c.photo?`<img src="${c.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.buyer||'—'}</td><td>${c.material||'—'}</td><td style="font-size:11px">${dims}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
+${list.length?`<div class="tbl-wrap"><table id="costing-tbl"><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Buyer</th><th>Material</th><th>Dimensions</th><th>Date</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);const dims=_fmtDims(c);const srch=[c.name,c.itemNo,c.buyer,c.material,dims,c.date].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${c.photo?`<img src="${c.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.buyer||'—'}</td><td>${c.material||'—'}</td><td style="font-size:11px">${dims}</td><td style="font-size:11px">${c.date?_fmtDate(c.date):'—'}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-ok btn-sm" onclick="newQuotationFromCosting(${c.id})" title="Create a new Quotation from this costing">📝 Quote</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
 <div class="ov" id="costing-ov"><div class="modal" style="max-width:1000px;width:98vw;max-height:94vh;overflow-y:auto">
 <div class="mh"><h3 id="costing-title">New Costing</h3><button class="xbtn" onclick="closeModal('costing-ov')">×</button></div>
 <div class="mb" id="costing-body" style="padding:18px"></div>
@@ -2897,7 +2982,8 @@ function _costingFormHTML(c){
   <div class="fg full"><label>Product Name</label><input id="cf-name" value="${fN(c.name)}" placeholder="e.g. Seagrass Basket"></div>
   <div class="fg"><label>Item No</label><input id="cf-itemNo" value="${fN(c.itemNo)}" placeholder="HT-001"></div>
   <div class="fg"><label>Material</label><input id="cf-material" value="${fN(c.material)}" placeholder="Seagrass"></div>
-  <div class="fg full"><label>Buyer / To</label><input id="cf-buyer" value="${fN(c.buyer)}" placeholder="e.g. IKEA Germany"></div>
+  <div class="fg"><label>Buyer / To</label><input id="cf-buyer" value="${fN(c.buyer)}" placeholder="e.g. IKEA Germany"></div>
+  <div class="fg"><label>Effective Date</label><input type="date" id="cf-date" value="${fN(c.date)}"></div>
   <div class="fg"><label>Height (cm)</label><input type="number" step="0.1" id="cf-dimHeight" value="${fN(c.dimHeight)}" placeholder="0"></div>
   <div class="fg"><label>Top Dia (cm)</label><input type="number" step="0.1" id="cf-dimTopDia" value="${fN(c.dimTopDia)}" placeholder="0"></div>
   <div class="fg"><label>Bottom Dia (cm)</label><input type="number" step="0.1" id="cf-dimBottomDia" value="${fN(c.dimBottomDia)}" placeholder="0"></div>
@@ -2984,7 +3070,7 @@ function recalcCostingLive(){
 function openCosting(id){
   _editCostingId=id;_costingPhoto='';
   const c=id?getCostings().find(x=>x.id===id):null;
-  const def={name:'',itemNo:'',material:'',buyer:'',dimHeight:'',dimTopDia:'',dimBottomDia:'',dimWidth:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',containerCap:65,totalQty:'',costPerPcs:'',cartonCostPerCtn:'',cnfCost:'',blCost:'',transportCost:'',wastagePct:2,overheadPct:15,profitPct:10,exchangeRate:120};
+  const def={name:'',itemNo:'',material:'',buyer:'',date:'',dimHeight:'',dimTopDia:'',dimBottomDia:'',dimWidth:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',containerCap:65,totalQty:'',costPerPcs:'',cartonCostPerCtn:'',cnfCost:'',blCost:'',transportCost:'',wastagePct:2,overheadPct:15,profitPct:10,exchangeRate:120};
   const data=c?{...c}:def;
   $('costing-title').textContent=c?`Edit Costing — ${c.name||'Draft'}`:'New Costing';
   $('costing-body').innerHTML=_costingFormHTML(data);
@@ -2996,7 +3082,7 @@ function saveCosting(){
   const n=v=>v===''?'':+v;
   const existingPhoto=_editCostingId?(getCostings().find(x=>x.id===_editCostingId)||{}).photo||'':'';
   const photo=_costingPhoto||existingPhoto;
-  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),buyer:g('buyer'),dimHeight:n(g('dimHeight')),dimTopDia:n(g('dimTopDia')),dimBottomDia:n(g('dimBottomDia')),dimWidth:n(g('dimWidth')),photo,ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cartonCostPerCtn:n(g('cartonCostPerCtn')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
+  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),buyer:g('buyer'),date:g('date'),dimHeight:n(g('dimHeight')),dimTopDia:n(g('dimTopDia')),dimBottomDia:n(g('dimBottomDia')),dimWidth:n(g('dimWidth')),photo,ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cartonCostPerCtn:n(g('cartonCostPerCtn')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
   const list=getCostings();
   if(_editCostingId){const idx=list.findIndex(x=>x.id===_editCostingId);if(idx>=0)list[idx]={...list[idx],...data};}
   else{data.id=Date.now();list.push(data);}
@@ -3037,7 +3123,7 @@ h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.
   <td style="width:${c.photo?'27%':'33%'}"><strong>Product:</strong> ${c.name||'—'}</td><td style="width:${c.photo?'27%':'33%'}"><strong>Item No:</strong> ${c.itemNo||'—'}</td><td><strong>Material:</strong> ${c.material||'—'}</td>
 </tr>
 <tr><td><strong>Height:</strong> ${c.dimHeight||'—'} cm</td><td><strong>Top Dia:</strong> ${c.dimTopDia||'—'} cm</td><td><strong>Bottom Dia / Width:</strong> ${c.dimBottomDia||'—'} / ${c.dimWidth||'—'} cm</td></tr>
-<tr><td colspan="3"><strong>Buyer:</strong> ${c.buyer||'—'}</td></tr>
+<tr><td><strong>Buyer:</strong> ${c.buyer||'—'}</td><td><strong>Date:</strong> ${c.date?_fmtDate(c.date):'—'}</td><td></td></tr>
 <tr><td><strong>Carton:</strong> ${c.ctnL||0}×${c.ctnW||0}×${c.ctnH||0} cm</td><td><strong>Qty/Ctn:</strong> ${c.qtyPerCtn||0}</td><td><strong>CBM/Ctn:</strong> ${r.cbmPerCtn.toFixed(4)}</td></tr>
 <tr><td><strong>Container Cap:</strong> ${c.containerCap||65} m³</td><td><strong>Total CTN in 40'HC:</strong> ${fM(r.totalCtnIn40)}</td><td><strong>Total Qty in 40'HC:</strong> ${fM(r.totalQtyIn40)}</td></tr>
 </table>
@@ -3067,11 +3153,35 @@ h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.
 // ── QUOTATIONS ────────────────────────────────────────────────────────────────
 let _editQuotationId=null,_qItemIds=[],_qItemPhotos={};
 
+function _qStatusBadge(s){const cfg={Draft:{bg:'#eee',c:'#555'},Sent:{bg:'#dbeafe',c:'#1d4ed8'},'Under Review':{bg:'#fef9c3',c:'#854d0e'},Accepted:{bg:'#dcfce7',c:'#166534'},Rejected:{bg:'#fee2e2',c:'#991b1b'},Expired:{bg:'#f3f4f6',c:'#6b7280'}};const t=cfg[s]||cfg.Draft;return`<span class="bdg" style="background:${t.bg};color:${t.c}">${s||'Draft'}</span>`}
+function newQuotationFromCosting(cid){
+  const c=getCostings().find(x=>x.id===cid);if(!c){toast('Costing not found');return}
+  const r=calcCosting(c);
+  const itemId=Date.now();
+  const item={id:itemId,itemNo:c.itemNo||'',description:c.name||'',
+    dimHeight:c.dimHeight||0,dimTopDia:c.dimTopDia||0,dimBottomDia:c.dimBottomDia||0,dimWidth:c.dimWidth||0,
+    photo:c.photo||'',rateUSD:r.perPcsUSD,
+    ctnL:c.ctnL||0,ctnW:c.ctnW||0,ctnH:c.ctnH||0,
+    qtyPerCtn:c.qtyPerCtn||0,totalQtyIn40:r.totalQtyIn40||0,
+    leadTime:'',costingId:cid};
+  _editQuotationId=null;
+  _qItemIds=[itemId];
+  _qItemPhotos={};if(c.photo)_qItemPhotos[itemId]=c.photo;
+  nav('quotation');
+  setTimeout(()=>{
+    $('quotation-title').textContent='New Quotation — from Costing';
+    const body=$('quotation-body');if(!body)return;
+    body.innerHTML=_quotationFormHTML({buyer:c.buyer||'',items:[item]});
+    $('quotation-ov').classList.add('open');
+    toast('📝 Pre-filled from costing — add buyer details and save');
+  },200);
+}
+
 function renderQuotation(){
   const list=getQuotations();
-  return`<div class="sh"><div><div class="sh-t">📋 Quotations</div><div class="sh-s">${list.length} saved quotation${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openQuotation(null)">+ New Quotation</button></div></div>
+  return`<div class="sh"><div><div class="sh-t">📋 Quotations</div><div class="sh-s">${list.length} saved quotation${list.length!==1?'s':''}</div></div><div><button class="btn btn-ghost" onclick="exportQuotationCSV()">📥 Export CSV</button> <button class="btn btn-pri" onclick="openQuotation(null)">+ New Quotation</button></div></div>
 <div style="margin-bottom:12px"><input class="srch-inp" id="quotation-search" placeholder="🔍 Search by buyer, subject, material, dimensions…" oninput="filterQuotationList()" style="width:100%;max-width:420px"></div>
-${list.length?`<div class="tbl-wrap"><table id="quotation-tbl"><thead><tr><th>Date</th><th>Buyer</th><th>Subject</th><th>Items</th><th>Actions</th></tr></thead><tbody>${list.map(q=>{const srch=[q.date,q.buyer,q.subject,...(q.items||[]).map(it=>[it.description,_fmtDims(it)].join(' '))].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${q.date||'—'}</td><td><strong>${q.buyer||'—'}</strong></td><td>${q.subject||'—'}</td><td style="text-align:center">${(q.items||[]).length}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openQuotation(${q.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printQuotation(${q.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteQuotation(${q.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No quotations yet. Click "+ New Quotation" to get started.</div>'}
+${list.length?`<div class="tbl-wrap"><table id="quotation-tbl"><thead><tr><th>Date</th><th>Buyer</th><th>Subject</th><th>Status</th><th>Valid Until</th><th>Items</th><th>Total Value (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(q=>{const tv=(q.items||[]).reduce((a,it)=>a+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0);const srch=[q.date,q.buyer,q.subject,q.status,...(q.items||[]).map(it=>[it.description,_fmtDims(it)].join(' '))].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${q.date||'—'}</td><td><strong>${q.buyer||'—'}</strong></td><td>${q.subject||'—'}</td><td>${_qStatusBadge(q.status)}</td><td style="font-size:12px">${q.validUntil?_fmtDate(q.validUntil):'—'}</td><td style="text-align:center">${(q.items||[]).length}</td><td style="font-weight:700;color:var(--ok)">${tv>0?'$'+tv.toFixed(2):'—'}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openQuotation(${q.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printQuotation(${q.id})">🖨 Print</button> <button class="btn btn-ok btn-sm" onclick="convertQuotationToOrder(${q.id})" title="Convert this quotation to an Order">🔄 To Order</button> <button class="btn btn-err btn-sm" onclick="deleteQuotation(${q.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No quotations yet. Click "+ New Quotation" to get started.</div>'}
 <div class="ov" id="quotation-ov"><div class="modal" style="max-width:1100px;width:98vw;max-height:94vh;overflow-y:auto">
 <div class="mh"><h3 id="quotation-title">New Quotation</h3><button class="xbtn" onclick="closeModal('quotation-ov')">×</button></div>
 <div class="mb" id="quotation-body" style="padding:18px"></div>
@@ -3112,6 +3222,8 @@ function _quotationFormHTML(q){
   return`<div class="fg-grid">
   <div class="fg"><label>Buyer / To</label><input id="qf-buyer" value="${q.buyer||''}"></div>
   <div class="fg"><label>Date</label><input type="date" id="qf-date" value="${q.date||''}"></div>
+  <div class="fg"><label>Valid Until</label><input type="date" id="qf-validUntil" value="${q.validUntil||''}"></div>
+  <div class="fg"><label>Status</label><select id="qf-status"><option value="Draft" ${(q.status||'Draft')==='Draft'?'selected':''}>📝 Draft</option><option value="Sent" ${q.status==='Sent'?'selected':''}>📤 Sent</option><option value="Under Review" ${q.status==='Under Review'?'selected':''}>👀 Under Review</option><option value="Accepted" ${q.status==='Accepted'?'selected':''}>✅ Accepted</option><option value="Rejected" ${q.status==='Rejected'?'selected':''}>❌ Rejected</option><option value="Expired" ${q.status==='Expired'?'selected':''}>⏰ Expired</option></select></div>
   <div class="fg full"><label>Subject</label><input id="qf-subject" value="${q.subject||''}" placeholder="e.g. Quotation for Seagrass Baskets 2026"></div>
 </div>
 <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px">
@@ -3177,7 +3289,7 @@ function _readQItems(){
 
 function saveQuotation(){
   const gv=id=>($('qf-'+id)||{}).value||'';
-  const data={buyer:gv('buyer'),date:gv('date'),subject:gv('subject'),items:_readQItems()};
+  const data={buyer:gv('buyer'),date:gv('date'),validUntil:gv('validUntil'),status:gv('status')||'Draft',subject:gv('subject'),items:_readQItems()};
   const list=getQuotations();
   if(_editQuotationId){const idx=list.findIndex(x=>x.id===_editQuotationId);if(idx>=0)list[idx]={...list[idx],...data};}
   else{data.id=Date.now();list.push(data);}
@@ -3188,8 +3300,56 @@ function deleteQuotation(id){
   confirm2('Delete Quotation','Delete this quotation?',()=>{setQuotations(getQuotations().filter(x=>x.id!==id));render();toast('Quotation deleted')},'Delete','btn-err');
 }
 
+function convertQuotationToOrder(qid){
+  const q=getQuotations().find(x=>x.id===qid);if(!q){toast('Quotation not found');return}
+  confirm2('Convert to Order',`Convert quotation for "${q.buyer||'this buyer'}" into a new Order? The quotation form will open pre-filled. You can adjust before saving.`,()=>{
+    // Build mapped items
+    const items=(q.items||[]).map((it,i)=>({
+      id:Date.now()+i,
+      orderNo:'',itemNo:it.itemNo||'',
+      description:it.description||'',
+      color:'',
+      photo:it.photo||'',
+      quantity:+it.totalQtyIn40||0,
+      fobRate:+it.rateUSD||0,
+      cartonNo:'',
+      noOfCartons:0,
+      qtyPerCarton:+it.qtyPerCtn||0,
+      ctnSizeL:+it.ctnL||0,ctnSizeW:+it.ctnW||0,ctnSizeH:+it.ctnH||0,
+      netWeightPerCtn:0,grossWeightPerCtn:0,
+      cbmPerCtn:(+it.ctnL||0)*(+it.ctnW||0)*(+it.ctnH||0)/1000000,
+      totalCbm:0
+    }));
+    // Pre-set global state and open Order modal
+    _editOid=null;_linkedShipId=null;_oItemIds=items.map(x=>x.id);
+    nav('orders');
+    setTimeout(()=>{
+      $('order-title').textContent='New Order — from Quotation';
+      const body=$('order-body');if(!body)return;
+      // Fill header fields
+      const setField=(id,v)=>{const el=$(id);if(el)el.value=v||''};
+      setField('o-date',q.date||'');
+      // Consignee from buyer
+      const cons=$('o-consignee');if(cons)cons.value=q.buyer||'';
+      // Set source quotation
+      setField('o-src-quotation',qid);
+      // Render items
+      const cont=$('oitems-list');if(!cont)return;
+      cont.innerHTML='';
+      items.forEach(it=>{
+        const div=document.createElement('div');
+        div.innerHTML=_oItemHTML(it,items.indexOf(it));
+        cont.appendChild(div.firstElementChild);
+      });
+      $('order-ov').classList.add('open');
+      toast('📋 Pre-filled from quotation — adjust and save');
+    },200);
+  },'Convert','btn-ok');
+}
+
 function printQuotation(id){
   const q=getQuotations().find(x=>x.id===id);if(!q){toast('Quotation not found');return}
+  const useSig=confirm('Include signature on the quotation?');
   const items=q.items||[];
   const totalAmt=items.reduce((a,it)=>a+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0);
   const itemRows=items.map(it=>{
@@ -3228,8 +3388,8 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
 <img src="${_DOCS_HEADER}" style="display:block;max-width:100%;height:auto;max-height:80pt;margin:0 auto 4pt">
 <h2>QUOTATION</h2>
 <table class="meta-tbl" style="border-top:none">
-<tr><td style="width:60%"><strong>To:</strong> ${q.buyer||'—'}</td><td><strong>Date:</strong> ${q.date||'—'}</td></tr>
-<tr><td colspan="2"><strong>Subject:</strong> ${q.subject||'—'}</td></tr>
+<tr><td style="width:50%"><strong>To:</strong> ${q.buyer||'—'}</td><td><strong>Date:</strong> ${q.date||'—'}</td><td><strong>Valid Until:</strong> ${q.validUntil?_fmtDate(q.validUntil):'—'}</td></tr>
+<tr><td colspan="2"><strong>Subject:</strong> ${q.subject||'—'}</td><td style="font-size:8.5pt">${_qStatusBadge(q.status)}</td></tr>
 </table>
 <table class="qt-tbl">
 <thead><tr>
@@ -3254,7 +3414,7 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
 </tr></tfoot>
 </table>
 <div class="sign-wrap">
-  <img src="${_DOCS_SIG}" style="height:70pt;object-fit:contain;display:block;margin-left:auto;margin-right:0;margin-bottom:4pt">
+  ${useSig?`<img src="${_DOCS_SIG}" style="height:70pt;object-fit:contain;display:block;margin-left:auto;margin-right:0;margin-bottom:4pt">`:''}
   <div class="sign-box"><strong>Rafat Khan</strong><br>General Manager (Export)<br>HAND TOUCH</div>
 </div>
 </div>
@@ -3277,7 +3437,7 @@ function renderOrders(){
   const unlinked=ships.filter(s=>!linkedIds.has(s.id));
   return`<div class="sh"><div><div class="sh-t">📄 Orders &amp; Documents</div><div class="sh-s">Auto-loaded from shipments · Generate Commercial Invoices &amp; Packing Lists</div></div><div class="rbt"><button class="btn btn-ghost btn-sm" onclick="openOrder(null)">+ Blank Order</button></div></div>
 ${orders.length?`<div class="sh" style="margin-top:0;padding:10px 0 4px"><div class="sh-t" style="font-size:13px">📋 Saved Orders</div></div>
-<div class="tbl-wrap"><table><thead><tr><th>Invoice No</th><th>PO No</th><th>Buyer</th><th>Date</th><th>Destination</th><th>Items</th><th>Total (USD)</th><th style="min-width:200px">Actions</th></tr></thead><tbody>${orders.map(o=>{const total=o.items.reduce((a,it)=>a+(it.quantity||0)*(it.fobRate||0),0);const adv=o.advancePayment||0;return`<tr><td><strong>${o.invoiceNo||'—'}</strong></td><td>${o.poNo||'—'}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(o.consignee||'—').split('\n')[0]}</td><td>${o.date||'—'}</td><td>${o.countryOfDestination||'—'}</td><td style="text-align:center">${o.items.length}</td><td><strong>$${total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>${adv?`<br><span style="font-size:10px;color:var(--ok)">Adv: $${adv}</span>`:''}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openOrder(${o.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCI(${o.id})">🧾 CI</button> <button class="btn btn-ghost btn-sm" onclick="printPL(${o.id})">📦 PL</button> <button class="btn btn-ghost btn-sm" onclick="deleteOrder(${o.id})" style="color:var(--err)">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
+<div class="tbl-wrap"><table><thead><tr><th>Invoice No</th><th>PO No</th><th>Payment</th><th>Buyer</th><th>Date</th><th>Destination</th><th>Items</th><th>Total (USD)</th><th style="min-width:200px">Actions</th></tr></thead><tbody>${orders.map(o=>{const total=o.items.reduce((a,it)=>a+(it.quantity||0)*(it.fobRate||0),0);const adv=o.advancePayment||0;return`<tr><td><strong>${o.invoiceNo||'—'}</strong></td><td>${o.poNo||'—'}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(o.consignee||'—').split('\n')[0]}</td><td>${o.date||'—'}</td><td>${o.countryOfDestination||'—'}</td><td style="text-align:center">${o.items.length}</td><td><strong>$${total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>${adv?`<br><span style="font-size:10px;color:var(--ok)">Adv: $${adv}</span>`:''}</td><td>${(()=>{if(o.finalPaymentReceived)return'<span class="bdg bdg-ok">✅ Fully Paid</span>';if(o.finalPaymentDate)return`<span class="bdg bdg-info">💳 ${_fmtDate(o.finalPaymentDate)}</span>`;if(o.advancePayment>0)return'<span class="bdg bdg-warn">💰 Advance Only</span>';if(o.paymentDueDate)return`<span class="bdg" style="background:#fee2e2;color:#991b1b">⏰ Due: ${_fmtDate(o.paymentDueDate)}</span>`;return'<span class="bdg" style="background:#f3f4f6;color:#6b7280">—</span>'})()}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openOrder(${o.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCI(${o.id})">🧾 CI</button> <button class="btn btn-ghost btn-sm" onclick="printPL(${o.id})">📦 PL</button> <button class="btn btn-ghost btn-sm" onclick="deleteOrder(${o.id})" style="color:var(--err)">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
 <div class="sh" style="margin-top:8px;padding:10px 0 4px"><div class="sh-t" style="font-size:13px">🚢 Shipments — ${yr}</div><div class="sh-s" style="font-size:11px">Click a shipment to fill an order form and generate CI / PL</div></div>
 ${!ships.length?`<div style="color:var(--muted);font-size:13px;padding:16px">No shipments in ${yr}</div>`:`<div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Buyer</th><th>Month</th><th>Invoice (USD)</th><th>Status</th><th>Order Saved?</th><th style="min-width:200px">Actions</th></tr></thead><tbody>${ships.map(s=>{const linked=orders.find(o=>o.linkedShipId===s.id);return`<tr><td>${s.orderNo||'—'}</td><td>${s.party||'—'}</td><td>${s.month||'—'}</td><td>$${s.iamt||0}</td><td>${s.shipped==='Shipped'?'<span class="bdg bdg-ok">Shipped</span>':'<span class="bdg bdg-warn">Pending</span>'}</td><td>${linked?`<span class="bdg bdg-ok">✓ ${linked.invoiceNo||'Saved'}</span>`:'<span class="bdg" style="background:var(--errl);color:var(--err)">Not yet</span>'}</td><td style="white-space:nowrap">${linked?`<button class="btn btn-ghost btn-sm" onclick="openOrder(${linked.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCI(${linked.id})">🧾 CI</button> <button class="btn btn-ghost btn-sm" onclick="printPL(${linked.id})">📦 PL</button>`:`<button class="btn btn-pri btn-sm" onclick="openOrderFromShip(${JSON.stringify(s).replace(/"/g,'&quot;')})">📄 Create Order</button>`}</td></tr>`;}).join('')}</tbody></table></div>`}
 <div class="ov" id="order-ov"><div class="modal" style="max-width:980px;width:96vw;max-height:92vh;overflow-y:auto">
@@ -3326,6 +3486,7 @@ function _orderFormHTML(o,items){
     <div class="fg"><label>EXP No</label><input id="o-expno" value="${v('expNo')}" placeholder="EXP-001"></div>
     <div class="fg"><label>Packing List No</label><input id="o-plno" value="${v('plNo')}" placeholder="PL-2025-001"></div>
     <div class="fg"><label>REX No</label><input id="o-rexno" value="${v('rexNo','BDREX00706')}"></div>
+    <div class="fg full"><label>Source Quotation (optional)</label><select id="o-src-quotation"><option value="">— None —</option>${getQuotations().map(q=>`<option value="${q.id}" ${(o.sourceQuotationId==q.id)?'selected':''}>📋 ${q.date||''} — ${q.buyer||''} — ${q.subject||''}</option>`).join('')}</select></div>
   </div>
   <div class="card" style="padding:14px">
     <div class="card-title" style="margin-bottom:10px">📅 Dates</div>
@@ -3360,6 +3521,9 @@ function _orderFormHTML(o,items){
     <div class="card-title" style="margin-bottom:10px">💰 Commercial Terms</div>
     <div class="fg"><label>Payment Terms</label><textarea id="o-payterms" rows="2">${v('paymentTerms','T/T, 100% payment against copy of shipping documents.')}</textarea></div>
     <div class="fg"><label>Advance Payment (USD)</label><input type="number" id="o-adv" value="${o&&o.advancePayment!==undefined?o.advancePayment:0}" min="0" step="0.01"></div>
+<div class="fg"><label>Payment Due Date</label><input type="date" id="o-payduedate" value="${o.paymentDueDate||''}"></div>
+<div class="fg"><label>Final Payment Date</label><input type="date" id="o-finalpaydate" value="${o.finalPaymentDate||''}"></div>
+<div class="fg" style="display:flex;align-items:center"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal"><input type="checkbox" id="o-finalpayrecv" ${o.finalPaymentReceived?'checked':''}> &nbsp;Final Payment Received</label></div>
     <div class="fg"><label>HS Code</label><input id="o-hscode" value="${v('hsCode','4602190000')}"></div>
     <div class="fg"><label>HS Description</label><textarea id="o-hsdesc" rows="2">${v('hsDesc','Bangladesh Handicrafts, Seagrass &amp; Jute Rope Baskets')}</textarea></div>
   </div>
@@ -3469,7 +3633,10 @@ function saveOrder(){
     countryOfOrigin:'BANGLADESH',countryOfDestination:gf('o-dest'),
     portOfLoading:gf('o-pol'),portOfDelivery:gf('o-pod'),containerNo:gf('o-ctnno'),sealNo:gf('o-sealn'),
     paymentTerms:gf('o-payterms'),advancePayment:parseFloat($('o-adv').value||0),
+    paymentDueDate:gf('o-payduedate'),finalPaymentDate:gf('o-finalpaydate'),
+    finalPaymentReceived:$('o-finalpayrecv')?$('o-finalpayrecv').checked:false,
     hsCode:gf('o-hscode'),hsDesc:gf('o-hsdesc'),
+    sourceQuotationId:$('o-src-quotation')?$('o-src-quotation').value||'':'',
     items:_oItemIds.map(_gatherOItem).filter(it=>it.description||it.quantity>0)};
   const list=getOrders(),idx=list.findIndex(x=>x.id===oid);
   if(idx>=0)list[idx]=order;else list.unshift(order);
@@ -3778,7 +3945,11 @@ function bootApp() {
 
 document.addEventListener('keydown', e => {
   if(e.key==='Escape'){document.querySelectorAll('.ov.open').forEach(el=>el.classList.remove('open'));closeConf()}
-  if(e.key==='n'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName==='BODY'&&isLoggedIn()) openAdd()
+  if(e.key==='n'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName==='BODY'&&isLoggedIn()){
+    if(ST.page==='costing')openCosting(null);
+    else if(ST.page==='quotation')openQuotation(null);
+    else openAdd();
+  }
 });
 
 // ── ONE-TIME DATA SEED: Jan-26.xlsx → January 2026 P&L ─────────────────────
@@ -3816,6 +3987,106 @@ if(isLoggedIn()) {
 } else {
   gel('login-screen').classList.remove('hidden');
   setTimeout(() => gel('l-user').focus(), 100);
+}
+
+function renderCatalog(){
+  const list=getCatalog();
+  return`<div class="sh"><div><div class="sh-t">📚 Product Catalog</div><div class="sh-s">${list.length} product${list.length!==1?'s':''} — reusable specs for quick Quotations</div></div><div style="display:flex;gap:8px"><button class="btn btn-ghost btn-sm" onclick="exportCatalogCSV()">📥 Export CSV</button><button class="btn btn-pri" onclick="openCatalogItem(null)">+ Add Product</button></div></div>
+<div style="margin-bottom:12px"><input class="srch-inp" id="catalog-search" placeholder="🔍 Search by name, material, item no, buyer…" oninput="filterCatalogList()" style="width:100%;max-width:440px"></div>
+${list.length?`<div class="tbl-wrap"><table id="catalog-tbl"><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Material</th><th>Dimensions</th><th>Std. Rate (USD)</th><th>Buyer</th><th>Actions</th></tr></thead><tbody>${list.map(p=>{const srch=[p.name,p.itemNo,p.material,p.buyer,_fmtDims(p)].join(' ').toLowerCase();return`<tr data-search="${srch}"><td>${p.photo?`<img src="${p.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${p.name||'—'}</strong></td><td style="font-size:12px">${p.itemNo||'—'}</td><td>${p.material||'—'}</td><td style="font-size:11px">${_fmtDims(p)}</td><td style="font-weight:700;color:var(--ok)">${p.stdRateUSD?'$'+Number(p.stdRateUSD).toFixed(4):'—'}</td><td style="font-size:12px">${p.buyer||'—'}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCatalogItem(${p.id})">✏️ Edit</button> <button class="btn btn-ok btn-sm" onclick="addCatalogItemToQuotation(${p.id})" title="Create a new Quotation pre-filled with this product">📝 Quote</button> <button class="btn btn-err btn-sm" onclick="deleteCatalogItem(${p.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:`<div class="empty">No products yet. Click "+ Add Product" to build your catalog.</div>`}
+<div class="ov" id="catalog-ov"><div class="modal" style="max-width:700px;width:98vw;max-height:94vh;overflow-y:auto">
+<div class="mh"><h3 id="catalog-title">New Product</h3><button class="xbtn" onclick="closeModal('catalog-ov')">×</button></div>
+<div class="mb" id="catalog-body" style="padding:18px"></div>
+<div class="mf"><button class="btn btn-ghost" onclick="closeModal('catalog-ov')">Cancel</button><button class="btn btn-pri" onclick="saveCatalogItem()">💾 Save Product</button></div>
+</div></div>`;
+}
+
+function _catalogFormHTML(p){
+  const fN=v=>v===undefined||v===null||v===''?'':v;
+  return`<div class="fg-grid">
+  <div class="fg full"><label>Product Name</label><input id="cat-name" value="${fN(p.name)}" placeholder="e.g. Seagrass Round Basket"></div>
+  <div class="fg"><label>Item No</label><input id="cat-itemNo" value="${fN(p.itemNo)}" placeholder="HT-001"></div>
+  <div class="fg"><label>Material</label><input id="cat-material" value="${fN(p.material)}" placeholder="Seagrass"></div>
+  <div class="fg"><label>Buyer / Customer</label><input id="cat-buyer" value="${fN(p.buyer)}" placeholder="e.g. IKEA Germany"></div>
+  <div class="fg"><label>Standard Rate (USD FOB)</label><input type="number" step="0.0001" id="cat-stdRateUSD" value="${fN(p.stdRateUSD)}" placeholder="0.0000"></div>
+  <div class="fg"><label>Height (cm)</label><input type="number" step="0.1" id="cat-dimHeight" value="${fN(p.dimHeight)}"></div>
+  <div class="fg"><label>Top Dia (cm)</label><input type="number" step="0.1" id="cat-dimTopDia" value="${fN(p.dimTopDia)}"></div>
+  <div class="fg"><label>Bottom Dia (cm)</label><input type="number" step="0.1" id="cat-dimBottomDia" value="${fN(p.dimBottomDia)}"></div>
+  <div class="fg"><label>Width (cm)</label><input type="number" step="0.1" id="cat-dimWidth" value="${fN(p.dimWidth)}"></div>
+  <div class="fg"><label>Carton L (cm)</label><input type="number" id="cat-ctnL" value="${fN(p.ctnL)}"></div>
+  <div class="fg"><label>Carton W (cm)</label><input type="number" id="cat-ctnW" value="${fN(p.ctnW)}"></div>
+  <div class="fg"><label>Carton H (cm)</label><input type="number" id="cat-ctnH" value="${fN(p.ctnH)}"></div>
+  <div class="fg"><label>Qty per Carton</label><input type="number" id="cat-qtyPerCtn" value="${fN(p.qtyPerCtn)}"></div>
+  <div class="fg full"><label>Notes / Description</label><textarea id="cat-notes" rows="2" style="width:100%;resize:vertical;border:1px solid var(--bdr);border-radius:6px;padding:7px;font-size:13px;background:var(--bg);color:var(--txt)">${fN(p.notes)}</textarea></div>
+  <div class="fg" style="grid-column:1/-1;display:flex;align-items:flex-end;gap:12px">
+    <div style="flex:1"><label>Product Photo</label><input type="file" id="cat-photo-inp" accept="image/*" onchange="uploadCatalogPhoto(this)" style="font-size:11px;padding:3px;width:100%"></div>
+    <div id="cat-photo-prev" style="flex-shrink:0">${p.photo?`<img src="${p.photo}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
+  </div>
+</div>`;
+}
+
+function openCatalogItem(id){
+  _editCatalogId=id;_catalogPhoto='';
+  const p=id?getCatalog().find(x=>x.id===id):null;
+  const def={name:'',itemNo:'',material:'',buyer:'',stdRateUSD:'',dimHeight:'',dimTopDia:'',dimBottomDia:'',dimWidth:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',notes:'',photo:''};
+  const data=p?{...def,...p}:def;
+  $('catalog-title').textContent=id?'Edit Product':'New Product';
+  $('catalog-body').innerHTML=_catalogFormHTML(data);
+  $('catalog-ov').classList.add('open');
+}
+
+function saveCatalogItem(){
+  const g=id=>($('cat-'+id)||{}).value||'';
+  const n=v=>parseFloat(v)||0;
+  const existingPhoto=_editCatalogId?(getCatalog().find(x=>x.id===_editCatalogId)||{}).photo||'':'';
+  const photo=_catalogPhoto||existingPhoto;
+  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),buyer:g('buyer'),stdRateUSD:n(g('stdRateUSD'))||'',dimHeight:n(g('dimHeight'))||'',dimTopDia:n(g('dimTopDia'))||'',dimBottomDia:n(g('dimBottomDia'))||'',dimWidth:n(g('dimWidth'))||'',ctnL:n(g('ctnL'))||'',ctnW:n(g('ctnW'))||'',ctnH:n(g('ctnH'))||'',qtyPerCtn:n(g('qtyPerCtn'))||'',notes:g('notes'),photo};
+  const list=getCatalog();
+  if(_editCatalogId){const idx=list.findIndex(x=>x.id===_editCatalogId);if(idx>=0)list[idx]={...list[idx],...data};}
+  else{data.id=Date.now();list.push(data);}
+  setCatalog(list);closeModal('catalog-ov');render();toast('✅ Product saved to catalog');
+}
+
+function deleteCatalogItem(id){
+  confirm2('Delete product?','Remove this product from the catalog?',()=>{
+    setCatalog(getCatalog().filter(x=>x.id!==id));render();toast('Product deleted');
+  },'Delete','btn-err');
+}
+
+function filterCatalogList(){
+  const q=($('catalog-search')||{}).value||'';const ql=q.toLowerCase().trim();
+  document.querySelectorAll('#catalog-tbl tbody tr').forEach(row=>{
+    row.style.display=ql&&!(row.dataset.search||'').includes(ql)?'none':'';
+  });
+}
+
+function addCatalogItemToQuotation(pid){
+  const p=getCatalog().find(x=>x.id===pid);if(!p){toast('Product not found');return}
+  const itemId=Date.now();
+  const item={id:itemId,itemNo:p.itemNo||'',description:p.name||'',
+    dimHeight:p.dimHeight||0,dimTopDia:p.dimTopDia||0,dimBottomDia:p.dimBottomDia||0,dimWidth:p.dimWidth||0,
+    photo:p.photo||'',rateUSD:p.stdRateUSD||0,
+    ctnL:p.ctnL||0,ctnW:p.ctnW||0,ctnH:p.ctnH||0,
+    qtyPerCtn:p.qtyPerCtn||0,totalQtyIn40:0,leadTime:'',costingId:''};
+  _editQuotationId=null;
+  _qItemIds=[itemId];
+  _qItemPhotos={};if(p.photo)_qItemPhotos[itemId]=p.photo;
+  nav('quotation');
+  setTimeout(()=>{
+    $('quotation-title').textContent='New Quotation — from Catalog';
+    const body=$('quotation-body');if(!body)return;
+    body.innerHTML=_quotationFormHTML({buyer:p.buyer||'',items:[item]});
+    $('quotation-ov').classList.add('open');
+    toast('📝 Pre-filled from catalog — add details and save');
+  },200);
+}
+
+function exportCatalogCSV(){
+  const list=getCatalog();if(!list.length){toast('No products to export');return}
+  const hdr=['ID','Product Name','Item No','Material','Buyer','Std Rate (USD)','Height(cm)','TopDia(cm)','BotDia(cm)','Width(cm)','Ctn L','Ctn W','Ctn H','Qty/Ctn','Notes'];
+  const rows=list.map(p=>[p.id,p.name||'',p.itemNo||'',p.material||'',p.buyer||'',p.stdRateUSD||'',p.dimHeight||'',p.dimTopDia||'',p.dimBottomDia||'',p.dimWidth||'',p.ctnL||'',p.ctnW||'',p.ctnH||'',p.qtyPerCtn||'',p.notes||''].map(v=>JSON.stringify(v??'')).join(','));
+  const csv=[hdr.join(','),...rows].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='product-catalog.csv';a.click();toast('📥 Catalog exported');
 }
 </script>
 </body>
