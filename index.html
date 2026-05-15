@@ -2832,7 +2832,7 @@ let _editCostingId=null;
 function renderCosting(){
   const list=getCostings();
   return`<div class="sh"><div><div class="sh-t">🧮 Costing Calculator</div><div class="sh-s">${list.length} saved costing${list.length!==1?'s':''}</div></div><div><button class="btn btn-pri" onclick="openCosting(null)">+ New Costing</button></div></div>
-${list.length?`<div class="tbl-wrap"><table><thead><tr><th>Product Name</th><th>Item No</th><th>Material</th><th>Size</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);return`<tr><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.material||'—'}</td><td>${c.sizeDesc||'—'}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
+${list.length?`<div class="tbl-wrap"><table><thead><tr><th style="width:52px">Photo</th><th>Product Name</th><th>Item No</th><th>Material</th><th>Size</th><th>Total Qty</th><th>Per Pcs (BDT)</th><th>Per Pcs (USD)</th><th>Actions</th></tr></thead><tbody>${list.map(c=>{const r=calcCosting(c);return`<tr><td>${c.photo?`<img src="${c.photo}" style="width:44px;height:44px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">`:'-'}</td><td><strong>${c.name||'—'}</strong></td><td>${c.itemNo||'—'}</td><td>${c.material||'—'}</td><td>${c.sizeDesc||'—'}</td><td>${r.totalQty.toLocaleString()}</td><td>${fBDT(r.perPcsBDT)}</td><td>$${r.perPcsUSD.toFixed(4)}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openCosting(${c.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCosting(${c.id})">🖨 Print</button> <button class="btn btn-err btn-sm" onclick="deleteCosting(${c.id})">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:'<div class="empty">No costings yet. Click "+ New Costing" to get started.</div>'}
 <div class="ov" id="costing-ov"><div class="modal" style="max-width:1000px;width:98vw;max-height:94vh;overflow-y:auto">
 <div class="mh"><h3 id="costing-title">New Costing</h3><button class="xbtn" onclick="closeModal('costing-ov')">×</button></div>
 <div class="mb" id="costing-body" style="padding:18px"></div>
@@ -2850,6 +2850,10 @@ function _costingFormHTML(c){
   <div class="fg"><label>Item No</label><input id="cf-itemNo" value="${fN(c.itemNo)}" placeholder="HT-001"></div>
   <div class="fg"><label>Material</label><input id="cf-material" value="${fN(c.material)}" placeholder="Seagrass"></div>
   <div class="fg full"><label>Size Description</label><input id="cf-sizeDesc" value="${fN(c.sizeDesc)}" placeholder="L30×W20×H15 cm"></div>
+  <div class="fg full" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end">
+    <div><label>Product Photo</label><input type="file" id="cf-photo-inp" accept="image/*" onchange="(function(inp){const r=new FileReader();r.onload=e=>{inp.dataset.b64=e.target.result;const p=$('cf-photo-prev');if(p)p.innerHTML='<img src=\''+e.target.result+'\' style=\'height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)\'>'};r.readAsDataURL(inp.files[0])})(this)" style="font-size:11px;padding:3px"></div>
+    <div id="cf-photo-prev">${c.photo?`<img src="${c.photo}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
+  </div>
 </div>
 <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:8px 0 10px">Carton Dimensions</div>
 <div class="fg-grid">
@@ -2935,7 +2939,10 @@ function openCosting(id){
 function saveCosting(){
   const g=id=>($('cf-'+id)||{}).value||'';
   const n=v=>v===''?'':+v;
-  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),sizeDesc:g('sizeDesc'),ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
+  const photoInp=$('cf-photo-inp');
+  const existingPhoto=_editCostingId?(getCostings().find(x=>x.id===_editCostingId)||{}).photo||'':'';
+  const photo=photoInp&&photoInp.dataset.b64?photoInp.dataset.b64:existingPhoto;
+  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),sizeDesc:g('sizeDesc'),photo,ctnL:n(g('ctnL')),ctnW:n(g('ctnW')),ctnH:n(g('ctnH')),qtyPerCtn:n(g('qtyPerCtn')),containerCap:n(g('containerCap'))||65,totalQty:n(g('totalQty')),costPerPcs:n(g('costPerPcs')),cnfCost:n(g('cnfCost')),blCost:n(g('blCost')),transportCost:n(g('transportCost')),wastagePct:n(g('wastagePct')),overheadPct:n(g('overheadPct')),profitPct:n(g('profitPct')),exchangeRate:n(g('exchangeRate'))||120};
   const list=getCostings();
   if(_editCostingId){const idx=list.findIndex(x=>x.id===_editCostingId);if(idx>=0)list[idx]={...list[idx],...data};}
   else{data.id=Date.now();list.push(data);}
@@ -2961,17 +2968,20 @@ html,body{width:210mm}
 .cost-tbl td{border:1pt solid #000;padding:5pt 8pt;font-size:9.5pt}
 .cost-tbl td:last-child{text-align:right;width:36%}
 .cost-tbl tr.sub td{background:#f5f5f5;font-weight:700}
-.cost-tbl tr.total-row td{background:#1a237e;color:#fff;font-weight:900;font-size:11pt}
+.cost-tbl tr.total-row td{background:#1B5E20;color:#fff;font-weight:900;font-size:11pt}
 .cost-tbl tr.highlight td{background:#e8f5e9;font-weight:700}
 .info-tbl{width:100%;border-collapse:collapse;margin-top:8pt}
 .info-tbl td{border:1pt solid #000;padding:5pt 8pt;font-size:9pt}
 h2{text-align:center;font-size:15pt;font-weight:900;letter-spacing:3px;border:1.5pt solid #000;padding:6pt;margin-bottom:0}
-.section-hdr{background:#e8eaf6;font-weight:700;font-size:9pt;padding:4pt 8pt;border:1pt solid #000;border-bottom:none;margin-top:10pt}
+.section-hdr{background:#e8f5e9;font-weight:700;font-size:9pt;padding:4pt 8pt;border:1pt solid #000;border-bottom:none;margin-top:10pt}
 </style></head><body><div class="page">
-<img src="${_DOCS_HEADER}" style="display:block;width:100%;height:auto;max-height:90pt;margin-bottom:4pt">
+<img src="${_DOCS_HEADER}" style="display:block;max-width:100%;height:auto;max-height:80pt;margin:0 auto 4pt">
 <h2>COSTING SHEET</h2>
 <table class="info-tbl" style="border-top:none">
-<tr><td style="width:33%"><strong>Product:</strong> ${c.name||'—'}</td><td style="width:33%"><strong>Item No:</strong> ${c.itemNo||'—'}</td><td style="width:34%"><strong>Material:</strong> ${c.material||'—'}</td></tr>
+<tr>
+  ${c.photo?`<td rowspan="4" style="width:18%;text-align:center;vertical-align:middle"><img src="${c.photo}" style="max-width:100%;max-height:90pt;object-fit:contain"></td>`:''}
+  <td style="width:${c.photo?'27%':'33%'}"><strong>Product:</strong> ${c.name||'—'}</td><td style="width:${c.photo?'27%':'33%'}"><strong>Item No:</strong> ${c.itemNo||'—'}</td><td><strong>Material:</strong> ${c.material||'—'}</td>
+</tr>
 <tr><td colspan="3"><strong>Size:</strong> ${c.sizeDesc||'—'}</td></tr>
 <tr><td><strong>Carton:</strong> ${c.ctnL||0}×${c.ctnW||0}×${c.ctnH||0} cm</td><td><strong>Qty/Ctn:</strong> ${c.qtyPerCtn||0}</td><td><strong>CBM/Ctn:</strong> ${r.cbmPerCtn.toFixed(4)}</td></tr>
 <tr><td><strong>Container Cap:</strong> ${c.containerCap||65} m³</td><td><strong>Total CTN in 40'HC:</strong> ${fM(r.totalCtnIn40)}</td><td><strong>Total Qty in 40'HC:</strong> ${fM(r.totalQtyIn40)}</td></tr>
@@ -3029,6 +3039,10 @@ function _qItemHTML(it,idx){
   <div class="fg"><label>Total Qty in 40'HC</label><input type="number" id="qi-totalQtyIn40-${it.id}" value="${it.totalQtyIn40||''}"></div>
   <div class="fg"><label>Lead Time</label><input id="qi-leadTime-${it.id}" value="${it.leadTime||''}" placeholder="e.g. 60 days"></div>
   <div class="fg full"><label>Link Costing (auto-fills fields)</label><select id="qi-costing-${it.id}" onchange="linkQItemCosting(${it.id},this.value)">${costingOpts}</select></div>
+  <div class="fg" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end">
+    <div><label>Product Photo</label><input type="file" id="qi-photo-inp-${it.id}" accept="image/*" onchange="(function(inp,id){const r=new FileReader();r.onload=e=>{inp.dataset.b64=e.target.result;const p=$('qi-photo-prev-'+id);if(p)p.innerHTML='<img src=\''+e.target.result+'\' style=\'height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)\'>'};r.readAsDataURL(inp.files[0])})(this,${it.id})" style="font-size:11px;padding:3px"></div>
+    <div id="qi-photo-prev-${it.id}">${it.photo?`<img src="${it.photo}" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">`:'<span style="font-size:11px;color:var(--muted)">No photo</span>'}</div>
+  </div>
 </div>
 </div>`;
 }
@@ -3090,7 +3104,10 @@ function _readQItems(){
   return _qItemIds.map(id=>{
     const g=fid=>($('qi-'+fid+'-'+id)||{}).value||'';
     const costSel=$('qi-costing-'+id);
-    return{id,itemNo:g('itemNo'),description:g('description'),dimensions:g('dimensions'),rateUSD:+g('rateUSD')||0,ctnL:+g('ctnL')||0,ctnW:+g('ctnW')||0,ctnH:+g('ctnH')||0,qtyPerCtn:+g('qtyPerCtn')||0,totalQtyIn40:+g('totalQtyIn40')||0,leadTime:g('leadTime'),costingId:costSel?costSel.value||'':''};
+    const photoInp=$('qi-photo-inp-'+id);
+    const existingPhoto=(_editQuotationId?(getQuotations().find(x=>x.id===_editQuotationId)||{items:[]}).items.find(it=>it.id===id)||{}:{}).photo||'';
+    const photo=photoInp&&photoInp.dataset.b64?photoInp.dataset.b64:existingPhoto;
+    return{id,itemNo:g('itemNo'),description:g('description'),dimensions:g('dimensions'),photo,rateUSD:+g('rateUSD')||0,ctnL:+g('ctnL')||0,ctnW:+g('ctnW')||0,ctnH:+g('ctnH')||0,qtyPerCtn:+g('qtyPerCtn')||0,totalQtyIn40:+g('totalQtyIn40')||0,leadTime:g('leadTime'),costingId:costSel?costSel.value||'':''};
   });
 }
 
@@ -3110,6 +3127,7 @@ function deleteQuotation(id){
 function printQuotation(id){
   const q=getQuotations().find(x=>x.id===id);if(!q){toast('Quotation not found');return}
   const items=q.items||[];
+  const totalAmt=items.reduce((a,it)=>a+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0);
   const itemRows=items.map(it=>{
     const cbm=it.ctnL&&it.ctnW&&it.ctnH?(it.ctnL*it.ctnW*it.ctnH/1000000).toFixed(4):'—';
     return`<tr>
@@ -3134,7 +3152,7 @@ function printQuotation(id){
 html,body{width:297mm}
 .page{padding:7mm 9mm;width:297mm;box-sizing:border-box}
 .qt-tbl{width:100%;border-collapse:collapse;margin-top:10pt;font-size:8.5pt}
-.qt-tbl th{background:#1a237e;color:#fff;padding:5pt 4pt;text-align:center;border:1pt solid #000;font-size:8pt}
+.qt-tbl th{background:#1B5E20;color:#fff;padding:5pt 4pt;text-align:center;border:1pt solid #000;font-size:8pt}
 .qt-tbl td{padding:4pt;border:1pt solid #ccc;vertical-align:middle;font-size:8.5pt}
 .qt-tbl tbody tr:nth-child(even) td{background:#f8f9ff}
 h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.5pt solid #000;padding:5pt;margin-bottom:0}
@@ -3143,7 +3161,7 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
 .sign-wrap{text-align:right;margin-top:24pt}
 .sign-box{display:inline-block;text-align:center;padding:8pt;min-width:160pt;border-top:1pt solid #000}
 </style></head><body><div class="page">
-<img src="${_DOCS_HEADER}" style="display:block;width:100%;height:auto;max-height:80pt;margin-bottom:4pt">
+<img src="${_DOCS_HEADER}" style="display:block;max-width:100%;height:auto;max-height:80pt;margin:0 auto 4pt">
 <h2>QUOTATION</h2>
 <table class="meta-tbl" style="border-top:none">
 <tr><td style="width:60%"><strong>To:</strong> ${q.buyer||'—'}</td><td><strong>Date:</strong> ${q.date||'—'}</td></tr>
@@ -3165,6 +3183,11 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
   <th style="width:12%">Lead Time</th>
 </tr></thead>
 <tbody>${itemRows}</tbody>
+<tfoot><tr style="background:#e8f5e9;font-weight:700">
+  <td colspan="4" style="text-align:right;border:1pt solid #000;padding:5pt 8pt;font-size:9pt">TOTAL AMOUNT (FOB):</td>
+  <td style="text-align:center;border:1pt solid #000;padding:5pt;font-size:9.5pt;color:#1B5E20"><strong>${totalAmt>0?'USD $'+totalAmt.toFixed(2):'—'}</strong></td>
+  <td colspan="7" style="border:1pt solid #000;padding:5pt 8pt;font-size:8pt;color:#555">${totalAmt>0?'Total in Words: USD '+_numWords(totalAmt):''}</td>
+</tr></tfoot>
 </table>
 <div class="sign-wrap">
   <img src="${_DOCS_SIG}" style="height:70pt;object-fit:contain;display:block;margin-left:auto;margin-right:0;margin-bottom:4pt">
@@ -3422,9 +3445,9 @@ body{font-family:Arial,sans-serif;font-size:9.5pt;color:#000;background:#fff}
 table.hdr{width:100%;border-collapse:collapse;border:1pt solid #000}
 table.hdr td{border:1pt solid #000;padding:4pt 6pt;vertical-align:top;font-size:9pt}
 table.items{width:100%;border-collapse:collapse;margin:0;border-top:none}
-table.items th{background:#1a237e;color:#fff;padding:4pt 6pt;font-size:8.5pt;text-align:left;border:1pt solid #000}
+table.items th{background:#1B5E20;color:#fff;padding:4pt 6pt;font-size:8.5pt;text-align:left;border:1pt solid #000}
 table.items td{padding:4pt 6pt;border:1pt solid #000;font-size:9pt;vertical-align:top}
-table.items tfoot td{font-weight:700;background:#e8eaf6;border:1pt solid #000;padding:4pt 6pt}
+table.items tfoot td{font-weight:700;background:#e8f5e9;border:1pt solid #000;padding:4pt 6pt}
 .lbl{font-weight:700;font-size:8pt;color:#333}
 .decl{font-size:7.5pt;color:#444;line-height:1.5;border:1pt solid #000;padding:6pt;margin-top:0;border-top:none}
 .sign-box{text-align:center;padding:8pt;border:1pt solid #000;border-top:none;min-width:200pt;display:inline-block}
@@ -3458,7 +3481,7 @@ html,body{width:210mm}
 .page{padding:8mm 10mm;width:210mm;box-sizing:border-box}
 table.items{table-layout:fixed;word-break:break-word}
 </style></head><body><div class="page">
-<img src="${_DOCS_HEADER}" style="display:block;width:100%;height:auto;max-height:90pt;margin-bottom:4pt">
+<img src="${_DOCS_HEADER}" style="display:block;max-width:100%;height:auto;max-height:80pt;margin:0 auto 4pt">
 <div class="doc-title">COMMERCIAL INVOICE</div>
 <table class="hdr">
 <tr>
@@ -3591,7 +3614,7 @@ table.items tfoot td{padding:3pt 4pt;font-size:8pt}
 .doc-title{font-size:14pt;padding:5pt;letter-spacing:4px}
 .decl{font-size:8pt;line-height:1.6}
 </style></head><body><div class="page">
-<img src="${_DOCS_HEADER}" style="display:block;width:100%;height:auto;max-height:80pt;margin-bottom:4pt">
+<img src="${_DOCS_HEADER}" style="display:block;max-width:100%;height:auto;max-height:80pt;margin:0 auto 4pt">
 <div class="doc-title">PACKING LIST</div>
 <table class="hdr">
 <tr>
