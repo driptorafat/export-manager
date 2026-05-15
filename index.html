@@ -5,13 +5,65 @@
 <title>Export Manager</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--pri:#1565C0;--prid:#0D47A1;--pril:#E3F2FD;--acc:#F57C00;--accl:#FFF3E0;--ok:#2E7D32;--okl:#E8F5E9;--warn:#F9A825;--warnl:#FFFDE7;--err:#C62828;--errl:#FFEBEE;--bg:#F0F4F8;--card:#fff;--bdr:#DEE2E6;--txt:#212529;--muted:#6C757D;--sw:230px}
-[data-theme="dark"]{--bg:#0f1117;--card:#1a1d27;--bdr:#2d3044;--txt:#e2e8f0;--muted:#8b95a8;--prid:#1a2a5e;--pril:#1e2d5a;--accl:#2a1f0a;--okl:#0d2010;--warnl:#2a2000;--errl:#2a0a0a}
+:root,[data-theme="light"]{
+  --pri:#1565C0;--prid:#0D47A1;--pril:#E3F2FD;
+  --acc:#F57C00;--accl:#FFF3E0;
+  --ok:#2E7D32;--okl:#E8F5E9;
+  --warn:#F9A825;--warnl:#FFFDE7;
+  --err:#C62828;--errl:#FFEBEE;
+  --bg:#F0F4F8;--card:#ffffff;--card2:#f8fafc;
+  --bdr:#DEE2E6;--txt:#212529;--muted:#6C757D;
+  --htxt:#0D47A1;--sb:#0D47A1;--inp:#ffffff;--divider:#e9ecef;--sw:230px}
+[data-theme="dark"]{
+  --pri:#60a5fa;--prid:#1d3461;--pril:#1e3a5f;
+  --acc:#fb923c;--accl:#2c1a0a;
+  --ok:#4ade80;--okl:#0d2e18;
+  --warn:#fbbf24;--warnl:#2c1a00;
+  --err:#f87171;--errl:#2c0a0a;
+  --bg:#0d1117;--card:#161b22;--card2:#1c2128;
+  --bdr:#30363d;--txt:#e6edf3;--muted:#8b949e;
+  --htxt:#79c0ff;--sb:#0d1117;--inp:#1c2128;--divider:#21262d;--sw:230px}
+[data-theme="midnight"]{
+  --pri:#a78bfa;--prid:#1e1b4b;--pril:#1e1b4b;
+  --acc:#fb923c;--accl:#2c1200;
+  --ok:#34d399;--okl:#022c22;
+  --warn:#fcd34d;--warnl:#2c1800;
+  --err:#f87171;--errl:#2c0808;
+  --bg:#06070f;--card:#0f1122;--card2:#151829;
+  --bdr:#1e2444;--txt:#dde4f5;--muted:#6272a4;
+  --htxt:#c4b5fd;--sb:#080a18;--inp:#151829;--divider:#1a2040;--sw:230px}
+[data-theme="forest"]{
+  --pri:#34d399;--prid:#065f46;--pril:#022c22;
+  --acc:#fbbf24;--accl:#2c1a00;
+  --ok:#6ee7b7;--okl:#022c22;
+  --warn:#fcd34d;--warnl:#2c1800;
+  --err:#f87171;--errl:#2c0808;
+  --bg:#0a1410;--card:#0f1f17;--card2:#142a1e;
+  --bdr:#1e4030;--txt:#d1fae5;--muted:#5a8f70;
+  --htxt:#6ee7b7;--sb:#061009;--inp:#142a1e;--divider:#1a3525;--sw:230px}
+[data-theme="ocean"]{
+  --pri:#38bdf8;--prid:#0c2a4a;--pril:#0c2a4a;
+  --acc:#fb923c;--accl:#2c1200;
+  --ok:#34d399;--okl:#022c22;
+  --warn:#fbbf24;--warnl:#2c1800;
+  --err:#f87171;--errl:#2c0808;
+  --bg:#03080f;--card:#071526;--card2:#0c1e35;
+  --bdr:#0e2f56;--txt:#cce7ff;--muted:#4a8ab5;
+  --htxt:#38bdf8;--sb:#020810;--inp:#0c1e35;--divider:#0d2444;--sw:230px}
+[data-theme="sepia"]{
+  --pri:#92400e;--prid:#78350f;--pril:#fef3c7;
+  --acc:#c2410c;--accl:#ffedd5;
+  --ok:#166534;--okl:#dcfce7;
+  --warn:#92400e;--warnl:#fffbeb;
+  --err:#991b1b;--errl:#fee2e2;
+  --bg:#f4ede0;--card:#fffbf4;--card2:#fef9ee;
+  --bdr:#d4c5a9;--txt:#3d2b1f;--muted:#7a6552;
+  --htxt:#78350f;--sb:#5c3d11;--inp:#fffbf4;--divider:#e8d9c0;--sw:230px}
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden;display:flex;flex-direction:column}
 button{cursor:pointer;font-family:inherit}
 #app{display:flex;flex:1;overflow:hidden;height:100vh}
 /* SIDEBAR */
-#sb{width:var(--sw);background:var(--prid);color:#fff;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width .2s}
+#sb{width:var(--sw);background:var(--sb);color:#fff;display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;transition:width .2s}
 .sb-logo{padding:16px;border-bottom:1px solid rgba(255,255,255,.15);display:flex;align-items:center;gap:10px}
 .sb-logo h2{font-size:15px;font-weight:700;line-height:1.2}
 .sb-logo span{font-size:11px;color:rgba(255,255,255,.55)}
@@ -69,20 +121,20 @@ button{cursor:pointer;font-family:inherit}
 /* TABLE */
 .tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--bdr)}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
-thead th{background:#F8F9FA;padding:9px 11px;text-align:left;font-weight:700;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr);white-space:nowrap}
-tbody td{padding:9px 11px;border-bottom:1px solid #f2f2f2;vertical-align:middle}
+thead th{background:var(--card2);padding:9px 11px;text-align:left;font-weight:700;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--bdr);white-space:nowrap}
+tbody td{padding:9px 11px;border-bottom:1px solid var(--divider);vertical-align:middle;color:var(--txt)}
 tbody tr:last-child td{border-bottom:none}
-tbody tr:hover td{background:#fafafa}
+tbody tr:hover td{background:var(--card2)}
 tbody tr.cancel{opacity:.5}
 tbody tr.cancel td{text-decoration:line-through}
-tfoot td{background:#F8F9FA;font-weight:700;padding:9px 11px;border-top:2px solid var(--bdr)}
+tfoot td{background:var(--card2);font-weight:700;padding:9px 11px;border-top:2px solid var(--bdr);color:var(--txt)}
 /* BADGE */
 .bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
 .bdg-ok{background:var(--okl);color:var(--ok)}
 .bdg-err{background:var(--errl);color:var(--err)}
 .bdg-warn{background:var(--warnl);color:#E65100}
 .bdg-info{background:var(--pril);color:var(--prid)}
-.bdg-grey{background:#F5F5F5;color:var(--muted)}
+.bdg-grey{background:var(--card2);color:var(--muted)}
 /* FILTERS */
 .filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .filters select,.filters input[type=text]{padding:6px 10px;border:1.5px solid var(--bdr);border-radius:6px;font-size:12.5px;font-family:inherit;background:var(--card);color:var(--txt)}
@@ -103,23 +155,23 @@ tfoot td{background:#F8F9FA;font-weight:700;padding:9px 11px;border-top:2px soli
 /* FORM */
 .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:13px}
 .fg label{font-size:11.5px;font-weight:700;color:var(--muted)}
-.fg input,.fg select,.fg textarea{padding:7px 11px;border:1.5px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;color:var(--txt)}
+.fg input,.fg select,.fg textarea{padding:7px 11px;border:1.5px solid var(--bdr);border-radius:6px;font-size:13px;font-family:inherit;color:var(--txt);background:var(--inp)}
 .fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--pri)}
 .srch-inp{padding:7px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:13px;background:var(--card);color:var(--txt)}.srch-inp:focus{outline:none;border-color:var(--pri)}
 .fg-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .fg-grid .full{grid-column:1/-1}
 @media(max-width:520px){.fg-grid{grid-template-columns:1fr}}
 /* STAT ROW */
-.sr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f3f3f3;font-size:13px}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--divider);font-size:13px}
 .sr:last-child{border-bottom:none}
 .sr .sk{color:var(--muted)}
 .sr .sv{font-weight:700}
 /* PROGRESS */
-.prog{height:7px;background:#eee;border-radius:4px;overflow:hidden;margin-top:5px}
+.prog{height:7px;background:var(--divider);border-radius:4px;overflow:hidden;margin-top:5px}
 .prog-f{height:100%;border-radius:4px}
 /* SECTION HEADER */
 .sh{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
-.sh-t{font-size:19px;font-weight:800;color:var(--prid)}
+.sh-t{font-size:19px;font-weight:800;color:var(--htxt)}
 .sh-s{font-size:12.5px;color:var(--muted);margin-top:2px}
 /* EMPTY */
 .empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px}
@@ -304,7 +356,18 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
   <div class="sb-logo">
     <span style="font-size:22px">📦</span>
     <div style="flex:1"><h2>Export Manager</h2><span>Shipment Calendar</span></div>
-    <button id="dark-toggle" onclick="toggleDark()" title="Toggle dark/light mode" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0">🌙</button>
+    <button onclick="toggleThemePicker()" title="Change color theme" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 7px;font-size:13px;cursor:pointer;flex-shrink:0">🎨</button>
+  </div>
+  <div id="theme-picker" style="display:none;padding:8px 14px;background:rgba(0,0,0,.25);border-bottom:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:10px;color:rgba(255,255,255,.6);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px">Color Theme</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button onclick="setTheme('light')" title="Light" style="width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);background:#F0F4F8;cursor:pointer" id="tb-light"></button>
+      <button onclick="setTheme('dark')" title="Dark" style="width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);background:#0d1117;cursor:pointer" id="tb-dark"></button>
+      <button onclick="setTheme('midnight')" title="Midnight" style="width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);background:#06070f;cursor:pointer;position:relative" id="tb-midnight"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px">🌌</span></button>
+      <button onclick="setTheme('forest')" title="Forest" style="width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);background:#0a1410;cursor:pointer;position:relative" id="tb-forest"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px">🌿</span></button>
+      <button onclick="setTheme('ocean')" title="Ocean" style="width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);background:#03080f;cursor:pointer;position:relative" id="tb-ocean"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px">🌊</span></button>
+      <button onclick="setTheme('sepia')" title="Sepia" style="width:26px;height:26px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);background:#f4ede0;cursor:pointer;position:relative" id="tb-sepia"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px">📜</span></button>
+    </div>
   </div>
   <div class="yr-wrap">
     <div class="yr-label">Active Year</div>
@@ -635,8 +698,9 @@ function loadAll(){
   return d;
 }
 function saveAll(d){localStorage.setItem('em_v2',JSON.stringify(d))}
-function toggleDark(){const h=document.getElementById('root-html');const isDark=h.getAttribute('data-theme')==='dark';h.setAttribute('data-theme',isDark?'light':'dark');localStorage.setItem('em_theme',isDark?'light':'dark');const btn=$('dark-toggle');if(btn)btn.textContent=isDark?'🌙 Dark Mode':'☀️ Light Mode';}
-(function(){const t=localStorage.getItem('em_theme')||'light';document.getElementById('root-html').setAttribute('data-theme',t);document.addEventListener('DOMContentLoaded',function(){const btn=document.getElementById('dark-toggle');if(btn)btn.textContent=t==='dark'?'☀️':'🌙';});})();
+function setTheme(t){document.getElementById('root-html').setAttribute('data-theme',t);localStorage.setItem('em_theme',t);document.querySelectorAll('[id^="tb-"]').forEach(b=>b.style.outline='none');const tb=document.getElementById('tb-'+t);if(tb)tb.style.outline='3px solid #fff';}
+function toggleThemePicker(){const p=document.getElementById('theme-picker');if(p)p.style.display=p.style.display==='none'?'block':'none';}
+(function(){const t=localStorage.getItem('em_theme')||'light';document.getElementById('root-html').setAttribute('data-theme',t);document.addEventListener('DOMContentLoaded',function(){const tb=document.getElementById('tb-'+t);if(tb)tb.style.outline='3px solid #fff';});})();
 function getShips(yr){return (D.years[yr]||{}).shipments||[]}
 function setShips(yr,list){if(!D.years[yr])D.years[yr]={shipments:[],settings:{...DEF_SETTINGS}};D.years[yr].shipments=list;saveAll(D)}
 function getCfg(yr){return Object.assign({...DEF_SETTINGS},(D.years[yr]||{}).settings||{})}
@@ -1928,8 +1992,10 @@ function renderSettings(yr,cfg){
     <div class="fg"><label>Personal Incentive %</label><input type="number" id="s-pers-inc" value="${cfg.personalIncPct||1}" step="0.1" min="0" max="100"></div>
     <button class="btn btn-pri" onclick="saveSettings('${yr}')">Save Settings</button>
     <hr class="div">
-    <div class="card-title">Appearance</div>
-    <button class="btn btn-ghost btn-sm" onclick="toggleDark()" style="margin-top:4px">🌙 Toggle Dark / Light Mode</button>
+    <div class="card-title">Appearance / Color Theme</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+      ${[['light','☀️ Light','#F0F4F8'],['dark','🌙 Dark','#0d1117'],['midnight','🌌 Midnight','#06070f'],['forest','🌿 Forest','#0a1410'],['ocean','🌊 Ocean','#03080f'],['sepia','📜 Sepia','#f4ede0']].map(([id,label,bg])=>`<button onclick="setTheme('${id}')" style="display:flex;align-items:center;gap:7px;padding:6px 12px;border:1.5px solid var(--bdr);border-radius:8px;background:var(--card);color:var(--txt);cursor:pointer;font-size:12.5px"><span style="width:14px;height:14px;border-radius:50%;background:${bg};border:1px solid var(--bdr);flex-shrink:0"></span>${label}</button>`).join('')}
+    </div>
   </div>
   <div class="card"><div class="card-title">☁ Cloud Sync (GitHub Gist)</div>
     <div class="print-note">Cloud sync lets colleagues access your data at the same URL. Data is stored in a private GitHub Gist.</div>
