@@ -863,7 +863,7 @@ function svgGroupedBar(groups,seriesNames,colors,{w=460,h=170,title='',prefix='$
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
-const PAGE_TITLES={dashboard:'Dashboard',shipments:'All Shipments',calendar:'Monthly View',ongoing:'Orders In Progress',container:'Container Planner',buyers:'Buyers Analysis',financials:'Financials',personal:'Personal Earnings',pnl:'Profit & Loss Statement',reports:'Print Reports',settings:'Settings',compare:'Multi-Year Comparison',years:'Manage Years',contacts:'B2B Contacts',costing:'Costing Calculator',quotation:'Quotations'};
+const PAGE_TITLES={dashboard:'Dashboard',shipments:'All Shipments',calendar:'Monthly View',ongoing:'Orders In Progress',container:'Container Planner',buyers:'Buyers Analysis',financials:'Financials',personal:'Personal Earnings',pnl:'Profit & Loss Statement',reports:'Print Reports',settings:'Settings',compare:'Multi-Year Comparison',years:'Manage Years',contacts:'B2B Contacts',costing:'Costing Calculator',quotation:'Quotations',orders:'Orders & Documents','order-detail':'Order Details',catalog:'Product Catalog','catalog-detail':'Product Details'};
 function nav(page){
   ST.page=page;
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('active'));
@@ -899,6 +899,7 @@ function render(){
   else if(ST.page==='quotation')c.innerHTML=renderQuotation();
   else if(ST.page==='catalog')c.innerHTML=renderCatalog();
   else if(ST.page==='catalog-detail')c.innerHTML=renderCatalogDetail();
+  else if(ST.page==='order-detail')c.innerHTML=renderOrderDetail();
 }
 
 // ── SHARED TABLE ─────────────────────────────────────────────────────────────
@@ -3397,48 +3398,13 @@ function deleteQuotation(id){
 
 function convertQuotationToOrder(qid){
   const q=getQuotations().find(x=>x.id===qid);if(!q){toast('Quotation not found');return}
-  confirm2('Convert to Order',`Convert quotation for "${q.buyer||'this buyer'}" into a new Order? The quotation form will open pre-filled. You can adjust before saving.`,()=>{
-    // Build mapped items
-    const items=(q.items||[]).map((it,i)=>({
-      id:Date.now()+i,
-      orderNo:'',itemNo:it.itemNo||'',
-      description:it.description||'',
-      color:'',
-      photo:it.photo||'',
-      quantity:+it.totalQtyIn40||0,
-      fobRate:+it.rateUSD||0,
-      cartonNo:'',
-      noOfCartons:0,
-      qtyPerCarton:+it.qtyPerCtn||0,
-      ctnSizeL:+it.ctnL||0,ctnSizeW:+it.ctnW||0,ctnSizeH:+it.ctnH||0,
-      netWeightPerCtn:0,grossWeightPerCtn:0,
-      cbmPerCtn:(+it.ctnL||0)*(+it.ctnW||0)*(+it.ctnH||0)/1000000,
-      totalCbm:0
-    }));
-    // Pre-set global state and open Order modal
-    _editOid=null;_linkedShipId=null;_oItemIds=items.map(x=>x.id);
-    nav('orders');
-    setTimeout(()=>{
-      $('order-title').textContent='New Order — from Quotation';
-      const body=$('order-body');if(!body)return;
-      // Fill header fields
-      const setField=(id,v)=>{const el=$(id);if(el)el.value=v||''};
-      setField('o-date',q.date||'');
-      // Consignee from buyer
-      const cons=$('o-consignee');if(cons)cons.value=q.buyer||'';
-      // Set source quotation
-      setField('o-src-quotation',qid);
-      // Render items
-      const cont=$('oitems-list');if(!cont)return;
-      cont.innerHTML='';
-      items.forEach(it=>{
-        const div=document.createElement('div');
-        div.innerHTML=_oItemHTML(it,items.indexOf(it));
-        cont.appendChild(div.firstElementChild);
-      });
-      $('order-ov').classList.add('open');
-      toast('📋 Pre-filled from quotation — adjust and save');
-    },200);
+  confirm2('Convert to Order',`Convert quotation for "${q.buyer||'this buyer'}" into a new Order?`,()=>{
+    const newId=Date.now();
+    const items=(q.items||[]).map(function(it,i){return{id:newId+i+1,orderNo:'',itemNo:it.itemNo||'',description:it.description||'',color:'',photo:it.photo||'',quantity:+it.totalQtyIn40||0,fobRate:+it.rateUSD||0,cartonNo:'',noOfCartons:0,qtyPerCarton:+it.qtyPerCtn||0,ctnSizeL:+it.ctnL||0,ctnSizeW:+it.ctnW||0,ctnSizeH:+it.ctnH||0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:(+it.ctnL||0)*(+it.ctnW||0)*(+it.ctnH||0)/1000000,totalCbm:0}});
+    const order={id:newId,linkedShipId:null,invoiceNo:'',poNo:'',expNo:'',plNo:'',rexNo:'BDREX00706',date:q.date||'',poDate:'',expDate:'',plDate:'',shipmentDate:'',consignee:q.buyer||'',notifyParty:'',deliveryAddress:'',countryOfOrigin:'BANGLADESH',countryOfDestination:'',portOfLoading:'',portOfDelivery:'',containerNo:'',sealNo:'',paymentTerms:'T/T, 100% payment against copy of shipping documents.',advancePayment:0,paymentDueDate:'',finalPaymentDate:'',finalPaymentReceived:false,hsCode:'4602190000',hsDesc:'Bangladesh Handicrafts, Seagrass & Jute Rope Baskets',sourceQuotationId:qid,items:items.length?items:[{id:newId+1,orderNo:'',itemNo:'',description:'',color:'',photo:'',quantity:0,fobRate:0,cartonNo:'',noOfCartons:0,qtyPerCarton:0,ctnSizeL:0,ctnSizeW:0,ctnSizeH:0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:0,totalCbm:0}]};
+    const list=getOrders();list.unshift(order);setOrders(list);
+    viewOrderDetail(newId);
+    toast('📋 Order created from quotation — fill in Documents & add Items');
   },'Convert','btn-ok');
 }
 
@@ -3528,46 +3494,37 @@ function setOrders(list){D.orders=list;saveAll(D)}
 function renderOrders(){
   const yr=D.currentYear,ships=getShips(yr).filter(s=>!s.cancelled);
   const orders=getOrders();
-  const linkedIds=new Set(orders.map(o=>o.linkedShipId).filter(Boolean));
-  const unlinked=ships.filter(s=>!linkedIds.has(s.id));
-  return`<div class="sh"><div><div class="sh-t">📄 Orders &amp; Documents</div><div class="sh-s">Auto-loaded from shipments · Generate Commercial Invoices &amp; Packing Lists</div></div><div class="rbt"><button class="btn btn-ghost btn-sm" onclick="openOrder(null)">+ Blank Order</button></div></div>
+  return`<div class="sh"><div><div class="sh-t">📄 Orders &amp; Documents</div><div class="sh-s">Click an order to view details, edit documents, and manage items</div></div><div class="rbt"><button class="btn btn-ghost btn-sm" onclick="openOrder(null)">+ Blank Order</button></div></div>
 ${orders.length?`<div class="sh" style="margin-top:0;padding:10px 0 4px"><div class="sh-t" style="font-size:13px">📋 Saved Orders</div></div>
-<div class="tbl-wrap"><table><thead><tr><th>Invoice No</th><th>PO No</th><th>Payment</th><th>Buyer</th><th>Date</th><th>Destination</th><th>Items</th><th>Total (USD)</th><th style="min-width:200px">Actions</th></tr></thead><tbody>${orders.map(o=>{const total=o.items.reduce((a,it)=>a+(it.quantity||0)*(it.fobRate||0),0);const adv=o.advancePayment||0;return`<tr><td><strong>${o.invoiceNo||'—'}</strong></td><td>${o.poNo||'—'}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(o.consignee||'—').split('\n')[0]}</td><td>${o.date||'—'}</td><td>${o.countryOfDestination||'—'}</td><td style="text-align:center">${o.items.length}</td><td><strong>$${total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>${adv?`<br><span style="font-size:10px;color:var(--ok)">Adv: $${adv}</span>`:''}</td><td>${(()=>{if(o.finalPaymentReceived)return'<span class="bdg bdg-ok">✅ Fully Paid</span>';if(o.finalPaymentDate)return`<span class="bdg bdg-info">💳 ${_fmtDate(o.finalPaymentDate)}</span>`;if(o.advancePayment>0)return'<span class="bdg bdg-warn">💰 Advance Only</span>';if(o.paymentDueDate)return`<span class="bdg" style="background:#fee2e2;color:#991b1b">⏰ Due: ${_fmtDate(o.paymentDueDate)}</span>`;return'<span class="bdg" style="background:#f3f4f6;color:#6b7280">—</span>'})()}</td><td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openOrder(${o.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCI(${o.id})">🧾 CI</button> <button class="btn btn-ghost btn-sm" onclick="printPL(${o.id})">📦 PL</button> <button class="btn btn-ghost btn-sm" onclick="deleteOrder(${o.id})" style="color:var(--err)">🗑</button></td></tr>`;}).join('')}</tbody></table></div>`:''}
-<div class="sh" style="margin-top:8px;padding:10px 0 4px"><div class="sh-t" style="font-size:13px">🚢 Shipments — ${yr}</div><div class="sh-s" style="font-size:11px">Click a shipment to fill an order form and generate CI / PL</div></div>
-${!ships.length?`<div style="color:var(--muted);font-size:13px;padding:16px">No shipments in ${yr}</div>`:`<div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Buyer</th><th>Month</th><th>Invoice (USD)</th><th>Status</th><th>Order Saved?</th><th style="min-width:200px">Actions</th></tr></thead><tbody>${ships.map(s=>{const linked=orders.find(o=>o.linkedShipId===s.id);return`<tr><td>${s.orderNo||'—'}</td><td>${s.party||'—'}</td><td>${s.month||'—'}</td><td>$${s.iamt||0}</td><td>${s.shipped==='Shipped'?'<span class="bdg bdg-ok">Shipped</span>':'<span class="bdg bdg-warn">Pending</span>'}</td><td>${linked?`<span class="bdg bdg-ok">✓ ${linked.invoiceNo||'Saved'}</span>`:'<span class="bdg" style="background:var(--errl);color:var(--err)">Not yet</span>'}</td><td style="white-space:nowrap">${linked?`<button class="btn btn-ghost btn-sm" onclick="openOrder(${linked.id})">✏️ Edit</button> <button class="btn btn-pri btn-sm" onclick="printCI(${linked.id})">🧾 CI</button> <button class="btn btn-ghost btn-sm" onclick="printPL(${linked.id})">📦 PL</button>`:`<button class="btn btn-pri btn-sm" onclick="openOrderFromShip(${JSON.stringify(s).replace(/"/g,'&quot;')})">📄 Create Order</button>`}</td></tr>`;}).join('')}</tbody></table></div>`}
-<div class="ov" id="order-ov"><div class="modal" style="max-width:980px;width:96vw;max-height:92vh;overflow-y:auto">
-<div class="mh"><h3 id="order-title">New Order</h3><button class="xbtn" onclick="closeModal('order-ov')">×</button></div>
-<div class="mb" id="order-body" style="padding:18px"></div>
-<div class="mf"><button class="btn btn-ghost" onclick="closeModal('order-ov')">Cancel</button><button class="btn btn-pri" onclick="saveOrder()">💾 Save Order</button></div>
-</div></div>`;
+<div class="tbl-wrap"><table><thead><tr><th>Invoice No</th><th>PO No</th><th>Buyer</th><th>Date</th><th>Destination</th><th>Items</th><th>Total (USD)</th><th>Payment</th><th>Actions</th></tr></thead><tbody>${orders.map(o=>{const total=o.items.reduce((a,it)=>a+(it.quantity||0)*(it.fobRate||0),0);const adv=o.advancePayment||0;const pb=(()=>{if(o.finalPaymentReceived)return'<span class="bdg bdg-ok">✅ Fully Paid</span>';if(o.finalPaymentDate)return'<span class="bdg" style="background:var(--pril);color:var(--pri)">💳 '+_fmtDate(o.finalPaymentDate)+'</span>';if(o.advancePayment>0)return'<span class="bdg bdg-warn">💰 Advance</span>';if(o.paymentDueDate)return'<span class="bdg" style="background:#fee2e2;color:#991b1b">⏰ '+_fmtDate(o.paymentDueDate)+'</span>';return'<span class="bdg" style="background:#f3f4f6;color:#6b7280">—</span>'})();return`<tr style="cursor:pointer" onclick="viewOrderDetail(${o.id})"><td><strong style="color:var(--pri)">${o.invoiceNo||'Draft'}</strong></td><td>${o.poNo||'—'}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(o.consignee||'—').split('\n')[0]}</td><td>${o.date?_fmtDate(o.date):'—'}</td><td>${o.countryOfDestination||'—'}</td><td style="text-align:center">${o.items.length}</td><td><strong>$${total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</strong>${adv?'<br><span style="font-size:10px;color:var(--ok)">Adv: $'+adv+'</span>':''}</td><td>${pb}</td><td style="white-space:nowrap" onclick="event.stopPropagation()"><button class="btn btn-ghost btn-sm" onclick="viewOrderDetail(${o.id})">👁 View</button> <button class="btn btn-pri btn-sm" onclick="printCI(${o.id})">🧾 CI</button> <button class="btn btn-ghost btn-sm" onclick="printPL(${o.id})">📦 PL</button> <button class="btn btn-ghost btn-sm" onclick="deleteOrder(${o.id})" style="color:var(--err)">🗑</button></td></tr>`}).join('')}</tbody></table></div>`:''}
+<div class="sh" style="margin-top:8px;padding:10px 0 4px"><div class="sh-t" style="font-size:13px">🚢 Shipments — ${yr}</div><div class="sh-s" style="font-size:11px">Click "Create Order" to generate an order linked to a shipment</div></div>
+${!ships.length?`<div style="color:var(--muted);font-size:13px;padding:16px">No shipments in ${yr}</div>`:`<div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Buyer</th><th>Month</th><th>Invoice (USD)</th><th>Status</th><th>Order Saved?</th><th>Actions</th></tr></thead><tbody>${ships.map(s=>{const linked=orders.find(o=>o.linkedShipId===s.id);return`<tr><td>${s.orderNo||'—'}</td><td>${s.party||'—'}</td><td>${s.month||'—'}</td><td>$${s.iamt||0}</td><td>${s.shipped==='Shipped'?'<span class="bdg bdg-ok">Shipped</span>':'<span class="bdg bdg-warn">Pending</span>'}</td><td>${linked?'<span class="bdg bdg-ok">✓ '+(linked.invoiceNo||'Draft')+'</span>':'<span class="bdg" style="background:var(--errl);color:var(--err)">Not yet</span>'}</td><td style="white-space:nowrap">${linked?`<button class="btn btn-ghost btn-sm" onclick="viewOrderDetail(${linked.id})">👁 View Order</button>`:`<button class="btn btn-pri btn-sm" onclick="openOrderFromShip(${JSON.stringify(s).replace(/"/g,'&quot;')})">📄 Create Order</button>`}</td></tr>`}).join('')}</tbody></table></div>`}`;
 }
 
 let _editOid=null,_oItemIds=[],_linkedShipId=null;
 
+function viewOrderDetail(id){ST.orderDetailId=id;nav('order-detail')}
+
 function openOrderFromShip(s){
   if(typeof s==='string')s=JSON.parse(s);
-  _linkedShipId=s.id;
   const existing=getOrders().find(o=>o.linkedShipId===s.id);
-  if(existing){openOrder(existing.id);return}
-  _editOid=null;
-  const defItem={id:Date.now(),orderNo:s.orderNo||'',itemNo:'',description:'',color:'',photo:'',quantity:0,fobRate:0,cartonNo:'',noOfCartons:0,qtyPerCarton:0,ctnSizeL:0,ctnSizeW:0,ctnSizeH:0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:0,totalCbm:0};
-  _oItemIds=[defItem.id];
-  const prefilled={consignee:s.party||'',poNo:s.orderNo||'',paymentTerms:'T/T, 100% payment against copy of shipping documents.',rexNo:'BDREX00706',hsCode:'4602190000',hsDesc:'Bangladesh Handicrafts, Seagrass & Jute Rope Baskets',countryOfOrigin:'BANGLADESH',advancePayment:0};
-  $('order-title').textContent=`New Order — ${s.party||s.orderNo||'Shipment'}`;
-  $('order-body').innerHTML=_orderFormHTML(prefilled,[defItem]);
-  $('order-ov').classList.add('open');
+  if(existing){viewOrderDetail(existing.id);return}
+  const newId=Date.now();
+  const defItem={id:newId+1,orderNo:s.orderNo||'',itemNo:'',description:'',color:'',photo:'',quantity:0,fobRate:0,cartonNo:'',noOfCartons:0,qtyPerCarton:0,ctnSizeL:0,ctnSizeW:0,ctnSizeH:0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:0,totalCbm:0};
+  const order={id:newId,linkedShipId:s.id,invoiceNo:'',poNo:s.orderNo||'',expNo:'',plNo:'',rexNo:'BDREX00706',date:'',poDate:'',expDate:'',plDate:'',shipmentDate:'',consignee:s.party||'',notifyParty:'',deliveryAddress:'',countryOfOrigin:'BANGLADESH',countryOfDestination:s.dest||'',portOfLoading:'',portOfDelivery:'',containerNo:'',sealNo:'',paymentTerms:'T/T, 100% payment against copy of shipping documents.',advancePayment:0,paymentDueDate:'',finalPaymentDate:'',finalPaymentReceived:false,hsCode:'4602190000',hsDesc:'Bangladesh Handicrafts, Seagrass & Jute Rope Baskets',sourceQuotationId:'',items:[defItem]};
+  const list=getOrders();list.unshift(order);setOrders(list);
+  viewOrderDetail(newId);
+  toast('📄 Order created — fill in Documents & Items below');
 }
 
 function openOrder(id){
-  _editOid=id;
-  const o=id?getOrders().find(x=>x.id===id):null;
-  _linkedShipId=o?o.linkedShipId||null:null;
-  const defItem={id:Date.now(),orderNo:'',itemNo:'',description:'',color:'',photo:'',quantity:0,fobRate:0,cartonNo:'',noOfCartons:0,qtyPerCarton:0,ctnSizeL:0,ctnSizeW:0,ctnSizeH:0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:0,totalCbm:0};
-  _oItemIds=o?o.items.map(x=>x.id):[defItem.id];
-  const items=o?o.items:[defItem];
-  $('order-title').textContent=o?`Edit Order — ${o.invoiceNo||'Draft'}`:'New Order';
-  $('order-body').innerHTML=_orderFormHTML(o,items);
-  $('order-ov').classList.add('open');
+  if(id){viewOrderDetail(id);return}
+  const newId=Date.now();
+  const defItem={id:newId+1,orderNo:'',itemNo:'',description:'',color:'',photo:'',quantity:0,fobRate:0,cartonNo:'',noOfCartons:0,qtyPerCarton:0,ctnSizeL:0,ctnSizeW:0,ctnSizeH:0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:0,totalCbm:0};
+  const order={id:newId,linkedShipId:null,invoiceNo:'',poNo:'',expNo:'',plNo:'',rexNo:'BDREX00706',date:'',poDate:'',expDate:'',plDate:'',shipmentDate:'',consignee:'',notifyParty:'',deliveryAddress:'',countryOfOrigin:'BANGLADESH',countryOfDestination:'',portOfLoading:'',portOfDelivery:'',containerNo:'',sealNo:'',paymentTerms:'T/T, 100% payment against copy of shipping documents.',advancePayment:0,paymentDueDate:'',finalPaymentDate:'',finalPaymentReceived:false,hsCode:'4602190000',hsDesc:'Bangladesh Handicrafts, Seagrass & Jute Rope Baskets',sourceQuotationId:'',items:[defItem]};
+  const list=getOrders();list.unshift(order);setOrders(list);
+  viewOrderDetail(newId);
+  toast('📄 New order created — fill in Documents & Items');
 }
 
 function _orderFormHTML(o,items){
@@ -3739,7 +3696,142 @@ function saveOrder(){
 }
 
 function deleteOrder(id){
-  confirm2('Delete Order','Delete this order and all its items?',()=>{setOrders(getOrders().filter(x=>x.id!==id));render();toast('Order deleted')},'Delete','btn-err');
+  confirm2('Delete Order','Delete this order and all its items?',()=>{setOrders(getOrders().filter(x=>x.id!==id));nav('orders');toast('Order deleted')},'Delete','btn-err');
+}
+
+function renderOrderDetail(){
+  const id=ST.orderDetailId;
+  const allOrders=getOrders();
+  const o=allOrders.find(x=>x.id===id);
+  if(!o)return'<div class="empty">Order not found. <button class="btn btn-ghost btn-sm" onclick="nav(\'orders\')">← Back to Orders</button></div>';
+  const yr=D.currentYear;
+  const ship=o.linkedShipId?getShips(yr).find(s=>s.id===o.linkedShipId):null;
+  const totalQty=o.items.reduce((a,it)=>a+(it.quantity||0),0);
+  const totalAmt=o.items.reduce((a,it)=>a+(it.quantity||0)*(it.fobRate||0),0);
+  const totalCtn=o.items.reduce((a,it)=>a+(it.noOfCartons||0),0);
+  const totalCbm=o.items.reduce((a,it)=>a+(it.totalCbm||0),0);
+  const adv=o.advancePayment||0;
+  const toPay=totalAmt-adv;
+  const idx=allOrders.findIndex(x=>x.id===id);
+  const prev=allOrders[idx-1];
+  const next=allOrders[idx+1];
+  const buyer=(o.consignee||'—').split('\n')[0];
+  const pb=o.finalPaymentReceived?'<span class="bdg bdg-ok">✅ Fully Paid</span>':o.finalPaymentDate?'<span class="bdg" style="background:var(--pril);color:var(--pri)">💳 '+_fmtDate(o.finalPaymentDate)+'</span>':o.advancePayment>0?'<span class="bdg bdg-warn">💰 Advance Only</span>':o.paymentDueDate?'<span class="bdg" style="background:var(--errl);color:var(--err)">⏰ Due: '+_fmtDate(o.paymentDueDate)+'</span>':'<span class="bdg" style="background:var(--card2);color:var(--muted)">Unpaid</span>';
+  const docNums=[['Invoice No',o.invoiceNo,_fmtDate(o.date)],['PO No',o.poNo,_fmtDate(o.poDate)],['EXP No',o.expNo,_fmtDate(o.expDate)],['PL No',o.plNo,_fmtDate(o.plDate)],['REX No',o.rexNo,'']];
+  const logFields=[['Port of Loading',o.portOfLoading],['Port of Delivery',o.portOfDelivery],['Destination',o.countryOfDestination],['Container No',o.containerNo],['Seal No',o.sealNo]];
+  const shipCard=ship?('<div class="card" style="margin-bottom:18px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px"><div class="card-title">🚢 Linked Shipment</div><button class="btn btn-ghost btn-sm" onclick="nav(\'shipments\')">View All Shipments →</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">'+[['Order No',ship.orderNo||'—'],['Buyer / Party',ship.party||'—'],['Destination',ship.dest||'—'],['Month',ship.month||'—'],['Invoice (USD)','$'+(ship.iamt||0)],['CBM',(ship.vol||0)+' m³'],['Ex-Factory',_fmtDate(ship.exf)||'—'],['Status',ship.shipped==='Shipped'?'<span class="bdg bdg-ok">🚢 Shipped</span>':'<span class="bdg bdg-warn">🔄 In Progress</span>'],['Payment',ship.pay||'—'],['Advance',ship.dpmt?'$'+ship.dpmt:'—']].map(function(pair){return'<div style="background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--bdr)"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">'+pair[0]+'</div><div style="font-size:13px;font-weight:600;color:var(--txt)">'+pair[1]+'</div></div>'}).join('')+'</div></div>'):'';
+  const itemRows=o.items.map(function(it){const amt=(it.quantity||0)*(it.fobRate||0);return'<tr style="border-bottom:1px solid var(--divider)">'+'<td style="padding:8px">'+(it.photo?'<img src="'+it.photo+'" style="width:40px;height:40px;object-fit:contain;border-radius:4px;border:1px solid var(--bdr)">':'—')+'</td>'+'<td style="padding:8px;font-size:11px;color:var(--muted)">'+(it.itemNo||'—')+'</td>'+'<td style="padding:8px"><strong>'+(it.description||'—')+'</strong>'+(it.color?'<br><span style="font-size:11px;color:var(--muted)">'+it.color+'</span>':'')+'</td>'+'<td style="padding:8px;text-align:right">'+(it.quantity||0).toLocaleString()+'</td>'+'<td style="padding:8px;text-align:right">$'+(it.fobRate||0).toFixed(2)+'</td>'+'<td style="padding:8px;text-align:right;font-weight:700;color:var(--ok)">$'+amt.toFixed(2)+'</td>'+'<td style="padding:8px;text-align:center">'+(it.noOfCartons||0)+'</td>'+'<td style="padding:8px;text-align:center">'+(it.totalCbm||0).toFixed(4)+'</td>'+'<td style="padding:8px;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openEditOItemDirect('+o.id+','+it.id+')">✏️</button> <button class="btn btn-ghost btn-sm" style="color:var(--err)" onclick="deleteOItemDirect('+o.id+','+it.id+')">🗑</button></td>'+'</tr>';}).join('');
+  return'<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="nav(\'orders\')">← Back to Orders</button><span style="color:var(--muted);font-size:12.5px">'+(idx+1)+' of '+allOrders.length+'</span>'+(prev?'<button class="btn btn-ghost btn-sm" onclick="viewOrderDetail('+prev.id+')">‹ Prev</button>':'')+(next?'<button class="btn btn-ghost btn-sm" onclick="viewOrderDetail('+next.id+')">Next ›</button>':'')+'<div style="flex:1"></div><button class="btn btn-err btn-sm" onclick="deleteOrder('+o.id+')">🗑 Delete Order</button></div>'
+  +'<div class="card" style="margin-bottom:18px;padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;align-items:center"><div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Invoice</div><div style="font-size:20px;font-weight:900;color:var(--htxt)">'+(o.invoiceNo||'Draft')+'</div><div style="font-size:12px;color:var(--muted)">'+(o.poNo?'PO: '+o.poNo:'')+'</div></div><div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Buyer</div><div style="font-size:15px;font-weight:700;color:var(--txt)">'+buyer+'</div><div style="font-size:12px;color:var(--muted)">'+_fmtDate(o.date)+'</div></div><div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Total Amount</div><div style="font-size:20px;font-weight:900;color:var(--ok)">$'+totalAmt.toFixed(2)+'</div><div style="font-size:12px;color:var(--muted)">'+totalQty.toLocaleString()+' pcs · '+o.items.length+' item'+(o.items.length===1?'':'s')+'</div></div><div><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Cartons / CBM</div><div style="font-size:16px;font-weight:700;color:var(--txt)">'+totalCtn+' ctns</div><div style="font-size:12px;color:var(--muted)">'+totalCbm.toFixed(4)+' m³</div></div><div>'+pb+'</div></div>'
+  +shipCard
+  +'<div class="card" style="margin-bottom:18px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px"><div class="card-title">📄 Documents Section</div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-pri btn-sm" onclick="printCI('+o.id+')">🧾 Print CI</button><button class="btn btn-ghost btn-sm" onclick="printPL('+o.id+')">📦 Print PL</button><button class="btn btn-out btn-sm" onclick="openOrderDocEdit('+o.id+')">✏️ Edit Documents</button></div></div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">📋 Document Numbers & Dates</div>'+docNums.map(function(r){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--divider)"><span style="font-size:12px;color:var(--muted)">'+r[0]+'</span><span style="font-size:12px;font-weight:600;color:var(--txt)">'+(r[1]||'—')+(r[2]?' <span style="color:var(--muted);font-weight:400;font-size:11px">'+r[2]+'</span>':'')+'</span></div>'}).join('')+'<div style="margin-top:12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px">🚢 Logistics</div>'+logFields.map(function(r){return'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--divider)"><span style="font-size:12px;color:var(--muted)">'+r[0]+'</span><span style="font-size:12px;font-weight:600;color:var(--txt)">'+(r[1]||'—')+'</span></div>'}).join('')+'</div>'
+  +'<div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">🏢 Consignee</div><div style="background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--bdr);font-size:12.5px;line-height:1.7;white-space:pre-wrap;min-height:56px;margin-bottom:12px">'+(o.consignee||'—')+'</div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">📬 Notify Party</div><div style="background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--bdr);font-size:12.5px;line-height:1.7;white-space:pre-wrap;min-height:56px;margin-bottom:12px">'+(o.notifyParty||'—')+'</div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:6px">💰 Payment</div><div style="background:var(--card2);border-radius:8px;padding:10px;border:1px solid var(--bdr)"><div style="font-size:12px;margin-bottom:6px"><span style="color:var(--muted)">Terms:</span> '+(o.paymentTerms||'—')+'</div><div style="font-size:12px;margin-bottom:6px"><span style="color:var(--muted)">Advance:</span> <strong>$'+adv.toFixed(2)+'</strong></div>'+pb+'</div></div></div></div>'
+  +'<div class="card" style="margin-bottom:18px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div class="card-title">📦 Order Items</div><button class="btn btn-pri btn-sm" onclick="openAddOItemDirect('+o.id+')">+ Add Item</button></div>'
+  +(o.items.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:var(--pril)"><th style="padding:8px;text-align:left;border-bottom:2px solid var(--bdr)">Photo</th><th style="padding:8px;text-align:left;border-bottom:2px solid var(--bdr)">Item No</th><th style="padding:8px;text-align:left;border-bottom:2px solid var(--bdr)">Description</th><th style="padding:8px;text-align:right;border-bottom:2px solid var(--bdr)">Qty (pcs)</th><th style="padding:8px;text-align:right;border-bottom:2px solid var(--bdr)">FOB Rate</th><th style="padding:8px;text-align:right;border-bottom:2px solid var(--bdr)">Amount (USD)</th><th style="padding:8px;text-align:center;border-bottom:2px solid var(--bdr)">CTNs</th><th style="padding:8px;text-align:center;border-bottom:2px solid var(--bdr)">CBM</th><th style="padding:8px;border-bottom:2px solid var(--bdr)">Actions</th></tr></thead><tbody>'+itemRows+'</tbody><tfoot><tr style="background:var(--card2);font-weight:700"><td colspan="3" style="padding:8px;text-align:right">Totals</td><td style="padding:8px;text-align:right">'+totalQty.toLocaleString()+'</td><td></td><td style="padding:8px;text-align:right;color:var(--ok)">$'+totalAmt.toFixed(2)+'</td><td style="padding:8px;text-align:center">'+totalCtn+'</td><td style="padding:8px;text-align:center">'+totalCbm.toFixed(4)+'</td><td></td></tr>'+(adv?'<tr><td colspan="5" style="padding:6px 8px;text-align:right;font-size:12px;color:var(--muted)">Less Advance</td><td style="padding:6px 8px;text-align:right;color:var(--ok)">($'+adv.toFixed(2)+')</td><td colspan="3"></td></tr>':'')+'<tr style="background:var(--okl)"><td colspan="5" style="padding:10px 8px;text-align:right;font-weight:700">Total to Pay</td><td style="padding:10px 8px;text-align:right;font-weight:900;font-size:16px;color:var(--ok)">$'+toPay.toFixed(2)+'</td><td colspan="3"></td></tr></tfoot></table></div>':'<div class="empty" style="padding:24px">No items yet.<br><button class="btn btn-pri btn-sm" style="margin-top:10px" onclick="openAddOItemDirect('+o.id+')">+ Add First Item</button></div>')
+  +'</div>'
+  +'<div class="ov" id="order-docs-ov"><div class="modal" style="max-width:900px;width:96vw;max-height:92vh;overflow-y:auto"><div class="mh"><h3 id="order-docs-title">✏️ Edit Documents</h3><button class="xbtn" onclick="closeModal(\'order-docs-ov\')">×</button></div><div class="mb" id="order-docs-body" style="padding:18px"></div><div class="mf"><button class="btn btn-ghost" onclick="closeModal(\'order-docs-ov\')">Cancel</button><button class="btn btn-pri" id="order-docs-save-btn">💾 Save Documents</button></div></div></div>'
+  +'<div class="ov" id="order-item-ov"><div class="modal" style="max-width:820px;width:96vw;max-height:92vh;overflow-y:auto"><div class="mh"><h3 id="order-item-title">Add Item</h3><button class="xbtn" onclick="closeModal(\'order-item-ov\')">×</button></div><div class="mb" id="order-item-body" style="padding:18px"></div><div class="mf"><button class="btn btn-ghost" onclick="closeModal(\'order-item-ov\')">Cancel</button><button class="btn btn-pri" id="order-item-save-btn">💾 Save Item</button></div></div></div>';
+}
+
+function openOrderDocEdit(oid){
+  const o=getOrders().find(x=>x.id===oid);if(!o)return;
+  const v=function(k,def){def=def===undefined?'':def;return o[k]!==undefined&&o[k]!==null&&o[k]!==''?o[k]:def};
+  const qOpts=getQuotations().map(function(q){return'<option value="'+q.id+'" '+(o.sourceQuotationId==q.id?'selected':'')+'>📋 '+(q.date||'')+' — '+(q.buyer||'')+'</option>'}).join('');
+  $('order-docs-title').textContent='✏️ Edit Documents — '+(o.invoiceNo||'Order');
+  $('order-docs-body').innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px"><div class="card" style="padding:14px"><div class="card-title" style="margin-bottom:10px">📋 Document Numbers</div><div class="fg"><label>Invoice No</label><input id="od-invno" value="'+v('invoiceNo')+'" placeholder="INV-2025-001"></div><div class="fg"><label>PO No</label><input id="od-pono" value="'+v('poNo')+'" placeholder="PO-001"></div><div class="fg"><label>EXP No</label><input id="od-expno" value="'+v('expNo')+'"></div><div class="fg"><label>Packing List No</label><input id="od-plno" value="'+v('plNo')+'"></div><div class="fg"><label>REX No</label><input id="od-rexno" value="'+v('rexNo','BDREX00706')+'"></div><div class="fg"><label>Source Quotation</label><select id="od-src-quotation"><option value="">— None —</option>'+qOpts+'</select></div></div><div class="card" style="padding:14px"><div class="card-title" style="margin-bottom:10px">📅 Dates</div><div class="fg"><label>Invoice Date</label><input type="date" id="od-date" value="'+v('date')+'"></div><div class="fg"><label>PO Date</label><input type="date" id="od-podate" value="'+v('poDate')+'"></div><div class="fg"><label>EXP Date</label><input type="date" id="od-expdate" value="'+v('expDate')+'"></div><div class="fg"><label>PL Date</label><input type="date" id="od-pldate" value="'+v('plDate')+'"></div><div class="fg"><label>Date of Shipment</label><input type="date" id="od-shipdate" value="'+v('shipmentDate')+'"></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px"><div class="card" style="padding:14px"><div class="card-title" style="margin-bottom:10px">🏢 Consignee (Buyer)</div><div class="fg"><label>Name &amp; Address</label><textarea id="od-consignee" rows="4" placeholder="Company Name&#10;Address">'+v('consignee')+'</textarea></div><div class="fg"><label>Delivery Address</label><textarea id="od-deladdr" rows="2">'+v('deliveryAddress')+'</textarea></div></div><div class="card" style="padding:14px"><div class="card-title" style="margin-bottom:10px">📬 Notify Party</div><div class="fg"><label>Name &amp; Address</label><textarea id="od-notify" rows="6">'+v('notifyParty')+'</textarea></div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="card" style="padding:14px"><div class="card-title" style="margin-bottom:10px">🚢 Logistics</div><div class="fg"><label>Country of Destination</label><input id="od-dest" value="'+v('countryOfDestination')+'"></div><div class="fg"><label>Port of Loading</label><input id="od-pol" value="'+v('portOfLoading')+'"></div><div class="fg"><label>Port of Delivery</label><input id="od-pod" value="'+v('portOfDelivery')+'"></div><div class="fg"><label>Container No</label><input id="od-ctnno" value="'+v('containerNo')+'"></div><div class="fg"><label>Seal No</label><input id="od-sealn" value="'+v('sealNo')+'"></div></div><div class="card" style="padding:14px"><div class="card-title" style="margin-bottom:10px">💰 Commercial Terms</div><div class="fg"><label>Payment Terms</label><textarea id="od-payterms" rows="2">'+v('paymentTerms','T/T, 100% payment against copy of shipping documents.')+'</textarea></div><div class="fg"><label>Advance Payment (USD)</label><input type="number" id="od-adv" value="'+(o.advancePayment!==undefined?o.advancePayment:0)+'" min="0" step="0.01"></div><div class="fg"><label>Payment Due Date</label><input type="date" id="od-payduedate" value="'+(o.paymentDueDate||'')+'"></div><div class="fg"><label>Final Payment Date</label><input type="date" id="od-finalpaydate" value="'+(o.finalPaymentDate||'')+'"></div><div class="fg"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer"><input type="checkbox" id="od-finalpayrecv" '+(o.finalPaymentReceived?'checked':'')+'>  Final Payment Received</label></div><div class="fg"><label>HS Code</label><input id="od-hscode" value="'+v('hsCode','4602190000')+'"></div><div class="fg"><label>HS Description</label><textarea id="od-hsdesc" rows="2">'+v('hsDesc','Bangladesh Handicrafts, Seagrass &amp; Jute Rope Baskets')+'</textarea></div></div></div>';
+  $('order-docs-save-btn').setAttribute('onclick','saveOrderDocuments('+oid+')');
+  $('order-docs-ov').classList.add('open');
+}
+
+function saveOrderDocuments(oid){
+  const list=getOrders();
+  const idx=list.findIndex(x=>x.id===oid);
+  if(idx<0){toast('Order not found');return}
+  const o=list[idx];
+  const gf=function(id){return $(id)?$(id).value||'':''};
+  Object.assign(o,{invoiceNo:gf('od-invno'),poNo:gf('od-pono'),expNo:gf('od-expno'),plNo:gf('od-plno'),rexNo:gf('od-rexno'),date:gf('od-date'),poDate:gf('od-podate'),expDate:gf('od-expdate'),plDate:gf('od-pldate'),shipmentDate:gf('od-shipdate'),consignee:gf('od-consignee'),notifyParty:gf('od-notify'),deliveryAddress:gf('od-deladdr'),countryOfDestination:gf('od-dest'),portOfLoading:gf('od-pol'),portOfDelivery:gf('od-pod'),containerNo:gf('od-ctnno'),sealNo:gf('od-sealn'),paymentTerms:gf('od-payterms'),advancePayment:parseFloat($('od-adv')?$('od-adv').value||0:0),paymentDueDate:gf('od-payduedate'),finalPaymentDate:gf('od-finalpaydate'),finalPaymentReceived:$('od-finalpayrecv')?$('od-finalpayrecv').checked:false,hsCode:gf('od-hscode'),hsDesc:gf('od-hsdesc'),sourceQuotationId:$('od-src-quotation')?$('od-src-quotation').value||'':''});
+  list[idx]=o;
+  setOrders(list);
+  closeModal('order-docs-ov');
+  ST.orderDetailId=oid;
+  nav('order-detail');
+  toast('✅ Documents saved');
+}
+
+let _oItemDirectPhoto='';
+
+function _orderItemFormHTML(it){
+  it=it||{id:0,orderNo:'',itemNo:'',description:'',color:'',photo:'',quantity:0,fobRate:0,cartonNo:'',noOfCartons:0,qtyPerCarton:0,ctnSizeL:0,ctnSizeW:0,ctnSizeH:0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:0,totalCbm:0};
+  const cbmCtn=it.cbmPerCtn||(it.ctnSizeL&&it.ctnSizeW&&it.ctnSizeH?(it.ctnSizeL*it.ctnSizeW*it.ctnSizeH)/1000000:0);
+  return'<div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Order No</label><input id="odi-ono" value="'+(it.orderNo||'')+'"></div><div class="fg"><label>Item No</label><input id="odi-ino" value="'+(it.itemNo||'')+'"></div><div class="fg"><label>Description</label><input id="odi-desc" value="'+(it.description||'')+'" placeholder="Seagrass Basket"></div><div class="fg"><label>Color</label><input id="odi-col" value="'+(it.color||'')+'"></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Quantity (pcs)</label><input type="number" id="odi-qty" value="'+(it.quantity||0)+'" oninput="recalcOIDirect()" min="0"></div><div class="fg"><label>FOB Rate (USD)</label><input type="number" id="odi-fob" value="'+(it.fobRate||0)+'" oninput="recalcOIDirect()" step="0.01" min="0"></div><div class="fg"><label>Amount (USD)</label><input id="odi-amt" value="'+((it.quantity||0)*(it.fobRate||0)).toFixed(2)+'" readonly style="background:var(--pril);font-weight:700;color:var(--prid)"></div><div class="fg"><label>Carton No(s)</label><input id="odi-ctnn" value="'+(it.cartonNo||'')+'" placeholder="1-10"></div></div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:6px 0 8px;border-top:1px solid var(--bdr)">📦 Packaging Details</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px"><div class="fg"><label>No. of Cartons</label><input type="number" id="odi-noc" value="'+(it.noOfCartons||0)+'" oninput="recalcOIDirect()" min="0"></div><div class="fg"><label>Qty/Carton</label><input type="number" id="odi-qpc" value="'+(it.qtyPerCarton||0)+'" min="0"></div><div class="fg"><label>CTN L (cm)</label><input type="number" id="odi-ctnl" value="'+(it.ctnSizeL||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>CTN W (cm)</label><input type="number" id="odi-ctnw" value="'+(it.ctnSizeW||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>CTN H (cm)</label><input type="number" id="odi-ctnh" value="'+(it.ctnSizeH||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>Net Wt/CTN (kg)</label><input type="number" id="odi-nw" value="'+(it.netWeightPerCtn||0)+'" step="0.001" min="0"></div><div class="fg"><label>Gross Wt/CTN (kg)</label><input type="number" id="odi-gw" value="'+(it.grossWeightPerCtn||0)+'" step="0.001" min="0"></div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px"><div class="fg"><label>CBM/Carton</label><input id="odi-cbmc" value="'+cbmCtn.toFixed(6)+'" readonly style="background:var(--pril)"></div><div class="fg"><label>Total CBM</label><input id="odi-tcbm" value="'+((it.noOfCartons||0)*cbmCtn).toFixed(4)+'" readonly style="background:var(--pril);font-weight:700"></div><div class="fg"><label>Product Photo</label><input type="file" id="odi-photo-inp" accept="image/*" onchange="uploadOIDirectPhoto(this)" style="font-size:11px;padding:3px"></div><div class="fg"><label>&nbsp;</label><div id="odi-photo-prev">'+(it.photo?'<img src="'+it.photo+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">':'')+'</div></div></div>';
+}
+
+function recalcOIDirect(){
+  const qty=parseFloat(($('odi-qty')||{}).value||0),fob=parseFloat(($('odi-fob')||{}).value||0);
+  if($('odi-amt'))$('odi-amt').value=(qty*fob).toFixed(2);
+  const L=parseFloat(($('odi-ctnl')||{}).value||0),W=parseFloat(($('odi-ctnw')||{}).value||0),H=parseFloat(($('odi-ctnh')||{}).value||0);
+  const cbm=(L*W*H)/1000000;
+  if($('odi-cbmc'))$('odi-cbmc').value=cbm.toFixed(6);
+  if($('odi-tcbm'))$('odi-tcbm').value=(parseFloat(($('odi-noc')||{}).value||0)*cbm).toFixed(4);
+}
+
+function uploadOIDirectPhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){_oItemDirectPhoto=e.target.result;const prev=$('odi-photo-prev');if(prev)prev.innerHTML='<img src="'+e.target.result+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">';};
+  reader.readAsDataURL(file);
+}
+
+function openAddOItemDirect(oid){
+  _oItemDirectPhoto='';
+  if($('order-item-title'))$('order-item-title').textContent='Add Item';
+  if($('order-item-body'))$('order-item-body').innerHTML=_orderItemFormHTML(null);
+  if($('order-item-save-btn'))$('order-item-save-btn').setAttribute('onclick','saveOItemDirect('+oid+',0)');
+  if($('order-item-ov'))$('order-item-ov').classList.add('open');
+}
+
+function openEditOItemDirect(oid,iid){
+  const o=getOrders().find(x=>x.id===oid);if(!o)return;
+  const it=o.items.find(x=>x.id===iid);if(!it)return;
+  _oItemDirectPhoto=it.photo||'';
+  if($('order-item-title'))$('order-item-title').textContent='Edit Item';
+  if($('order-item-body'))$('order-item-body').innerHTML=_orderItemFormHTML(it);
+  if($('order-item-save-btn'))$('order-item-save-btn').setAttribute('onclick','saveOItemDirect('+oid+','+iid+')');
+  if($('order-item-ov'))$('order-item-ov').classList.add('open');
+}
+
+function saveOItemDirect(oid,iid){
+  const list=getOrders();
+  const oidx=list.findIndex(x=>x.id===oid);
+  if(oidx<0)return;
+  const o=list[oidx];
+  const gf=function(id){return $(id)?$(id).value||'':''};
+  const L=parseFloat(gf('odi-ctnl')||0),W=parseFloat(gf('odi-ctnw')||0),H=parseFloat(gf('odi-ctnh')||0);
+  const cbmPerCtn=(L*W*H)/1000000;
+  const noc=parseFloat(gf('odi-noc')||0);
+  const existingPhoto=iid?((o.items.find(x=>x.id===iid)||{}).photo||''):'';
+  const it={id:iid||Date.now(),orderNo:gf('odi-ono'),itemNo:gf('odi-ino'),description:gf('odi-desc'),color:gf('odi-col'),photo:_oItemDirectPhoto||existingPhoto,quantity:parseFloat(gf('odi-qty')||0),fobRate:parseFloat(gf('odi-fob')||0),cartonNo:gf('odi-ctnn'),noOfCartons:noc,qtyPerCarton:parseFloat(gf('odi-qpc')||0),ctnSizeL:L,ctnSizeW:W,ctnSizeH:H,netWeightPerCtn:parseFloat(gf('odi-nw')||0),grossWeightPerCtn:parseFloat(gf('odi-gw')||0),cbmPerCtn,totalCbm:noc*cbmPerCtn};
+  if(iid){const iidx=o.items.findIndex(x=>x.id===iid);if(iidx>=0)o.items[iidx]=it;else o.items.push(it);}else{o.items.push(it);}
+  list[oidx]=o;
+  setOrders(list);
+  closeModal('order-item-ov');
+  ST.orderDetailId=oid;
+  nav('order-detail');
+  toast(iid?'✅ Item updated':'✅ Item added');
+}
+
+function deleteOItemDirect(oid,iid){
+  confirm2('Remove Item','Remove this item from the order?',function(){
+    const list=getOrders();
+    const oidx=list.findIndex(x=>x.id===oid);
+    if(oidx<0)return;
+    list[oidx].items=list[oidx].items.filter(x=>x.id!==iid);
+    setOrders(list);
+    ST.orderDetailId=oid;
+    nav('order-detail');
+    toast('Item removed');
+  },'Remove','btn-err');
 }
 
 function _numWords(n){
