@@ -697,7 +697,8 @@ function loadAll(){
   if(!d.years['2023']||!d.years['2023'].shipments||d.years['2023'].shipments.length===0){d.years['2023']=JSON.parse(JSON.stringify(SEED_2023));saveAll(d);}
   return d;
 }
-function saveAll(d){localStorage.setItem('em_v2',JSON.stringify(d))}
+function saveAll(d){try{localStorage.setItem('em_v2',JSON.stringify(d))}catch(e){if(e.name==='QuotaExceededError'||e.code===22){toast('⚠️ Storage full! Photos may be too large. Try using smaller images.');}else{toast('⚠️ Could not save data: '+e.message);}}}
+function compressImg(file,cb,maxW,maxH,quality){maxW=maxW||800;maxH=maxH||800;quality=quality||0.72;const r=new FileReader();r.onload=function(ev){const img=new Image();img.onload=function(){let w=img.width,h=img.height;if(w>maxW||h>maxH){const scale=Math.min(maxW/w,maxH/h);w=Math.round(w*scale);h=Math.round(h*scale);}const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(img,0,0,w,h);cb(cv.toDataURL('image/jpeg',quality));};img.src=ev.target.result;};r.readAsDataURL(file);}
 function setTheme(t){document.getElementById('root-html').setAttribute('data-theme',t);localStorage.setItem('em_theme',t);document.querySelectorAll('[id^="tb-"]').forEach(b=>b.style.outline='none');const tb=document.getElementById('tb-'+t);if(tb)tb.style.outline='3px solid #fff';}
 function toggleThemePicker(){const p=document.getElementById('theme-picker');if(p)p.style.display=p.style.display==='none'?'block':'none';}
 (function(){const t=localStorage.getItem('em_theme')||'light';document.getElementById('root-html').setAttribute('data-theme',t);document.addEventListener('DOMContentLoaded',function(){const tb=document.getElementById('tb-'+t);if(tb)tb.style.outline='3px solid #fff';});})();
@@ -2995,36 +2996,18 @@ let _editCostingId=null,_costingPhoto='';
 
 function uploadCostingPhoto(inp){
   const file=inp.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    _costingPhoto=e.target.result;
-    const prev=$('cf-photo-prev');
-    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`;
-  };
-  reader.readAsDataURL(file);
+  compressImg(file,function(d){_costingPhoto=d;const prev=$('cf-photo-prev');if(prev)prev.innerHTML='<img src="'+d+'" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">';});
 }
 
 function uploadQItemPhoto(id,inp){
   const file=inp.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    _qItemPhotos[id]=e.target.result;
-    const prev=$('qi-photo-prev-'+id);
-    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">`;
-  };
-  reader.readAsDataURL(file);
+  compressImg(file,function(d){_qItemPhotos[id]=d;const prev=$('qi-photo-prev-'+id);if(prev)prev.innerHTML='<img src="'+d+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">';});
 }
 
 let _editCatalogId=null,_catalogPhoto='';
 function uploadCatalogPhoto(inp){
   const file=inp.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    _catalogPhoto=e.target.result;
-    const prev=$('cat-photo-prev');
-    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">`;
-  };
-  reader.readAsDataURL(file);
+  compressImg(file,function(d){_catalogPhoto=d;const prev=$('cat-photo-prev');if(prev)prev.innerHTML='<img src="'+d+'" style="height:64px;border-radius:6px;object-fit:contain;border:1px solid var(--bdr)">';});
 }
 
 function exportCostingCSV(){
@@ -3639,13 +3622,7 @@ function recalcOI(id){
 
 function uploadOIPhoto(id,input){
   const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const prev=$('oi-photo-prev-'+id);
-    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">`;
-    input.dataset.b64=e.target.result;
-  };
-  reader.readAsDataURL(file);
+  compressImg(file,function(d){const prev=$('oi-photo-prev-'+id);if(prev)prev.innerHTML='<img src="'+d+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">';input.dataset.b64=d;});
 }
 
 function addOItem(){
@@ -3766,14 +3743,8 @@ function _orderItemFormHTML(it){
   const cbmCtn=it.cbmPerCtn||(it.ctnSizeL&&it.ctnSizeW&&it.ctnSizeH?(it.ctnSizeL*it.ctnSizeW*it.ctnSizeH)/1000000:0);
   const catItems=getCatalog();
   const catPicker=catItems.length?'<div style="background:var(--pril);border-radius:8px;padding:12px;margin-bottom:14px;border:1px solid var(--bdr)"><div style="font-size:12px;font-weight:700;color:var(--pri);margin-bottom:8px">📚 Pick from Product Catalog <span style="font-weight:400;color:var(--muted)">(optional — auto-fills fields below)</span></div><select id="odi-catalog-pick" onchange="fillItemFromCatalog(this.value)" style="width:100%;padding:7px 10px;border:1.5px solid var(--bdr);border-radius:6px;background:var(--inp);color:var(--txt);font-size:12.5px"><option value="">— Select a catalog product to pre-fill —</option>'+catItems.map(function(p){return'<option value="'+p.id+'">'+(p.name||'—')+(p.itemNo?' ('+p.itemNo+')':'')+(p.buyer?' · '+p.buyer:'')+'</option>'}).join('')+'</select></div>':'';
-  return catPicker
-  +'<div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Order No</label><input id="odi-ono" value="'+(it.orderNo||'')+'"></div><div class="fg"><label>Item No</label><input id="odi-ino" value="'+(it.itemNo||'')+'"></div><div class="fg"><label>Description</label><input id="odi-desc" value="'+(it.description||'')+'" placeholder="Seagrass Basket"></div><div class="fg"><label>Color</label><input id="odi-col" value="'+(it.color||'')+'"></div></div>'
-  +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Quantity (pcs)</label><input type="number" id="odi-qty" value="'+(it.quantity||0)+'" oninput="recalcOIDirect()" min="0"></div><div class="fg"><label>FOB Rate (USD)</label><input type="number" id="odi-fob" value="'+(it.fobRate||0)+'" oninput="recalcOIDirect()" step="0.01" min="0"></div><div class="fg"><label>Amount (USD)</label><input id="odi-amt" value="'+((it.quantity||0)*(it.fobRate||0)).toFixed(2)+'" readonly style="background:var(--pril);font-weight:700;color:var(--prid)"></div><div class="fg"><label>Carton No(s)</label><input id="odi-ctnn" value="'+(it.cartonNo||'')+'" placeholder="1-10"></div></div>'
-  +'<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:6px 0 8px;border-top:1px solid var(--bdr)">📐 Product Dimensions</div>'
-  +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Height (cm)</label><input type="number" id="odi-dimh" value="'+(it.dimHeight||'')+'" step="0.1" min="0" placeholder="0"></div><div class="fg"><label>Top Dia (cm)</label><input type="number" id="odi-dimtd" value="'+(it.dimTopDia||'')+'" step="0.1" min="0" placeholder="0"></div><div class="fg"><label>Bottom Dia (cm)</label><input type="number" id="odi-dimbd" value="'+(it.dimBottomDia||'')+'" step="0.1" min="0" placeholder="0"></div><div class="fg"><label>Width (cm)</label><input type="number" id="odi-dimw" value="'+(it.dimWidth||'')+'" step="0.1" min="0" placeholder="0"></div></div>'
-  +'<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:6px 0 8px;border-top:1px solid var(--bdr)">📦 Packaging Details</div>'
-  +'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px"><div class="fg"><label>No. of Cartons</label><input type="number" id="odi-noc" value="'+(it.noOfCartons||0)+'" oninput="recalcOIDirect()" min="0"></div><div class="fg"><label>Qty/Carton</label><input type="number" id="odi-qpc" value="'+(it.qtyPerCarton||0)+'" min="0"></div><div class="fg"><label>CTN L (cm)</label><input type="number" id="odi-ctnl" value="'+(it.ctnSizeL||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>CTN W (cm)</label><input type="number" id="odi-ctnw" value="'+(it.ctnSizeW||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>CTN H (cm)</label><input type="number" id="odi-ctnh" value="'+(it.ctnSizeH||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>Net Wt/CTN (kg)</label><input type="number" id="odi-nw" value="'+(it.netWeightPerCtn||0)+'" step="0.001" min="0"></div><div class="fg"><label>Gross Wt/CTN (kg)</label><input type="number" id="odi-gw" value="'+(it.grossWeightPerCtn||0)+'" step="0.001" min="0"></div></div>'
-  +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px"><div class="fg"><label>CBM/Carton</label><input id="odi-cbmc" value="'+cbmCtn.toFixed(6)+'" readonly style="background:var(--pril)"></div><div class="fg"><label>Total CBM</label><input id="odi-tcbm" value="'+((it.noOfCartons||0)*cbmCtn).toFixed(4)+'" readonly style="background:var(--pril);font-weight:700"></div><div class="fg"><label>Product Photo</label><input type="file" id="odi-photo-inp" accept="image/*" onchange="uploadOIDirectPhoto(this)" style="font-size:11px;padding:3px"></div><div class="fg"><label>&nbsp;</label><div id="odi-photo-prev">'+(it.photo?'<img src="'+it.photo+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">':'')+'</div></div></div>';
+  const html=catPicker+'<div style="display:grid;grid-template-columns:1fr 1fr 2fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Order No</label><input id="odi-ono" value="'+(it.orderNo||'')+'"></div><div class="fg"><label>Item No</label><input id="odi-ino" value="'+(it.itemNo||'')+'"></div><div class="fg"><label>Description</label><input id="odi-desc" value="'+(it.description||'')+'" placeholder="Seagrass Basket"></div><div class="fg"><label>Color</label><input id="odi-col" value="'+(it.color||'')+'"></div></div>'+'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Quantity (pcs)</label><input type="number" id="odi-qty" value="'+(it.quantity||0)+'" oninput="recalcOIDirect()" min="0"></div><div class="fg"><label>FOB Rate (USD)</label><input type="number" id="odi-fob" value="'+(it.fobRate||0)+'" oninput="recalcOIDirect()" step="0.01" min="0"></div><div class="fg"><label>Amount (USD)</label><input id="odi-amt" value="'+((it.quantity||0)*(it.fobRate||0)).toFixed(2)+'" readonly style="background:var(--pril);font-weight:700;color:var(--prid)"></div><div class="fg"><label>Carton No(s)</label><input id="odi-ctnn" value="'+(it.cartonNo||'')+'" placeholder="1-10"></div></div>'+'<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:6px 0 8px;border-top:1px solid var(--bdr)">📐 Product Dimensions</div>'+'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px"><div class="fg"><label>Height (cm)</label><input type="number" id="odi-dimh" value="'+(it.dimHeight||'')+'" step="0.1" min="0" placeholder="0"></div><div class="fg"><label>Top Dia (cm)</label><input type="number" id="odi-dimtd" value="'+(it.dimTopDia||'')+'" step="0.1" min="0" placeholder="0"></div><div class="fg"><label>Bottom Dia (cm)</label><input type="number" id="odi-dimbd" value="'+(it.dimBottomDia||'')+'" step="0.1" min="0" placeholder="0"></div><div class="fg"><label>Width (cm)</label><input type="number" id="odi-dimw" value="'+(it.dimWidth||'')+'" step="0.1" min="0" placeholder="0"></div></div>'+'<div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:6px 0 8px;border-top:1px solid var(--bdr)">📦 Packaging Details</div>'+'<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px"><div class="fg"><label>No. of Cartons</label><input type="number" id="odi-noc" value="'+(it.noOfCartons||0)+'" oninput="recalcOIDirect()" min="0"></div><div class="fg"><label>Qty/Carton</label><input type="number" id="odi-qpc" value="'+(it.qtyPerCarton||0)+'" min="0"></div><div class="fg"><label>CTN L (cm)</label><input type="number" id="odi-ctnl" value="'+(it.ctnSizeL||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>CTN W (cm)</label><input type="number" id="odi-ctnw" value="'+(it.ctnSizeW||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>CTN H (cm)</label><input type="number" id="odi-ctnh" value="'+(it.ctnSizeH||0)+'" oninput="recalcOIDirect()" step="0.1" min="0"></div><div class="fg"><label>Net Wt/CTN (kg)</label><input type="number" id="odi-nw" value="'+(it.netWeightPerCtn||0)+'" step="0.001" min="0"></div><div class="fg"><label>Gross Wt/CTN (kg)</label><input type="number" id="odi-gw" value="'+(it.grossWeightPerCtn||0)+'" step="0.001" min="0"></div></div>'+'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px"><div class="fg"><label>CBM/Carton</label><input id="odi-cbmc" value="'+cbmCtn.toFixed(6)+'" readonly style="background:var(--pril)"></div><div class="fg"><label>Total CBM</label><input id="odi-tcbm" value="'+((it.noOfCartons||0)*cbmCtn).toFixed(4)+'" readonly style="background:var(--pril);font-weight:700"></div><div class="fg"><label>Product Photo</label><input type="file" id="odi-photo-inp" accept="image/*" onchange="uploadOIDirectPhoto(this)" style="font-size:11px;padding:3px"></div><div class="fg"><label>&nbsp;</label><div id="odi-photo-prev">'+(it.photo?'<img src="'+it.photo+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">':'')+'</div></div></div>';
+  return html;
 }
 
 function recalcOIDirect(){
@@ -3787,9 +3758,7 @@ function recalcOIDirect(){
 
 function uploadOIDirectPhoto(input){
   const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(e){_oItemDirectPhoto=e.target.result;const prev=$('odi-photo-prev');if(prev)prev.innerHTML='<img src="'+e.target.result+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">';};
-  reader.readAsDataURL(file);
+  compressImg(file,function(d){_oItemDirectPhoto=d;const prev=$('odi-photo-prev');if(prev)prev.innerHTML='<img src="'+d+'" style="height:52px;border-radius:4px;object-fit:contain;border:1px solid var(--bdr)">';});
 }
 
 function openAddOItemDirect(oid){
