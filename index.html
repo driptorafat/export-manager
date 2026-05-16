@@ -436,6 +436,12 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
 <div class="modal">
   <div class="mh"><h3 id="ship-title">Add Shipment</h3><button class="xbtn" onclick="closeModal('ship-ov')">×</button></div>
   <div class="mb">
+    <div style="background:var(--pril);border-radius:8px;padding:12px;margin-bottom:14px;border:1px solid var(--bdr)">
+      <div style="font-size:12px;font-weight:700;color:var(--pri);margin-bottom:8px">📋 Pre-fill from Order <span style="font-weight:400;color:var(--muted)">(optional — auto-fills fields below)</span></div>
+      <select id="f-order-pick" onchange="fillShipFromOrder(this.value)" style="width:100%;padding:7px 10px;border:1.5px solid var(--bdr);border-radius:6px;background:var(--inp);color:var(--txt);font-size:12.5px">
+        <option value="">— Select an Order to pre-fill —</option>
+      </select>
+    </div>
     <div class="fg-grid">
       <div class="fg"><label>Month *</label><select id="f-month"><option value="">Select…</option><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div>
       <div class="fg"><label>Order No *</label><input id="f-orderNo" type="text" placeholder="e.g. BC035572"></div>
@@ -2773,6 +2779,40 @@ function populateDL(){
   const pl=$('dl-party');pl.innerHTML=uniq(ships,'party').map(p=>`<option value="${p}">`).join('');
   const dl=$('dl-dest');dl.innerHTML=uniq(ships,'dest').map(d=>`<option value="${d}">`).join('');
 }
+function _populateOrderPicker(currentShipId){
+  const sel=$('f-order-pick');if(!sel)return;
+  const orders=getOrders();
+  // find which order is currently linked to this shipment
+  const linkedOrder=currentShipId?orders.find(o=>o.linkedShipId===currentShipId):null;
+  sel.innerHTML='<option value="">— Select an Order to pre-fill —</option>';
+  orders.forEach(function(o){
+    // show unlinked orders, or the order already linked to this shipment
+    if(o.linkedShipId&&o.linkedShipId!==currentShipId)return;
+    const buyer=(o.consignee||'').split('\n')[0].trim();
+    const label=(o.poNo||o.invoiceNo||'Order #'+o.id)+(buyer?' · '+buyer:'')+(o.countryOfDestination?' → '+o.countryOfDestination:'');
+    const opt=document.createElement('option');
+    opt.value=o.id;opt.textContent=label;
+    if(linkedOrder&&o.id===linkedOrder.id)opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
+function fillShipFromOrder(oid){
+  if(!oid)return;
+  const o=getOrders().find(x=>x.id==oid);if(!o)return;
+  const items=o.items||[];
+  const totalAmt=items.reduce(function(a,it){return a+((+it.quantity||0)*(+it.fobRate||0));},0);
+  const totalCbm=items.reduce(function(a,it){return a+(+it.totalCbm||0);},0);
+  const buyer=(o.consignee||'').split('\n')[0].trim();
+  if(o.poNo)$('f-orderNo').value=o.poNo;
+  if(buyer)$('f-party').value=buyer;
+  if(o.countryOfDestination)$('f-dest').value=o.countryOfDestination;
+  if(totalAmt>0)$('f-iamt').value=totalAmt.toFixed(2);
+  if(totalCbm>0)$('f-vol').value=totalCbm.toFixed(2);
+  if(o.advancePayment)$('f-dpmt').value=o.advancePayment;
+  if(o.shipmentDate)$('f-exf').value=o.shipmentDate;
+  else if(o.date)$('f-exf').value=o.date;
+  toast('📋 Pre-filled from order: '+(o.poNo||o.invoiceNo||'Order'));
+}
 function openAdd(){
   $('ship-title').textContent='Add Shipment';
   document.getElementById('ship-ov').querySelector('form')?.reset();
@@ -2783,6 +2823,7 @@ function openAdd(){
   $('f-inc').value='Yes';$('f-cancel').checked=false;$('f-notes').value='';
   ['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=false);$('f-id').value='';
   $('copy-ship-btn').style.display='none';
+  _populateOrderPicker(null);
   populateDL();$('ship-ov').classList.add('open');
 }
 function openEdit(id){
@@ -2798,6 +2839,7 @@ function openEdit(id){
   $('f-pay').value=s.pay;$('f-sur').value=s.sur;$('f-inc').value=s.inc;
   $('f-cancel').checked=!!s.cancelled;$('f-notes').value=s.notes||'';
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
+  _populateOrderPicker(s.id);
   populateDL();$('ship-ov').classList.add('open');
 }
 function saveShip(){
@@ -2818,7 +2860,15 @@ function saveShip(){
   let list=getShips(yr);
   if(id){list=list.map(x=>x.id===+id?s:x);toast('Shipment updated')}
   else{list.push(s);toast('Shipment added')}
-  setShips(yr,list);closeModal('ship-ov');render();
+  setShips(yr,list);
+  // Link/unlink order
+  const pickedOid=$('f-order-pick')?+$('f-order-pick').value||0:0;
+  const oList=getOrders();
+  // unlink any order that was previously pointing at this shipment but is no longer selected
+  oList.forEach(function(o){if(o.linkedShipId===s.id&&o.id!==pickedOid){o.linkedShipId=null;}});
+  if(pickedOid){const oidx=oList.findIndex(x=>x.id===pickedOid);if(oidx>=0)oList[oidx].linkedShipId=s.id;}
+  setOrders(oList);
+  closeModal('ship-ov');render();
   if(D.cloud&&D.cloud.autoSync)doSync();
 }
 function delShip(id){
