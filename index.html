@@ -3848,12 +3848,12 @@ function addOrderItemToCatalog(oid,iid){
   if(existing){
     confirm2('Already in Catalog','"'+(it.description||it.itemNo||'This item')+'" already exists in the catalog. Update it with this order\'s data?',function(){
       const list=getCatalog();const idx=list.findIndex(x=>x.id===existing.id);
-      list[idx]={...existing,name:it.description||existing.name,itemNo:it.itemNo||existing.itemNo,material:it.material||existing.material,buyer:buyer||existing.buyer,photo:it.photo||existing.photo,stdRateUSD:it.fobRate||existing.stdRateUSD,dimHeight:it.dimHeight||existing.dimHeight,dimTopDia:it.dimTopDia||existing.dimTopDia,dimBottomDia:it.dimBottomDia||existing.dimBottomDia,dimWidth:it.dimWidth||existing.dimWidth,ctnL:it.ctnSizeL||existing.ctnL,ctnW:it.ctnSizeW||existing.ctnW,ctnH:it.ctnSizeH||existing.ctnH,qtyPerCtn:it.qtyPerCarton||existing.qtyPerCtn};
+      list[idx]={...existing,name:it.description||existing.name,itemNo:it.itemNo||existing.itemNo,material:it.material||existing.material,color:it.color||existing.color,buyer:buyer||existing.buyer,photo:it.photo||existing.photo,stdRateUSD:it.fobRate||existing.stdRateUSD,dimHeight:it.dimHeight||existing.dimHeight,dimTopDia:it.dimTopDia||existing.dimTopDia,dimBottomDia:it.dimBottomDia||existing.dimBottomDia,dimWidth:it.dimWidth||existing.dimWidth,ctnL:it.ctnSizeL||existing.ctnL,ctnW:it.ctnSizeW||existing.ctnW,ctnH:it.ctnSizeH||existing.ctnH,qtyPerCtn:it.qtyPerCarton||existing.qtyPerCtn};
       setCatalog(list);toast('✅ Catalog updated from order item');
     },'Update','btn-ok');
     return;
   }
-  const item={id:Date.now(),name:it.description||'',itemNo:it.itemNo||'',material:it.material||'',buyer:buyer,photo:it.photo||'',dimHeight:it.dimHeight||'',dimTopDia:it.dimTopDia||'',dimBottomDia:it.dimBottomDia||'',dimWidth:it.dimWidth||'',stdRateUSD:it.fobRate||'',ctnL:it.ctnSizeL||'',ctnW:it.ctnSizeW||'',ctnH:it.ctnSizeH||'',qtyPerCtn:it.qtyPerCarton||'',notes:''};
+  const item={id:Date.now(),name:it.description||'',itemNo:it.itemNo||'',material:it.material||'',color:it.color||'',buyer:buyer,photo:it.photo||'',dimHeight:it.dimHeight||'',dimTopDia:it.dimTopDia||'',dimBottomDia:it.dimBottomDia||'',dimWidth:it.dimWidth||'',stdRateUSD:it.fobRate||'',ctnL:it.ctnSizeL||'',ctnW:it.ctnSizeW||'',ctnH:it.ctnSizeH||'',qtyPerCtn:it.qtyPerCarton||'',notes:''};
   const list=getCatalog();list.push(item);setCatalog(list);
   toast('✅ Added to Product Catalog');
 }
@@ -3862,7 +3862,7 @@ function fillItemFromCatalog(pid){
   if(!pid)return;
   const p=getCatalog().find(x=>x.id==pid);if(!p)return;
   const sv=function(id,v){const el=$(id);if(el)el.value=v||''};
-  sv('odi-ino',p.itemNo);sv('odi-desc',p.name);sv('odi-mat',p.material||'');
+  sv('odi-ino',p.itemNo);sv('odi-desc',p.name);sv('odi-mat',p.material||'');sv('odi-col',p.color||'');
   sv('odi-fob',p.stdRateUSD||0);
   sv('odi-dimh',p.dimHeight||'');sv('odi-dimtd',p.dimTopDia||'');
   sv('odi-dimbd',p.dimBottomDia||'');sv('odi-dimw',p.dimWidth||'');
@@ -3906,7 +3906,7 @@ function addCatalogItemToOrderDirect(pid,oid){
   closeModal('catalog-order-ov');
   const cbm=(+p.ctnL||0)*(+p.ctnW||0)*(+p.ctnH||0)/1000000;
   const newItemId=Date.now();
-  const item={id:newItemId,orderNo:'',itemNo:p.itemNo||'',description:p.name||'',material:p.material||'',color:'',photo:p.photo||'',quantity:0,fobRate:+p.stdRateUSD||0,cartonNo:'',noOfCartons:0,qtyPerCarton:+p.qtyPerCtn||0,ctnSizeL:+p.ctnL||0,ctnSizeW:+p.ctnW||0,ctnSizeH:+p.ctnH||0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:cbm,totalCbm:0};
+  const item={id:newItemId,orderNo:'',itemNo:p.itemNo||'',description:p.name||'',material:p.material||'',color:p.color||'',photo:p.photo||'',quantity:0,fobRate:+p.stdRateUSD||0,cartonNo:'',noOfCartons:0,qtyPerCarton:+p.qtyPerCtn||0,ctnSizeL:+p.ctnL||0,ctnSizeW:+p.ctnW||0,ctnSizeH:+p.ctnH||0,netWeightPerCtn:0,grossWeightPerCtn:0,cbmPerCtn:cbm,totalCbm:0};
   if(!oid){
     const newId=Date.now()+1;item.id=newId+1;
     const order={id:newId,linkedShipId:null,invoiceNo:'',poNo:'',expNo:'',plNo:'',rexNo:'BDREX00706',date:'',poDate:'',expDate:'',plDate:'',shipmentDate:'',consignee:p.buyer||'',notifyParty:'',deliveryAddress:'',countryOfOrigin:'BANGLADESH',countryOfDestination:'',portOfLoading:'',portOfDelivery:'',containerNo:'',sealNo:'',paymentTerms:'T/T, 100% payment against copy of shipping documents.',advancePayment:0,paymentDueDate:'',finalPaymentDate:'',finalPaymentReceived:false,hsCode:'4602190000',hsDesc:'Bangladesh Handicrafts, Seagrass & Jute Rope Baskets',sourceQuotationId:'',items:[item]};
@@ -4256,6 +4256,7 @@ function _catalogFormHTML(p){
   <div class="fg full"><label>Product Name</label><input id="cat-name" value="${fN(p.name)}" placeholder="e.g. Seagrass Round Basket"></div>
   <div class="fg"><label>Item No</label><input id="cat-itemNo" value="${fN(p.itemNo)}" placeholder="HT-001"></div>
   <div class="fg"><label>Material</label><input id="cat-material" value="${fN(p.material)}" placeholder="Seagrass"></div>
+  <div class="fg"><label>Color</label><input id="cat-color" value="${fN(p.color)}" placeholder="Natural / Brown"></div>
   <div class="fg"><label>Buyer / Customer</label><input id="cat-buyer" value="${fN(p.buyer)}" placeholder="e.g. IKEA Germany"></div>
   <div class="fg"><label>Standard Rate (USD FOB)</label><input type="number" step="0.0001" id="cat-stdRateUSD" value="${fN(p.stdRateUSD)}" placeholder="0.0000"></div>
   <div class="fg"><label>Height (cm)</label><input type="number" step="0.1" id="cat-dimHeight" value="${fN(p.dimHeight)}"></div>
@@ -4277,7 +4278,7 @@ function _catalogFormHTML(p){
 function openCatalogItem(id){
   _editCatalogId=id;_catalogPhoto='';
   const p=id?getCatalog().find(x=>x.id===id):null;
-  const def={name:'',itemNo:'',material:'',buyer:'',stdRateUSD:'',dimHeight:'',dimTopDia:'',dimBottomDia:'',dimWidth:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',notes:'',photo:''};
+  const def={name:'',itemNo:'',material:'',color:'',buyer:'',stdRateUSD:'',dimHeight:'',dimTopDia:'',dimBottomDia:'',dimWidth:'',ctnL:'',ctnW:'',ctnH:'',qtyPerCtn:'',notes:'',photo:''};
   const data=p?{...def,...p}:def;
   $('catalog-title').textContent=id?'Edit Product':'New Product';
   $('catalog-body').innerHTML=_catalogFormHTML(data);
@@ -4289,7 +4290,7 @@ function saveCatalogItem(){
   const n=v=>parseFloat(v)||0;
   const existingPhoto=_editCatalogId?(getCatalog().find(x=>x.id===_editCatalogId)||{}).photo||'':'';
   const photo=_catalogPhoto||existingPhoto;
-  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),buyer:g('buyer'),stdRateUSD:n(g('stdRateUSD'))||'',dimHeight:n(g('dimHeight'))||'',dimTopDia:n(g('dimTopDia'))||'',dimBottomDia:n(g('dimBottomDia'))||'',dimWidth:n(g('dimWidth'))||'',ctnL:n(g('ctnL'))||'',ctnW:n(g('ctnW'))||'',ctnH:n(g('ctnH'))||'',qtyPerCtn:n(g('qtyPerCtn'))||'',notes:g('notes'),photo};
+  const data={name:g('name'),itemNo:g('itemNo'),material:g('material'),color:g('color'),buyer:g('buyer'),stdRateUSD:n(g('stdRateUSD'))||'',dimHeight:n(g('dimHeight'))||'',dimTopDia:n(g('dimTopDia'))||'',dimBottomDia:n(g('dimBottomDia'))||'',dimWidth:n(g('dimWidth'))||'',ctnL:n(g('ctnL'))||'',ctnW:n(g('ctnW'))||'',ctnH:n(g('ctnH'))||'',qtyPerCtn:n(g('qtyPerCtn'))||'',notes:g('notes'),photo};
   const list=getCatalog();
   if(_editCatalogId){const idx=list.findIndex(x=>x.id===_editCatalogId);if(idx>=0)list[idx]={...list[idx],...data};}
   else{data.id=Date.now();list.push(data);}
@@ -4377,10 +4378,14 @@ function renderCatalogDetail(){
       </div>
     </div>
 
-    <!-- Material -->
+    <!-- Material & Color -->
     <div class="card">
       <div class="card-title">🌿 Material</div>
       <div style="font-size:18px;font-weight:700;color:var(--txt)">${p.material||'—'}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🎨 Color</div>
+      <div style="font-size:18px;font-weight:700;color:var(--txt)">${p.color||'—'}</div>
     </div>
 
     <!-- Carton & Packaging -->
