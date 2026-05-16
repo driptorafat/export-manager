@@ -3423,6 +3423,8 @@ function printQuotation(id){
   const useSig=confirm('Include signature on the quotation?');
   const items=q.items||[];
   const totalAmt=items.reduce((a,it)=>a+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0);
+  const _is40HC=items.every(function(it){const cbm=(+it.ctnL||0)*(+it.ctnW||0)*(+it.ctnH||0)/1000000;if(!cbm||!+it.qtyPerCtn)return true;const calc=Math.floor(65/cbm)*(+it.qtyPerCtn);return Math.abs((+it.totalQtyIn40||0)-calc)<1;});
+  const _qtyColHdr=_is40HC?'Total Qty in 1\xD740\'HC':'Total Qty';
   const itemRows=items.map(it=>{
     const cbm=it.ctnL&&it.ctnW&&it.ctnH?(it.ctnL*it.ctnW*it.ctnH/1000000).toFixed(4):'—';
     return`<tr>
@@ -3460,7 +3462,7 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
 <h2>QUOTATION</h2>
 <table class="meta-tbl" style="border-top:none">
 <tr><td style="width:50%"><strong>To:</strong> ${q.buyer||'—'}</td><td><strong>Date:</strong> ${q.date||'—'}</td><td><strong>Valid Until:</strong> ${q.validUntil?_fmtDate(q.validUntil):'—'}</td></tr>
-<tr><td colspan="2"><strong>Subject:</strong> ${q.subject||'—'}</td><td style="font-size:8.5pt">${_qStatusBadge(q.status)}</td></tr>
+<tr><td colspan="3"><strong>Subject:</strong> ${q.subject||'—'}</td></tr>
 </table>
 <table class="qt-tbl">
 <thead><tr>
@@ -3474,7 +3476,7 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
   <th style="width:5%">H</th>
   <th style="width:7%">CBM/Box</th>
   <th style="width:6%">Qty/Ctn</th>
-  <th style="width:10%">Total Qty in 1×40'HC</th>
+  <th style="width:10%">${_qtyColHdr}</th>
   <th style="width:12%">Lead Time</th>
 </tr></thead>
 <tbody>${itemRows}</tbody>
@@ -3484,10 +3486,7 @@ h2{text-align:center;font-size:14pt;font-weight:900;letter-spacing:3px;border:1.
   <td colspan="7" style="border:1pt solid #000;padding:5pt 8pt;font-size:8pt;color:#555">${totalAmt>0?'Total in Words: USD '+_numWords(totalAmt):''}</td>
 </tr></tfoot>
 </table>
-<div class="sign-wrap">
-  ${useSig?`<img src="${_DOCS_SIG}" style="height:70pt;object-fit:contain;display:block;margin-left:auto;margin-right:0;margin-bottom:4pt">`:''}
-  <div class="sign-box"><strong>Rafat Khan</strong><br>General Manager (Export)<br>HAND TOUCH</div>
-</div>
+${useSig?`<div class="sign-wrap"><img src="${_DOCS_SIG}" style="height:70pt;object-fit:contain;display:block;margin-left:auto;margin-right:0;margin-bottom:4pt"><div class="sign-box"><strong>Rafat Khan</strong><br>General Manager (Export)<br>HAND TOUCH</div></div>`:''}
 </div>
 <script>window.onload=function(){var imgs=document.images,done=0,total=imgs.length;if(!total){setTimeout(window.print,500);return;}function check(){if(++done>=total)setTimeout(window.print,300);}for(var i=0;i<total;i++){if(imgs[i].complete)check();else{imgs[i].onload=check;imgs[i].onerror=check;}}}<\/script>
 </body></html>`);
