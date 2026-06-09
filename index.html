@@ -473,16 +473,68 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
           <div class="fg" style="margin:0"><label>ETA (Arrival)</label><input id="f-eta" type="date"></div>
         </div>
       </div>
-      <div class="fg full" style="margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--divider)">💰 Cost &amp; Profitability <span style="font-weight:400;text-transform:none;letter-spacing:0">(all values in USD)</span></div>
-        <div class="fg-grid" style="gap:10px">
-          <div class="fg" style="margin:0"><label>Goods / Factory Cost</label><input id="f-cGoods" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
-          <div class="fg" style="margin:0"><label>Freight / CNF</label><input id="f-cFreight" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
-          <div class="fg" style="margin:0"><label>BL / Docs</label><input id="f-cBL" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
-          <div class="fg" style="margin:0"><label>Inspection</label><input id="f-cInspect" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
-          <div class="fg" style="margin:0"><label>Commission</label><input id="f-cCommission" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
-          <div class="fg" style="margin:0"><label>Bank Charges</label><input id="f-cBank" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
-          <div class="fg full" style="margin:0"><label>Other Costs</label><input id="f-cOther" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+      <div class="fg full" style="margin-top:4px"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid var(--divider)">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">💰 Cost &amp; Profitability</div>
+          <div style="display:flex;gap:0;border:1.5px solid var(--bdr);border-radius:7px;overflow:hidden">
+            <button type="button" id="cm-simple-btn" onclick="setCostMode('simple')" style="border:none;padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;background:var(--pri);color:#fff">Simple</button>
+            <button type="button" id="cm-detailed-btn" onclick="setCostMode('detailed')" style="border:none;padding:5px 12px;font-size:11.5px;font-weight:700;cursor:pointer;background:transparent;color:var(--muted)">Detailed Costing</button>
+          </div>
         </div>
+        <input type="hidden" id="f-costMode" value="simple">
+
+        <!-- SIMPLE MODE -->
+        <div id="cost-simple">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Flat cost lines — all values in <strong>USD</strong>.</div>
+          <div class="fg-grid" style="gap:10px">
+            <div class="fg" style="margin:0"><label>Goods / Factory Cost</label><input id="f-cGoods" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Freight / CNF</label><input id="f-cFreight" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>BL / Docs</label><input id="f-cBL" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Inspection</label><input id="f-cInspect" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Commission</label><input id="f-cCommission" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Bank Charges</label><input id="f-cBank" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg full" style="margin:0"><label>Other Costs</label><input id="f-cOther" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          </div>
+        </div>
+
+        <!-- DETAILED MODE -->
+        <div id="cost-detailed" style="display:none">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--pril);border:1px solid var(--bdr);border-radius:8px;padding:9px 12px;margin-bottom:12px">
+            <span style="font-size:12px;font-weight:700;color:var(--prid)">📦 Load from saved Costing:</span>
+            <select id="f-dc-load" onchange="loadCostingIntoShip(this.value)" style="flex:1;min-width:160px;padding:5px 9px;border:1.5px solid var(--bdr);border-radius:6px;background:var(--inp);color:var(--txt);font-size:12.5px"><option value="">— Select a costing to pull figures —</option></select>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Quantity Basis</div>
+          <div class="fg-grid" style="gap:10px">
+            <div class="fg" style="margin:0"><label>Carton L (cm)</label><input id="f-dc-ctnL" type="number" step="0.1" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Carton W (cm)</label><input id="f-dc-ctnW" type="number" step="0.1" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Carton H (cm)</label><input id="f-dc-ctnH" type="number" step="0.1" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Qty per Carton</label><input id="f-dc-qtyPerCtn" type="number" placeholder="12" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Container Cap (m³)</label><input id="f-dc-containerCap" type="number" placeholder="65" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Total Qty (override)</label><input id="f-dc-totalQty" type="number" placeholder="Auto" oninput="updateProfitPreview()"></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Cost Inputs (BDT)</div>
+          <div class="fg-grid" style="gap:10px">
+            <div class="fg" style="margin:0"><label>Cost per Piece</label><input id="f-dc-costPerPcs" type="number" step="0.01" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Carton Cost / CTN</label><input id="f-dc-cartonCostPerCtn" type="number" step="0.01" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>C&amp;F / Container</label><input id="f-dc-cnfCost" type="number" step="0.01" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>B/L Cost</label><input id="f-dc-blCost" type="number" step="0.01" placeholder="0" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Transport Cost</label><input id="f-dc-transportCost" type="number" step="0.01" placeholder="0" oninput="updateProfitPreview()"></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Percentages &amp; Rate</div>
+          <div class="fg-grid" style="gap:10px">
+            <div class="fg" style="margin:0"><label>Wastage %</label><input id="f-dc-wastagePct" type="number" step="0.1" placeholder="2" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Overhead %</label><input id="f-dc-overheadPct" type="number" step="0.1" placeholder="15" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Target Profit %</label><input id="f-dc-profitPct" type="number" step="0.1" placeholder="10" oninput="updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Exchange Rate (BDT/USD)</label><input id="f-dc-exchangeRate" type="number" step="0.01" placeholder="120" oninput="updateProfitPreview()"></div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Extra Order Costs (USD) <span style="font-weight:400;text-transform:none;letter-spacing:0">— added on top of landed cost</span></div>
+          <div class="fg-grid" style="gap:10px">
+            <div class="fg" style="margin:0"><label>Inspection</label><input id="f-cInspect2" type="number" step="0.01" min="0" placeholder="0" oninput="syncAddon('cInspect',this.value);updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Commission</label><input id="f-cCommission2" type="number" step="0.01" min="0" placeholder="0" oninput="syncAddon('cCommission',this.value);updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Bank Charges</label><input id="f-cBank2" type="number" step="0.01" min="0" placeholder="0" oninput="syncAddon('cBank',this.value);updateProfitPreview()"></div>
+            <div class="fg" style="margin:0"><label>Other Costs</label><input id="f-cOther2" type="number" step="0.01" min="0" placeholder="0" oninput="syncAddon('cOther',this.value);updateProfitPreview()"></div>
+          </div>
+        </div>
+
         <div id="profit-preview" style="margin-top:12px;background:var(--card2);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px"></div>
       </div>
       <div class="fg" style="padding-top:16px;justify-content:center"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="f-cancel"> Mark as Cancelled</label></div>
@@ -807,9 +859,29 @@ const SHIPPED_DONE=['Shipped','Delivered'];
 function isShipped(s){return SHIPPED_DONE.includes(s.shipped||'Order Placed')}
 
 // ── PER-ORDER PROFITABILITY ───────────────────────────────────────────────────
-const COST_KEYS=['cGoods','cFreight','cBL','cInspect','cCommission','cBank','cOther'];
-function orderCost(s){return COST_KEYS.reduce((a,k)=>a+Number(s[k]||0),0)}
-function hasCostData(s){return COST_KEYS.some(k=>Number(s[k]||0)>0)}
+const SIMPLE_COST_KEYS=['cGoods','cFreight','cBL','cInspect','cCommission','cBank','cOther'];
+const ADDON_KEYS=['cInspect','cCommission','cBank','cOther'];
+const DC_KEYS=['ctnL','ctnW','ctnH','qtyPerCtn','containerCap','totalQty','costPerPcs','cartonCostPerCtn','cnfCost','blCost','transportCost','wastagePct','overheadPct','profitPct','exchangeRate'];
+// Landed cost (USD) from a shipment's detailed costing — uses calcCosting's gross (cost, excl. profit markup)
+function detailedLandedUSD(s){
+  if(!s.costing)return 0;
+  const r=calcCosting(s.costing);
+  const rate=Number(s.costing.exchangeRate)||120;
+  return rate?r.gross/rate:0;
+}
+function orderCost(s){
+  if(s.costMode==='detailed'){
+    return detailedLandedUSD(s)+ADDON_KEYS.reduce((a,k)=>a+Number(s[k]||0),0);
+  }
+  return SIMPLE_COST_KEYS.reduce((a,k)=>a+Number(s[k]||0),0);
+}
+function hasCostData(s){
+  if(s.costMode==='detailed'){
+    const c=s.costing||{};
+    return ['costPerPcs','cartonCostPerCtn','cnfCost','blCost','transportCost'].some(k=>Number(c[k]||0)>0)||ADDON_KEYS.some(k=>Number(s[k]||0)>0);
+  }
+  return SIMPLE_COST_KEYS.some(k=>Number(s[k]||0)>0);
+}
 function orderProfit(s){
   const revenue=Number(s.iamt||0);
   const cost=orderCost(s);
@@ -824,16 +896,64 @@ function profitBdg(s){
   const arrow=p.profit>=0?'▲':'▼';
   return`<span class="bdg ${cls}" title="Net ${fUSD(p.profit)} · Margin ${p.margin.toFixed(1)}%">${arrow} ${p.margin.toFixed(1)}%</span>`;
 }
+// Read the in-form detailed costing inputs into a costing object
+function _readDcForm(){
+  const g=k=>{const el=$('f-dc-'+k);return el?el.value:''};
+  const o={};DC_KEYS.forEach(k=>o[k]=g(k));return o;
+}
+function setCostMode(mode){
+  $('f-costMode').value=mode;
+  const simple=mode==='simple';
+  $('cost-simple').style.display=simple?'':'none';
+  $('cost-detailed').style.display=simple?'none':'';
+  $('cm-simple-btn').style.background=simple?'var(--pri)':'transparent';
+  $('cm-simple-btn').style.color=simple?'#fff':'var(--muted)';
+  $('cm-detailed-btn').style.background=simple?'transparent':'var(--pri)';
+  $('cm-detailed-btn').style.color=simple?'var(--muted)':'#fff';
+  updateProfitPreview();
+}
+// Detailed-mode extra USD costs live in mirror inputs (…2); keep canonical fields in sync
+function syncAddon(key,val){const el=$('f-'+key);if(el)el.value=val;}
+function _populateCostingPicker(){
+  const sel=$('f-dc-load');if(!sel)return;
+  const list=getCostings();
+  sel.innerHTML='<option value="">— Select a costing to pull figures —</option>'+list.map(c=>`<option value="${c.id}">${(c.name||'Untitled')}${c.buyer?' · '+c.buyer:''}</option>`).join('');
+}
+function loadCostingIntoShip(id){
+  if(!id)return;
+  const c=getCostings().find(x=>x.id==id);if(!c)return;
+  DC_KEYS.forEach(k=>{const el=$('f-dc-'+k);if(el)el.value=(c[k]!==undefined&&c[k]!=='')?c[k]:'';});
+  updateProfitPreview();
+  toast('📦 Pulled figures from costing: '+(c.name||'Untitled'));
+}
 function updateProfitPreview(){
   const box=$('profit-preview');if(!box)return;
   const revenue=Number($('f-iamt').value||0);
-  const cost=['f-cGoods','f-cFreight','f-cBL','f-cInspect','f-cCommission','f-cBank','f-cOther'].reduce((a,id)=>a+Number(($(id)||{}).value||0),0);
+  const mode=($('f-costMode')||{}).value||'simple';
+  let cost,extra='';
+  if(mode==='detailed'){
+    const c=_readDcForm();
+    const r=calcCosting(c);
+    const rate=Number(c.exchangeRate)||120;
+    const landedUSD=rate?r.gross/rate:0;
+    const addon=['f-cInspect2','f-cCommission2','f-cBank2','f-cOther2'].reduce((a,id)=>a+Number(($(id)||{}).value||0),0);
+    cost=landedUSD+addon;
+    const fobUSD=rate?r.total/rate:0; // suggested selling (incl. target profit)
+    const targetMargin=fobUSD?((fobUSD-landedUSD)/fobUSD*100):0;
+    extra=`
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--muted)"><span>Landed cost (BDT ${fBDT(r.gross)} @ ${rate})</span><span>${fUSD(landedUSD)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--muted)"><span>+ Extra order costs (USD)</span><span>${fUSD(addon)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0;color:var(--muted)"><span>Total Qty: ${r.totalQty.toLocaleString()} pcs · Suggested FOB: ${fUSD(fobUSD)} (${targetMargin.toFixed(1)}% target)</span></div>`;
+  } else {
+    cost=['f-cGoods','f-cFreight','f-cBL','f-cInspect','f-cCommission','f-cBank','f-cOther'].reduce((a,id)=>a+Number(($(id)||{}).value||0),0);
+  }
   const profit=revenue-cost;
   const margin=revenue>0?(profit/revenue*100):0;
   const col=profit>=0?'var(--ok)':'var(--err)';
   const arrow=profit>=0?'▲':'▼';
   const label=profit>=0?'NET PROFIT':'NET LOSS';
   box.innerHTML=`
+    ${extra}
     <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:2px 0"><span style="color:var(--muted)">Invoice (Revenue)</span><strong>${fUSD(revenue)}</strong></div>
     <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:2px 0;border-bottom:1px solid var(--divider);padding-bottom:8px;margin-bottom:8px"><span style="color:var(--muted)">Total Cost</span><strong style="color:var(--err)">${fUSD(cost)}</strong></div>
     <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">${label}</span><span style="font-size:18px;font-weight:800;color:${col}">${arrow} ${fUSD(Math.abs(profit))} <span style="font-size:13px">(${margin.toFixed(1)}%)</span></span></div>`;
@@ -2932,6 +3052,10 @@ function openAdd(){
   $('f-inc').value='Yes';$('f-cancel').checked=false;$('f-notes').value='';
   $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
   ['cGoods','cFreight','cBL','cInspect','cCommission','cBank','cOther'].forEach(k=>$('f-'+k).value='');
+  ['cInspect2','cCommission2','cBank2','cOther2'].forEach(k=>$('f-'+k).value='');
+  DC_KEYS.forEach(k=>{const el=$('f-dc-'+k);if(el)el.value='';});
+  _populateCostingPicker();$('f-dc-load').value='';
+  setCostMode('simple');
   ['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=false);$('f-id').value='';
   updateProfitPreview();
   $('copy-ship-btn').style.display='none';
@@ -2953,6 +3077,10 @@ function openEdit(id){
   $('f-etd').value=s.etd||'';$('f-eta').value=s.eta||'';
   $('f-cGoods').value=s.cGoods||'';$('f-cFreight').value=s.cFreight||'';$('f-cBL').value=s.cBL||'';
   $('f-cInspect').value=s.cInspect||'';$('f-cCommission').value=s.cCommission||'';$('f-cBank').value=s.cBank||'';$('f-cOther').value=s.cOther||'';
+  _populateCostingPicker();$('f-dc-load').value='';
+  const dc=s.costing||{};DC_KEYS.forEach(k=>{const el=$('f-dc-'+k);if(el)el.value=(dc[k]!==undefined&&dc[k]!=='')?dc[k]:'';});
+  $('f-cInspect2').value=s.cInspect||'';$('f-cCommission2').value=s.cCommission||'';$('f-cBank2').value=s.cBank||'';$('f-cOther2').value=s.cOther||'';
+  setCostMode(s.costMode||'simple');
   $('f-cancel').checked=!!s.cancelled;$('f-notes').value=s.notes||'';
   updateProfitPreview();
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
@@ -2972,6 +3100,8 @@ function saveShip(){
     pay:$('f-pay').value,sur:$('f-sur').value,inc:$('f-inc').value,
     payDue:$('f-payDue').value,vessel:$('f-vessel').value.trim(),blno:$('f-blno').value.trim(),
     etd:$('f-etd').value,eta:$('f-eta').value,
+    costMode:($('f-costMode')||{}).value||'simple',
+    costing:(()=>{const o={};DC_KEYS.forEach(k=>{const el=$('f-dc-'+k);o[k]=el&&el.value!==''?+el.value:''});return o;})(),
     cGoods:+$('f-cGoods').value||0,cFreight:+$('f-cFreight').value||0,cBL:+$('f-cBL').value||0,
     cInspect:+$('f-cInspect').value||0,cCommission:+$('f-cCommission').value||0,cBank:+$('f-cBank').value||0,cOther:+$('f-cOther').value||0,
     cancelled:$('f-cancel').checked,notes:$('f-notes').value.trim(),
@@ -3024,6 +3154,10 @@ function copyShip(id){
   $('f-sur').value=s.sur||'No';$('f-inc').value='No';$('f-cancel').checked=false;$('f-notes').value=s.notes||'';
   $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
   ['cGoods','cFreight','cBL','cInspect','cCommission','cBank','cOther'].forEach(k=>$('f-'+k).value=s[k]||'');
+  _populateCostingPicker();$('f-dc-load').value='';
+  const dc=s.costing||{};DC_KEYS.forEach(k=>{const el=$('f-dc-'+k);if(el)el.value=(dc[k]!==undefined&&dc[k]!=='')?dc[k]:'';});
+  $('f-cInspect2').value=s.cInspect||'';$('f-cCommission2').value=s.cCommission||'';$('f-cBank2').value=s.cBank||'';$('f-cOther2').value=s.cOther||'';
+  setCostMode(s.costMode||'simple');
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
   populateDL();$('ship-ov').classList.add('open');updateProfitPreview();
 }
