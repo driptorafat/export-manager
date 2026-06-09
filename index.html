@@ -473,6 +473,18 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
           <div class="fg" style="margin:0"><label>ETA (Arrival)</label><input id="f-eta" type="date"></div>
         </div>
       </div>
+      <div class="fg full" style="margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--divider)">💰 Cost &amp; Profitability <span style="font-weight:400;text-transform:none;letter-spacing:0">(all values in USD)</span></div>
+        <div class="fg-grid" style="gap:10px">
+          <div class="fg" style="margin:0"><label>Goods / Factory Cost</label><input id="f-cGoods" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          <div class="fg" style="margin:0"><label>Freight / CNF</label><input id="f-cFreight" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          <div class="fg" style="margin:0"><label>BL / Docs</label><input id="f-cBL" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          <div class="fg" style="margin:0"><label>Inspection</label><input id="f-cInspect" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          <div class="fg" style="margin:0"><label>Commission</label><input id="f-cCommission" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          <div class="fg" style="margin:0"><label>Bank Charges</label><input id="f-cBank" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          <div class="fg full" style="margin:0"><label>Other Costs</label><input id="f-cOther" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+        </div>
+        <div id="profit-preview" style="margin-top:12px;background:var(--card2);border:1px solid var(--bdr);border-radius:8px;padding:12px 14px"></div>
+      </div>
       <div class="fg" style="padding-top:16px;justify-content:center"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="f-cancel"> Mark as Cancelled</label></div>
       <div class="fg full"><label>Notes</label><textarea id="f-notes" rows="2" placeholder="Optional…"></textarea></div>
       <div class="fg full"><label>Document Checklist</label>
@@ -793,6 +805,39 @@ function ageDays(exf){if(!exf||!exf.includes('-'))return null;const d=new Date(e
 function agingBdg(exf,shipped){if(shipped==='Shipped'||shipped==='Delivered')return'';const d=ageDays(exf);if(d===null)return'';if(d>60)return`<span class="bdg bdg-err" style="margin-left:4px">${d}d</span>`;if(d>=30)return`<span class="bdg bdg-warn" style="margin-left:4px">${d}d</span>`;return`<span class="bdg bdg-ok" style="margin-left:4px">${d}d</span>`}
 const SHIPPED_DONE=['Shipped','Delivered'];
 function isShipped(s){return SHIPPED_DONE.includes(s.shipped||'Order Placed')}
+
+// ── PER-ORDER PROFITABILITY ───────────────────────────────────────────────────
+const COST_KEYS=['cGoods','cFreight','cBL','cInspect','cCommission','cBank','cOther'];
+function orderCost(s){return COST_KEYS.reduce((a,k)=>a+Number(s[k]||0),0)}
+function hasCostData(s){return COST_KEYS.some(k=>Number(s[k]||0)>0)}
+function orderProfit(s){
+  const revenue=Number(s.iamt||0);
+  const cost=orderCost(s);
+  const profit=revenue-cost;
+  const margin=revenue>0?(profit/revenue*100):0;
+  return{revenue,cost,profit,margin,hasCost:hasCostData(s)};
+}
+function profitBdg(s){
+  const p=orderProfit(s);
+  if(!p.hasCost)return'<span class="bdg bdg-grey" title="No cost data entered">—</span>';
+  const cls=p.profit>=0?'bdg-ok':'bdg-err';
+  const arrow=p.profit>=0?'▲':'▼';
+  return`<span class="bdg ${cls}" title="Net ${fUSD(p.profit)} · Margin ${p.margin.toFixed(1)}%">${arrow} ${p.margin.toFixed(1)}%</span>`;
+}
+function updateProfitPreview(){
+  const box=$('profit-preview');if(!box)return;
+  const revenue=Number($('f-iamt').value||0);
+  const cost=['f-cGoods','f-cFreight','f-cBL','f-cInspect','f-cCommission','f-cBank','f-cOther'].reduce((a,id)=>a+Number(($(id)||{}).value||0),0);
+  const profit=revenue-cost;
+  const margin=revenue>0?(profit/revenue*100):0;
+  const col=profit>=0?'var(--ok)':'var(--err)';
+  const arrow=profit>=0?'▲':'▼';
+  const label=profit>=0?'NET PROFIT':'NET LOSS';
+  box.innerHTML=`
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:2px 0"><span style="color:var(--muted)">Invoice (Revenue)</span><strong>${fUSD(revenue)}</strong></div>
+    <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:2px 0;border-bottom:1px solid var(--divider);padding-bottom:8px;margin-bottom:8px"><span style="color:var(--muted)">Total Cost</span><strong style="color:var(--err)">${fUSD(cost)}</strong></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">${label}</span><span style="font-size:18px;font-weight:800;color:${col}">${arrow} ${fUSD(Math.abs(profit))} <span style="font-size:13px">(${margin.toFixed(1)}%)</span></span></div>`;
+}
 function incDeadlineBdg(exf,inc){if(inc==='Yes')return'';const d=ageDays(exf);if(d===null)return'';if(d>60)return`<span class="bdg bdg-err" style="margin-left:4px" title="Incentive deadline overdue">⚠ Inc. overdue</span>`;if(d>=45)return`<span class="bdg bdg-warn" style="margin-left:4px" title="${60-d} days left">⏰ Inc. ${60-d}d left</span>`;return''}
 
 function toast(msg,ms=2200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -967,7 +1012,7 @@ function render(){
 function shipTable(list,actions=true){
   if(!list.length)return '<div class="empty">No shipments found.</div>';
   return `<div class="tbl-wrap"><table>
-<thead><tr><th>Order No</th><th>Party</th><th>Dest</th><th>Month</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Surrender</th><th>Incentive</th>${actions?'<th>Actions</th>':''}</tr></thead>
+<thead><tr><th>Order No</th><th>Party</th><th>Dest</th><th>Month</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Profit</th><th>Status</th><th>Payment</th><th>Surrender</th><th>Incentive</th>${actions?'<th>Actions</th>':''}</tr></thead>
 <tbody>${list.map(s=>{const docs=s.docs||{};const dc=[docs.ci,docs.pl,docs.bl,docs.lc,docs.coo].filter(Boolean).length;const docBdg=dc===5?'<span class="bdg bdg-ok" style="font-size:10px;margin-left:3px">📄5/5</span>':dc>0?`<span class="bdg bdg-warn" style="font-size:10px;margin-left:3px">📄${dc}/5</span>`:'<span class="bdg bdg-err" style="font-size:10px;margin-left:3px">📄0/5</span>';return`<tr class="${s.cancelled?'cancel':''}">
   <td><strong>${s.orderNo}</strong>${s.cancelled?' <span class="bdg bdg-err" style="font-size:10px">Cancelled</span>':''}${docBdg}</td>
   <td>${s.party}</td><td><span class="tag">${s.dest}</span></td><td>${s.month}</td>
@@ -976,9 +1021,10 @@ function shipTable(list,actions=true){
   <td><strong>${fUSD(s.iamt)}</strong></td>
   <td>${s.dpmt?fUSD(s.dpmt):'—'}</td>
   <td>${s.dpmt?'<strong>'+fUSD(Math.max(0,(s.iamt||0)-(s.dpmt||0)))+'</strong>':'—'}</td>
-  <td>${shippedBdg(s.shipped||'Order In Progress')}${agingBdg(s.exf,s.shipped||'Order In Progress')}</td>
+  <td>${profitBdg(s)}</td>
+  <td>${shippedBdg(s.shipped||'Order Placed')}${agingBdg(s.exf,s.shipped||'Order Placed')}</td>
   <td>${payBdg(s.pay)}</td><td>${surBdg(s.sur)}</td><td>${incBdg(s.inc)}${incDeadlineBdg(s.exf,s.inc)}</td>
-  ${actions?`<td style="white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap">${!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress'?`<button class="btn btn-ok btn-xs" title="Mark as Shipped" onclick="quickMarkShipped(${s.id})">🚢</button>`:''}${!s.cancelled&&s.pay!=='Full Paid'?`<button class="btn btn-ok btn-xs" title="Mark Full Paid" onclick="quickMarkPaid(${s.id})">💰</button>`:''}<button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-ghost btn-xs" title="Generate Packing List" onclick="generatePackingList(${s.id})">📄 PL</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
+  ${actions?`<td style="white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap">${!s.cancelled&&!isShipped(s)?`<button class="btn btn-ok btn-xs" title="Mark as Shipped" onclick="quickMarkShipped(${s.id})">🚢</button>`:''}${!s.cancelled&&s.pay!=='Full Paid'?`<button class="btn btn-ok btn-xs" title="Mark Full Paid" onclick="quickMarkPaid(${s.id})">💰</button>`:''}<button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-ghost btn-xs" title="Generate Packing List" onclick="generatePackingList(${s.id})">📄 PL</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
 </tr>`}).join('')}</tbody></table></div>`;
 }
 
@@ -1026,6 +1072,29 @@ function renderDash(yr,ships,cfg){
   <div class="card"><div class="card-title">Buyer Share</div><div style="display:flex;justify-content:center">${svgDonut(donutItems.length?donutItems:[{label:'No data',value:1,color:'#ddd'}],{size:180})}</div></div>
 </div>
 <div class="card" style="margin-bottom:18px"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center">📊 Sales Pipeline <div style="display:flex;gap:8px"><button class="btn btn-ghost btn-xs" onclick="nav('quotation')">Quotations →</button><button class="btn btn-ghost btn-xs" onclick="nav('costing')">Costings →</button></div></div><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px">${(()=>{const qs=getQuotations();const cs=getCostings();const open=qs.filter(q=>q.status==='Sent'||q.status==='Under Review');const pipeVal=open.reduce((a,q)=>a+(q.items||[]).reduce((b,it)=>b+((+it.rateUSD||0)*(+it.totalQtyIn40||0)),0),0);const accepted=qs.filter(q=>q.status==='Accepted').length;return`<div class="kpi" style="padding:12px"><div class="lbl">Open Quotations</div><div class="val" style="font-size:20px">${open.length}</div><div class="sub">Sent + Under Review</div></div><div class="kpi ok" style="padding:12px"><div class="lbl">Pipeline Value</div><div class="val" style="font-size:18px">$${pipeVal.toFixed(0)}</div><div class="sub">USD (open quotes)</div></div><div class="kpi" style="padding:12px"><div class="lbl">Accepted</div><div class="val" style="font-size:20px">${accepted}</div><div class="sub">Quotations accepted</div></div><div class="kpi acc" style="padding:12px"><div class="lbl">Costings</div><div class="val" style="font-size:20px">${cs.length}</div><div class="sub">Saved calculations</div></div>`;})()}</div></div>
+${(()=>{
+  const withCost=active.filter(s=>hasCostData(s)).map(s=>({s,p:orderProfit(s)}));
+  const noCost=active.filter(s=>!hasCostData(s));
+  if(!withCost.length)return`<div class="card" style="margin-bottom:18px;border:1.5px dashed var(--bdr)"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title" style="margin:0">💰 Per-Order Profitability</div><button class="btn btn-out btn-xs" onclick="nav('shipments')">Add Costs →</button></div><div class="empty" style="padding:16px 0;font-size:12.5px">No cost data entered yet. Open any shipment and fill the <strong>Cost &amp; Profitability</strong> section to see profit/loss per order.</div></div>`;
+  const totRev=withCost.reduce((a,x)=>a+x.p.revenue,0);
+  const totCost=withCost.reduce((a,x)=>a+x.p.cost,0);
+  const totProfit=totRev-totCost;
+  const totMargin=totRev?(totProfit/totRev*100):0;
+  const sorted=withCost.slice().sort((a,b)=>b.p.profit-a.p.profit);
+  const col=totProfit>=0?'var(--ok)':'var(--err)';
+  return`<div class="card" style="margin-bottom:18px">
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">💰 Per-Order Profitability — ${yr} <button class="btn btn-ghost btn-xs" onclick="nav('shipments')">View All →</button></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+    <div style="background:var(--pril);border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Revenue (costed)</div><div style="font-size:17px;font-weight:800;color:var(--prid)">${fUSD(totRev,0)}</div><div style="font-size:11px;color:var(--muted)">${withCost.length} order(s)</div></div>
+    <div style="background:#FFF3E0;border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Total Cost</div><div style="font-size:17px;font-weight:800;color:#E65100">${fUSD(totCost,0)}</div><div style="font-size:11px;color:var(--muted)">Goods + export costs</div></div>
+    <div style="background:${totProfit>=0?'var(--okl)':'var(--errl)'};border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Net Profit/Loss</div><div style="font-size:17px;font-weight:800;color:${col}">${totProfit>=0?'▲':'▼'} ${fUSD(Math.abs(totProfit),0)}</div><div style="font-size:11px;color:${col};font-weight:700">${totMargin.toFixed(1)}% margin</div></div>
+    <div style="background:var(--card2);border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase">Not Costed</div><div style="font-size:17px;font-weight:800;color:var(--muted)">${noCost.length}</div><div style="font-size:11px;color:var(--muted)">order(s) without costs</div></div>
+  </div>
+  <div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Party</th><th>Invoice</th><th>Cost</th><th>Net Profit/Loss</th><th>Margin</th></tr></thead>
+  <tbody>${sorted.map(({s,p})=>`<tr><td><strong>${s.orderNo}</strong></td><td>${s.party}</td><td>${fUSD(p.revenue)}</td><td style="color:var(--err)">${fUSD(p.cost)}</td><td style="font-weight:700;color:${p.profit>=0?'var(--ok)':'var(--err)'}">${p.profit>=0?'▲':'▼'} ${fUSD(Math.abs(p.profit))}</td><td><span class="bdg ${p.profit>=0?'bdg-ok':'bdg-err'}">${p.margin.toFixed(1)}%</span></td></tr>`).join('')}</tbody>
+  <tfoot><tr><td colspan="2"><strong>TOTAL</strong></td><td><strong>${fUSD(totRev)}</strong></td><td style="color:var(--err);font-weight:700">${fUSD(totCost)}</td><td style="font-weight:800;color:${col}">${totProfit>=0?'▲':'▼'} ${fUSD(Math.abs(totProfit))}</td><td><span class="bdg ${totProfit>=0?'bdg-ok':'bdg-err'}">${totMargin.toFixed(1)}%</span></td></tr></tfoot>
+  </table></div></div>`;
+})()}
 <div class="card"><div class="card-title" style="display:flex;justify-content:space-between">Recent Shipments <button class="btn btn-ghost btn-xs" onclick="nav('shipments')">View All →</button></div>${shipTable(ships.slice().reverse().slice(0,8),false)}</div>
 ${(()=>{
   const curMo=MONTHS[new Date().getMonth()];
@@ -2862,7 +2931,9 @@ function openAdd(){
   $('f-shipped').value='Order Placed';$('f-pay').value='None';$('f-sur').value='Complete';
   $('f-inc').value='Yes';$('f-cancel').checked=false;$('f-notes').value='';
   $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
+  ['cGoods','cFreight','cBL','cInspect','cCommission','cBank','cOther'].forEach(k=>$('f-'+k).value='');
   ['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=false);$('f-id').value='';
+  updateProfitPreview();
   $('copy-ship-btn').style.display='none';
   _populateOrderPicker(null);
   populateDL();$('ship-ov').classList.add('open');
@@ -2880,7 +2951,10 @@ function openEdit(id){
   $('f-pay').value=s.pay;$('f-sur').value=s.sur;$('f-inc').value=s.inc;
   $('f-payDue').value=s.payDue||'';$('f-vessel').value=s.vessel||'';$('f-blno').value=s.blno||'';
   $('f-etd').value=s.etd||'';$('f-eta').value=s.eta||'';
+  $('f-cGoods').value=s.cGoods||'';$('f-cFreight').value=s.cFreight||'';$('f-cBL').value=s.cBL||'';
+  $('f-cInspect').value=s.cInspect||'';$('f-cCommission').value=s.cCommission||'';$('f-cBank').value=s.cBank||'';$('f-cOther').value=s.cOther||'';
   $('f-cancel').checked=!!s.cancelled;$('f-notes').value=s.notes||'';
+  updateProfitPreview();
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
   _populateOrderPicker(s.id);
   populateDL();$('ship-ov').classList.add('open');
@@ -2898,6 +2972,8 @@ function saveShip(){
     pay:$('f-pay').value,sur:$('f-sur').value,inc:$('f-inc').value,
     payDue:$('f-payDue').value,vessel:$('f-vessel').value.trim(),blno:$('f-blno').value.trim(),
     etd:$('f-etd').value,eta:$('f-eta').value,
+    cGoods:+$('f-cGoods').value||0,cFreight:+$('f-cFreight').value||0,cBL:+$('f-cBL').value||0,
+    cInspect:+$('f-cInspect').value||0,cCommission:+$('f-cCommission').value||0,cBank:+$('f-cBank').value||0,cOther:+$('f-cOther').value||0,
     cancelled:$('f-cancel').checked,notes:$('f-notes').value.trim(),
     docs:{ci:$('f-doc-ci').checked,pl:$('f-doc-pl').checked,bl:$('f-doc-bl').checked,lc:$('f-doc-lc').checked,coo:$('f-doc-coo').checked}
   };
@@ -2947,8 +3023,9 @@ function copyShip(id){
   $('f-shipped').value='Order Placed';$('f-pay').value='None';
   $('f-sur').value=s.sur||'No';$('f-inc').value='No';$('f-cancel').checked=false;$('f-notes').value=s.notes||'';
   $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
+  ['cGoods','cFreight','cBL','cInspect','cCommission','cBank','cOther'].forEach(k=>$('f-'+k).value=s[k]||'');
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
-  populateDL();$('ship-ov').classList.add('open');
+  populateDL();$('ship-ov').classList.add('open');updateProfitPreview();
 }
 function exportBuyerCSV(yr){
   const ships=getShips(yr).filter(s=>!s.cancelled);
