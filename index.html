@@ -84,7 +84,7 @@ button{cursor:pointer;font-family:inherit}
 .sb-div{border-top:1px solid rgba(255,255,255,.1);margin:8px 0}
 /* MAIN */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-#topbar{background:var(--card);border-bottom:1px solid var(--bdr);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+#topbar{background:var(--card);border-bottom:1px solid var(--bdr);padding:0 20px;min-height:58px;height:auto;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
 #topbar-left{min-width:0}
 .tb-title{font-size:17px;font-weight:700;color:var(--prid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tb-meta{font-size:11.5px;color:var(--muted)}
@@ -259,7 +259,6 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
     <div class="login-error" id="login-error">Incorrect username or password. Please try again.</div>
   </div>
   <div class="login-footer">Export Manager · Secure Access Only</div>
-  <div style="margin-top:12px"><button onclick="localStorage.removeItem('em_auth');localStorage.removeItem('em_auth2');document.getElementById('l-user').value='admin';document.getElementById('l-pass').value='export2025';document.getElementById('login-error').style.display='none';alert('Done! Use  admin / export2025');" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.6);padding:6px 14px;border-radius:6px;font-size:11.5px;cursor:pointer">🔑 Reset to default credentials</button></div>
 </div>
 
 <!-- P&L IMPORT MODAL -->
@@ -382,13 +381,13 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
   </div>
   <div class="nav-grp">
     <div class="nav-lbl">Shipments</div>
+    <div class="ni" id="ni-ongoing" onclick="nav('ongoing')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Orders In Progress</div>
+    <div class="ni" id="ni-calendar" onclick="nav('calendar')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Monthly View</div>
     <div class="ni" id="ni-shipments" onclick="nav('shipments')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>All Shipments</div>
     <div class="ni" id="ni-orders" onclick="nav('orders')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Orders &amp; Documents</div>
     <div class="ni" id="ni-costing" onclick="nav('costing')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>Costing</div>
     <div class="ni" id="ni-quotation" onclick="nav('quotation')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Quotation</div>
     <div class="ni" id="ni-catalog" onclick="nav('catalog')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Product Catalog</div>
-    <div class="ni" id="ni-calendar" onclick="nav('calendar')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Monthly View</div>
-    <div class="ni" id="ni-ongoing" onclick="nav('ongoing')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Orders In Progress</div>
     <div class="ni" id="ni-container" onclick="nav('container')"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>Container Planner</div>
   </div>
   <div class="nav-grp">
@@ -415,13 +414,23 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
 </nav>
 <div id="main">
   <div id="topbar">
-    <div id="topbar-left">
-      <div class="tb-title" id="tb-title">Dashboard</div>
-      <div class="tb-meta" id="tb-meta">Export Orders</div>
+    <div id="topbar-left" style="display:flex;align-items:center;gap:14px;min-width:0;flex:1">
+      <div style="min-width:0">
+        <div class="tb-title" id="tb-title">Dashboard</div>
+        <div class="tb-meta" id="tb-meta">Export Orders</div>
+      </div>
+      <div style="position:relative;flex-shrink:0">
+        <input type="text" id="global-search" class="srch-inp" placeholder="🔍 Search orders, buyers…" style="width:210px;font-size:12.5px;padding:6px 12px" oninput="handleGlobalSearch(this.value)" onfocus="showSearchDrop()" onblur="setTimeout(hideSearchDrop,180)" autocomplete="off">
+        <div id="search-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;width:330px;background:var(--card);border:1.5px solid var(--bdr);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.16);z-index:500;max-height:300px;overflow-y:auto"></div>
+      </div>
     </div>
     <div class="tb-right">
       <span id="topbar-user" style="font-size:12px;color:var(--muted);font-weight:600"></span>
       <span id="sync-status" style="font-size:11px;color:var(--muted);display:flex;align-items:center"></span>
+      <div style="position:relative">
+        <button id="notif-btn" onclick="toggleNotifPanel()" title="Alerts &amp; Notifications" style="background:none;border:1px solid var(--bdr);border-radius:6px;padding:5px 8px;font-size:15px;cursor:pointer;color:var(--muted);line-height:1;display:flex;align-items:center">🔔<span id="notif-badge" style="display:none;margin-left:3px;background:var(--err);color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 5px;line-height:1.4">0</span></button>
+        <div id="notif-panel" style="display:none;position:fixed;top:64px;right:16px;width:360px;max-height:500px;overflow-y:auto;background:var(--card);border:1.5px solid var(--bdr);border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.2);z-index:400"></div>
+      </div>
       <button class="btn btn-ghost btn-sm" onclick="doExportCSV()">⬇ CSV</button>
       <button class="btn btn-ghost btn-sm" onclick="doSync()" id="sync-btn" title="Sync to cloud">☁ Sync</button>
       <button class="btn btn-ghost btn-sm" onclick="doLogout()" title="Sign out" style="border-color:#ddd">⎋ Logout</button>
@@ -451,11 +460,20 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
       <div class="fg"><label>Ex-Factory Date</label><input id="f-exf" type="date"></div>
       <div class="fg"><label>Invoice Amount (USD)</label><input id="f-iamt" type="number" step="0.01" min="0"></div>
       <div class="fg"><label>Down Payment (USD)</label><input id="f-dpmt" type="number" step="0.01" min="0" placeholder="0"></div>
-      <div class="fg"><label>Shipment Status</label><select id="f-shipped"><option value="Order In Progress">Order In Progress</option><option value="Shipped">Shipped</option></select></div>
+      <div class="fg"><label>Payment Due Date</label><input id="f-payDue" type="date"></div>
+      <div class="fg"><label>Pipeline Stage</label><select id="f-shipped"><option value="Order Placed">Order Placed</option><option value="In Production">In Production</option><option value="Ready to Ship">Ready to Ship</option><option value="Shipped">Shipped</option><option value="Delivered">Delivered</option></select></div>
       <div class="fg"><label>Payment Status</label><select id="f-pay"><option value="None">None</option><option value="Partially Paid">Partially Paid</option><option value="Full Paid">Full Paid</option></select></div>
       <div class="fg"><label>Surrender Status</label><select id="f-sur"><option value="Complete">Complete</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
       <div class="fg"><label>Incentive Status</label><select id="f-inc"><option value="Yes">Yes</option><option value="No">No</option></select></div>
-      <div class="fg" style="padding-top:20px;justify-content:center"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="f-cancel"> Mark as Cancelled</label></div>
+      <div class="fg full" style="margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--divider)">🚢 Logistics Details</div>
+        <div class="fg-grid" style="gap:10px">
+          <div class="fg" style="margin:0"><label>Vessel / Carrier</label><input id="f-vessel" type="text" placeholder="e.g. MSC Gina / DHL"></div>
+          <div class="fg" style="margin:0"><label>BL / Container No.</label><input id="f-blno" type="text" placeholder="e.g. MEDU123456"></div>
+          <div class="fg" style="margin:0"><label>ETD (Departure)</label><input id="f-etd" type="date"></div>
+          <div class="fg" style="margin:0"><label>ETA (Arrival)</label><input id="f-eta" type="date"></div>
+        </div>
+      </div>
+      <div class="fg" style="padding-top:16px;justify-content:center"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="f-cancel"> Mark as Cancelled</label></div>
       <div class="fg full"><label>Notes</label><textarea id="f-notes" rows="2" placeholder="Optional…"></textarea></div>
       <div class="fg full"><label>Document Checklist</label>
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px">
@@ -763,10 +781,18 @@ const uniq=(arr,k)=>[...new Set(arr.map(s=>s[k]).filter(Boolean))].sort();
 function payBdg(v){return v==='Full Paid'?'<span class="bdg bdg-ok">✓ Full Paid</span>':v==='Partially Paid'?'<span class="bdg bdg-warn">◑ Partially Paid</span>':'<span class="bdg bdg-err">✗ None</span>'}
 function surBdg(v){return v==='Complete'?'<span class="bdg bdg-ok">Complete</span>':v==='Yes'?'<span class="bdg bdg-info">Yes</span>':'<span class="bdg bdg-err">No</span>'}
 function incBdg(v){return v==='Yes'?'<span class="bdg bdg-ok">Yes</span>':'<span class="bdg bdg-warn">No</span>'}
-function shippedBdg(v){return v==='Shipped'?'<span class="bdg bdg-ok">🚢 Shipped</span>':'<span class="bdg bdg-warn">🔄 Order In Progress</span>'}
+function shippedBdg(v){
+  if(v==='Delivered')return'<span class="bdg bdg-ok">✅ Delivered</span>';
+  if(v==='Shipped')return'<span class="bdg bdg-ok">🚢 Shipped</span>';
+  if(v==='Ready to Ship')return'<span class="bdg bdg-info">📦 Ready to Ship</span>';
+  if(v==='In Production')return'<span class="bdg bdg-warn">⚙️ In Production</span>';
+  return'<span class="bdg bdg-warn">🔄 Order Placed</span>';
+}
 
 function ageDays(exf){if(!exf||!exf.includes('-'))return null;const d=new Date(exf);if(isNaN(d))return null;return Math.floor((Date.now()-d.getTime())/(1000*60*60*24))}
-function agingBdg(exf,shipped){if(shipped==='Shipped')return'';const d=ageDays(exf);if(d===null)return'';if(d>60)return`<span class="bdg bdg-err" style="margin-left:4px">${d}d</span>`;if(d>=30)return`<span class="bdg bdg-warn" style="margin-left:4px">${d}d</span>`;return`<span class="bdg bdg-ok" style="margin-left:4px">${d}d</span>`}
+function agingBdg(exf,shipped){if(shipped==='Shipped'||shipped==='Delivered')return'';const d=ageDays(exf);if(d===null)return'';if(d>60)return`<span class="bdg bdg-err" style="margin-left:4px">${d}d</span>`;if(d>=30)return`<span class="bdg bdg-warn" style="margin-left:4px">${d}d</span>`;return`<span class="bdg bdg-ok" style="margin-left:4px">${d}d</span>`}
+const SHIPPED_DONE=['Shipped','Delivered'];
+function isShipped(s){return SHIPPED_DONE.includes(s.shipped||'Order Placed')}
 function incDeadlineBdg(exf,inc){if(inc==='Yes')return'';const d=ageDays(exf);if(d===null)return'';if(d>60)return`<span class="bdg bdg-err" style="margin-left:4px" title="Incentive deadline overdue">⚠ Inc. overdue</span>`;if(d>=45)return`<span class="bdg bdg-warn" style="margin-left:4px" title="${60-d} days left">⏰ Inc. ${60-d}d left</span>`;return''}
 
 function toast(msg,ms=2200){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -905,6 +931,7 @@ function nav(page){
   $('tb-title').textContent=PAGE_TITLES[page]||page;
   $('tb-meta').textContent='Export Manager — '+(page==='compare'||page==='years'?'Global View':'Year '+D.currentYear);
   render();
+  setTimeout(updateNotifBadge,80);
 }
 function updateYrSel(){
   const sel=$('yr-sel'),yrs=allYears();
@@ -951,7 +978,7 @@ function shipTable(list,actions=true){
   <td>${s.dpmt?'<strong>'+fUSD(Math.max(0,(s.iamt||0)-(s.dpmt||0)))+'</strong>':'—'}</td>
   <td>${shippedBdg(s.shipped||'Order In Progress')}${agingBdg(s.exf,s.shipped||'Order In Progress')}</td>
   <td>${payBdg(s.pay)}</td><td>${surBdg(s.sur)}</td><td>${incBdg(s.inc)}${incDeadlineBdg(s.exf,s.inc)}</td>
-  ${actions?`<td style="white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap">${!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress'?`<button class="btn btn-ok btn-xs" title="Mark as Shipped" onclick="quickMarkShipped(${s.id})">🚢</button>`:''}${!s.cancelled&&s.pay!=='Full Paid'?`<button class="btn btn-ok btn-xs" title="Mark Full Paid" onclick="quickMarkPaid(${s.id})">💰</button>`:''}<button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
+  ${actions?`<td style="white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap">${!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress'?`<button class="btn btn-ok btn-xs" title="Mark as Shipped" onclick="quickMarkShipped(${s.id})">🚢</button>`:''}${!s.cancelled&&s.pay!=='Full Paid'?`<button class="btn btn-ok btn-xs" title="Mark Full Paid" onclick="quickMarkPaid(${s.id})">💰</button>`:''}<button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-ghost btn-xs" title="Generate Packing List" onclick="generatePackingList(${s.id})">📄 PL</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
 </tr>`}).join('')}</tbody></table></div>`;
 }
 
@@ -962,7 +989,7 @@ function renderDash(yr,ships,cfg){
   const unpaid=active.filter(s=>s.pay!=='Full Paid');
   const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
   const noInc=active.filter(s=>s.inc!=='Yes');
-  const inProgress=active.filter(s=>(s.shipped||'Order In Progress')==='Order In Progress');
+  const inProgress=active.filter(s=>!isShipped(s));
   const totalDpmt=active.reduce((a,s)=>a+Number(s.dpmt||0),0);
   const totalRbal=active.reduce((a,s)=>a+Math.max(0,(s.iamt||0)-(s.dpmt||0)),0);
   const mInv=MONTHS.map(m=>active.filter(s=>s.month===m).reduce((a,s)=>a+Number(s.iamt||0),0));
@@ -970,7 +997,18 @@ function renderDash(yr,ships,cfg){
   const buyers=Object.entries(buyerMap).sort((a,b)=>b[1]-a[1]);
   const barItems=MONTHS.map((m,i)=>({label:m.slice(0,3),value:mInv[i],color:mInv[i]>0?COLORS[0]:'#E0E0E0'}));
   const donutItems=buyers.slice(0,6).map((b,i)=>({label:b[0],value:b[1],color:COLORS[i]}));
+  const now2=new Date();
+  const overduePayments=active.filter(s=>s.pay!=='Full Paid'&&s.payDue&&new Date(s.payDue)<now2);
+  const upcomingExf=active.filter(s=>!isShipped(s)&&s.exf&&s.exf.includes('-')&&(()=>{const d=ageDays(s.exf);return d>=-14&&d<=0;})());
   return `
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap">
+  <div><div style="font-size:19px;font-weight:800;color:var(--htxt)">Dashboard — ${yr}</div><div style="font-size:12.5px;color:var(--muted);margin-top:2px">Export activity overview</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn btn-pri" onclick="openAdd()">+ New Shipment</button>
+    <button class="btn btn-ghost btn-sm" onclick="nav('ongoing')">⏱ In Progress →</button>
+    <button class="btn btn-ghost btn-sm" onclick="nav('calendar')">📅 Monthly →</button>
+  </div>
+</div>
 <div class="kpi-grid">
   <div class="kpi"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div><div class="sub">${ships.filter(s=>s.cancelled).length} cancelled in ${yr}</div></div>
   <div class="kpi acc"><div class="lbl">Invoice (USD)</div><div class="val">${fUSD(totalInv,0)}</div><div class="sub">${active.length} active shipments</div></div>
@@ -978,6 +1016,8 @@ function renderDash(yr,ships,cfg){
   <div class="kpi ${unpaid.length?'err':'ok'}"><div class="lbl">Not Full Paid</div><div class="val">${unpaid.length}</div><div class="sub">${fUSD(unpaid.reduce((a,s)=>a+Number(s.iamt||0),0),0)} outstanding</div></div>
   <div class="kpi ${inProgress.length?'warn':'ok'}"><div class="lbl">In Progress</div><div class="val">${inProgress.length}</div><div class="sub">Awaiting dispatch</div></div>
   <div class="kpi ${totalDpmt>0?'acc':''}"><div class="lbl">Down Payments</div><div class="val">${fUSD(totalDpmt,0)}</div><div class="sub">Balance: ${fUSD(totalRbal,0)}</div></div>
+  <div class="kpi ${overduePayments.length?'err':'ok'}"><div class="lbl">Overdue Payments</div><div class="val">${overduePayments.length}</div><div class="sub">${overduePayments.length?'Past payment due date':'All payments on time'}</div></div>
+  <div class="kpi ${upcomingExf.length?'warn':''}" style="cursor:${upcomingExf.length?'pointer':''}" onclick="${upcomingExf.length?"nav('ongoing')":""}"><div class="lbl">Ex-Factory Soon</div><div class="val">${upcomingExf.length}</div><div class="sub">Within next 14 days</div></div>
   <div class="kpi"><div class="lbl">Total Volume</div><div class="val">${fNum(cbm)}</div><div class="sub">CBM</div></div>
   <div class="kpi ${noInc.length?'warn':'ok'}"><div class="lbl">Incentive Pending</div><div class="val">${noInc.length}</div><div class="sub">Orders without incentive</div></div>
 </div>
@@ -1101,7 +1141,7 @@ function renderCalendar(yr,ships){
 
 // ── ORDERS IN PROGRESS ───────────────────────────────────────────────────────
 function renderOngoing(yr,ships){
-  const ongoing=ships.filter(s=>!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress');
+  const ongoing=ships.filter(s=>!s.cancelled&&!isShipped(s));
   const tot=ongoing.reduce((a,s)=>a+Number(s.iamt||0),0);
   const totRbal=ongoing.reduce((a,s)=>a+Math.max(0,(s.iamt||0)-(s.dpmt||0)),0);
   const totDpmt=ongoing.reduce((a,s)=>a+Number(s.dpmt||0),0);
@@ -1122,7 +1162,7 @@ function renderContainer(yr,ships){
   const CTYPES={['20ft']:{cbm:25,label:"20' Standard (25 CBM)"},['40ft']:{cbm:67,label:"40' Standard (67 CBM)"},['40HQ']:{cbm:76,label:"40' High Cube (76 CBM)"}};
   // Costing-based scenarios
   const costings=getCostings().filter(c=>(+c.ctnL)&&(+c.ctnW)&&(+c.ctnH)&&(+c.qtyPerCtn));
-  const unshipped=ships.filter(s=>!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress'&&Number(s.vol||0)>0).sort((a,b)=>Number(b.vol||0)-Number(a.vol||0));
+  const unshipped=ships.filter(s=>!s.cancelled&&!isShipped(s)&&Number(s.vol||0)>0).sort((a,b)=>Number(b.vol||0)-Number(a.vol||0));
   const totalCbm=unshipped.reduce((a,s)=>a+Number(s.vol||0),0);
   const ct=ST.containerType||'40ft';
   const maxCbm=CTYPES[ct].cbm;
@@ -2332,7 +2372,7 @@ function printBuyer(yr){
 
 function printOngoing(yr){
   const ships=getShips(yr),cfg=getCfg(yr);
-  const ongoing=ships.filter(s=>!s.cancelled&&(s.shipped||'Order In Progress')==='Order In Progress');
+  const ongoing=ships.filter(s=>!s.cancelled&&!isShipped(s));
   const tot=ongoing.reduce((a,s)=>a+Number(s.iamt||0),0);
   const totDpmt=ongoing.reduce((a,s)=>a+Number(s.dpmt||0),0);
   const totRbal=ongoing.reduce((a,s)=>a+Math.max(0,(s.iamt||0)-(s.dpmt||0)),0);
@@ -2819,8 +2859,9 @@ function openAdd(){
   $('f-month').value='';$('f-orderNo').value='';$('f-party').value='';$('f-dest').value='';
   $('f-vol').value='';$('f-exf').value='';
   $('f-iamt').value='';$('f-dpmt').value='';
-  $('f-shipped').value='Order In Progress';$('f-pay').value='None';$('f-sur').value='Complete';
+  $('f-shipped').value='Order Placed';$('f-pay').value='None';$('f-sur').value='Complete';
   $('f-inc').value='Yes';$('f-cancel').checked=false;$('f-notes').value='';
+  $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
   ['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=false);$('f-id').value='';
   $('copy-ship-btn').style.display='none';
   _populateOrderPicker(null);
@@ -2835,8 +2876,10 @@ function openEdit(id){
   $('f-exf').value=s.exf&&s.exf.includes('-')?s.exf:'';
   $('f-iamt').value=s.iamt;
   $('f-dpmt').value=s.dpmt||'';
-  $('f-shipped').value=s.shipped||'Order In Progress';
+  $('f-shipped').value=s.shipped||'Order Placed';
   $('f-pay').value=s.pay;$('f-sur').value=s.sur;$('f-inc').value=s.inc;
+  $('f-payDue').value=s.payDue||'';$('f-vessel').value=s.vessel||'';$('f-blno').value=s.blno||'';
+  $('f-etd').value=s.etd||'';$('f-eta').value=s.eta||'';
   $('f-cancel').checked=!!s.cancelled;$('f-notes').value=s.notes||'';
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
   _populateOrderPicker(s.id);
@@ -2853,6 +2896,8 @@ function saveShip(){
     dpmt:+$('f-dpmt').value||0,
     shipped:$('f-shipped').value,
     pay:$('f-pay').value,sur:$('f-sur').value,inc:$('f-inc').value,
+    payDue:$('f-payDue').value,vessel:$('f-vessel').value.trim(),blno:$('f-blno').value.trim(),
+    etd:$('f-etd').value,eta:$('f-eta').value,
     cancelled:$('f-cancel').checked,notes:$('f-notes').value.trim(),
     docs:{ci:$('f-doc-ci').checked,pl:$('f-doc-pl').checked,bl:$('f-doc-bl').checked,lc:$('f-doc-lc').checked,coo:$('f-doc-coo').checked}
   };
@@ -2899,8 +2944,9 @@ function copyShip(id){
   $('f-month').value=s.month;$('f-orderNo').value=s.orderNo+'-copy';$('f-party').value=s.party;
   $('f-dest').value=s.dest;$('f-vol').value=s.vol;$('f-exf').value='';
   $('f-iamt').value=s.iamt;$('f-dpmt').value='';
-  $('f-shipped').value='Order In Progress';$('f-pay').value='None';
+  $('f-shipped').value='Order Placed';$('f-pay').value='None';
   $('f-sur').value=s.sur||'No';$('f-inc').value='No';$('f-cancel').checked=false;$('f-notes').value=s.notes||'';
+  $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
   populateDL();$('ship-ov').classList.add('open');
 }
@@ -4263,6 +4309,7 @@ function bootApp() {
   updateYrSel();
   nav('dashboard');
   if(D.cloud && D.cloud.gistId && D.cloud.token) setTimeout(doPull, 800);
+  setTimeout(updateNotifBadge, 400);
 }
 
 document.addEventListener('keydown', e => {
@@ -4584,6 +4631,139 @@ function exportCatalogCSV(){
   const rows=list.map(p=>[p.id,p.name||'',p.itemNo||'',p.material||'',p.buyer||'',p.stdRateUSD||'',p.dimHeight||'',p.dimTopDia||'',p.dimBottomDia||'',p.dimWidth||'',p.ctnL||'',p.ctnW||'',p.ctnH||'',p.qtyPerCtn||'',p.notes||''].map(v=>JSON.stringify(v??'')).join(','));
   const csv=[hdr.join(','),...rows].join('\n');
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='product-catalog.csv';a.click();toast('📥 Catalog exported');
+}
+
+// ── GLOBAL SEARCH ─────────────────────────────────────────────────────────────
+function handleGlobalSearch(q){
+  const drop=$('search-drop');
+  if(!q||q.length<2){drop.style.display='none';return}
+  const yr=D.currentYear;
+  const ships=getShips(yr);
+  const allShips=Object.keys(D).filter(k=>k.startsWith('ships_')).flatMap(k=>D[k]||[]);
+  const lq=q.toLowerCase();
+  const results=allShips.filter(s=>
+    (s.orderNo||'').toLowerCase().includes(lq)||
+    (s.party||'').toLowerCase().includes(lq)||
+    (s.dest||'').toLowerCase().includes(lq)||
+    (s.vessel||'').toLowerCase().includes(lq)||
+    (s.blno||'').toLowerCase().includes(lq)||
+    (s.notes||'').toLowerCase().includes(lq)
+  ).slice(0,10);
+  if(!results.length){drop.innerHTML='<div style="padding:14px 16px;font-size:12.5px;color:var(--muted)">No results found.</div>';drop.style.display='block';return}
+  drop.innerHTML='<div style="padding:8px 0">'+results.map(s=>`
+    <div onclick="jumpToShipment(${s.id})" style="padding:9px 16px;cursor:pointer;border-bottom:1px solid var(--divider)" onmouseenter="this.style.background='var(--card2)'" onmouseleave="this.style.background=''">
+      <div style="font-weight:700;font-size:13px;color:var(--prid)">${s.orderNo} <span style="font-weight:400;color:var(--muted);font-size:11.5px">— ${s.party}</span></div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${s.month||''} · ${s.dest||''} · ${s.shipped||'Order Placed'} · ${s.pay||''}</div>
+    </div>`).join('')+'</div>';
+  drop.style.display='block';
+}
+function showSearchDrop(){const v=$('global-search').value;if(v&&v.length>=2)handleGlobalSearch(v)}
+function hideSearchDrop(){const d=$('search-drop');if(d)d.style.display='none';}
+function jumpToShipment(id){
+  $('global-search').value='';hideSearchDrop();
+  const allShips=Object.keys(D).filter(k=>k.startsWith('ships_')).flatMap(k=>D[k]||[]);
+  const s=allShips.find(x=>x.id===id);if(!s)return;
+  // Find which year
+  const yr=Object.keys(D).filter(k=>k.startsWith('ships_')).find(k=>(D[k]||[]).find(x=>x.id===id));
+  if(yr){D.currentYear=yr.replace('ships_','');updateYrSel();}
+  nav('shipments');
+  setTimeout(()=>openEdit(id),150);
+}
+
+// ── NOTIFICATIONS BELL ────────────────────────────────────────────────────────
+function buildNotifItems(){
+  const yr=D.currentYear;
+  const ships=getShips(yr).filter(s=>!s.cancelled);
+  const items=[];
+  const now=new Date();
+  // 1. Missing documents
+  ships.forEach(s=>{
+    const d=s.docs||{};
+    const missing=['ci','pl','bl','lc','coo'].filter(k=>!d[k]);
+    if(missing.length){items.push({type:'warn',title:'Missing docs: '+s.orderNo,body:missing.map(k=>k.toUpperCase()).join(', ')+' — '+s.party,action:()=>openEdit(s.id)})}
+  });
+  // 2. Overdue payments
+  ships.filter(s=>s.pay!=='Full Paid'&&s.payDue&&new Date(s.payDue)<now).forEach(s=>{
+    const days=Math.floor((now-new Date(s.payDue))/(86400000));
+    items.push({type:'err',title:'Payment overdue: '+s.orderNo,body:s.party+' — '+days+'d overdue',action:()=>openEdit(s.id)});
+  });
+  // 3. Upcoming ex-factory dates (next 14 days)
+  ships.filter(s=>!isShipped(s)&&s.exf&&s.exf.includes('-')).forEach(s=>{
+    const d=ageDays(s.exf);
+    if(d>=-14&&d<=0){items.push({type:'info',title:'Ex-factory soon: '+s.orderNo,body:s.party+' — '+(Math.abs(d))+'d away',action:()=>openEdit(s.id)})}
+  });
+  // 4. Orders aging 60+ days (incentive)
+  ships.filter(s=>s.inc!=='Yes'&&ageDays(s.exf)>60).forEach(s=>{
+    items.push({type:'err',title:'Incentive overdue: '+s.orderNo,body:s.party+' — '+ageDays(s.exf)+'d since ex-factory',action:()=>openEdit(s.id)});
+  });
+  return items;
+}
+function updateNotifBadge(){
+  const items=buildNotifItems();
+  const badge=$('notif-badge');
+  if(items.length){badge.textContent=items.length;badge.style.display='';}
+  else{badge.style.display='none';}
+}
+function toggleNotifPanel(){
+  const panel=$('notif-panel');
+  if(panel.style.display==='none'||!panel.style.display){
+    const items=buildNotifItems();
+    const typeIcon={err:'🔴',warn:'🟡',info:'🔵'};
+    const typeBg={err:'var(--errl)',warn:'var(--warnl)',info:'var(--pril)'};
+    panel.innerHTML=`<div style="padding:14px 18px 10px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between"><strong style="font-size:14px">Alerts & Notifications</strong><button onclick="toggleNotifPanel()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">×</button></div>`
+    +(items.length?items.map(it=>`<div onclick="toggleNotifPanel();if(typeof arguments[0]==='function'){}" style="padding:11px 18px;border-bottom:1px solid var(--divider);cursor:pointer;background:${typeBg[it.type]||'var(--card)'}" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'" onclick="(${it.action.toString()})()">
+      <div style="font-size:12.5px;font-weight:700">${typeIcon[it.type]} ${it.title}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${it.body}</div>
+    </div>`).join('')
+    :'<div style="padding:22px 18px;text-align:center;color:var(--ok);font-size:13px">✓ No alerts — all clear!</div>');
+    panel.style.display='block';
+    document.addEventListener('click',_notifOutside,{once:true,capture:true});
+  } else {
+    panel.style.display='none';
+  }
+}
+function _notifOutside(e){
+  const panel=$('notif-panel'),btn=$('notif-btn');
+  if(panel&&btn&&!panel.contains(e.target)&&!btn.contains(e.target)){panel.style.display='none';}
+  else if(panel&&panel.style.display!=='none'){document.addEventListener('click',_notifOutside,{once:true,capture:true});}
+}
+// Refresh badge whenever page becomes visible
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateNotifBadge()});
+
+// ── DOCUMENT AUTO-GENERATE ────────────────────────────────────────────────────
+function generatePackingList(id){
+  const yr=D.currentYear,s=getShips(yr).find(x=>x.id===id);if(!s)return;
+  const lines=[
+    'PACKING LIST',
+    '============',
+    'Order No : '+s.orderNo,
+    'Buyer    : '+s.party,
+    'Dest     : '+s.dest,
+    'Month    : '+s.month,
+    'Volume   : '+(s.vol||'—')+' CBM',
+    'Ex-Fac   : '+(s.exf?fDate(s.exf):'—'),
+    'Vessel   : '+(s.vessel||'—'),
+    'BL No    : '+(s.blno||'—'),
+    'ETD      : '+(s.etd?fDate(s.etd):'—'),
+    'ETA      : '+(s.eta?fDate(s.eta):'—'),
+    '',
+    'Invoice Amount : $'+(s.iamt||0).toFixed(2)+' USD',
+    '',
+    'Documents:',
+    '  Commercial Invoice : '+(s.docs&&s.docs.ci?'✓ Prepared':'— Pending'),
+    '  Packing List       : '+(s.docs&&s.docs.pl?'✓ Prepared':'— Pending'),
+    '  Bill of Lading     : '+(s.docs&&s.docs.bl?'✓ Prepared':'— Pending'),
+    '  Letter of Credit   : '+(s.docs&&s.docs.lc?'✓ Prepared':'— Pending'),
+    '  Certificate Origin : '+(s.docs&&s.docs.coo?'✓ Prepared':'— Pending'),
+    '',
+    'Notes: '+(s.notes||'—'),
+    '',
+    'Generated: '+new Date().toLocaleString()
+  ].join('\n');
+  const blob=new Blob([lines],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='PackingList_'+s.orderNo+'.txt';a.click();
+  toast('📄 Packing list draft downloaded');
 }
 </script>
 </body>
