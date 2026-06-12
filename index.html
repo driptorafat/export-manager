@@ -477,9 +477,18 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid var(--divider)">💰 Cost &amp; Profitability</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Goods costs in <strong>BDT</strong>; charges below in <strong>USD</strong>. Net profit is calculated against the invoice amount.</div>
         <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Goods Cost (BDT)</div>
+        <div style="background:var(--card2);border:1px solid var(--bdr);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted)">📦 Order Items <span style="font-weight:400">(optional — itemize qty &amp; cost when an order has multiple items)</span></div>
+            <button type="button" class="btn btn-out btn-xs" onclick="addDcItem()">+ Add Item</button>
+          </div>
+          <div id="dc-items-rows" style="margin-top:8px"></div>
+          <div id="dc-items-hint" style="font-size:11px;color:var(--muted);margin-top:6px">No items added — using flat Total Qty × Cost per Piece below.</div>
+        </div>
         <div class="fg-grid" style="gap:10px">
           <div class="fg" style="margin:0"><label>Total Qty (pcs)</label><input id="f-dc-totalQty" type="number" step="1" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
           <div class="fg" style="margin:0"><label>Cost per Piece (BDT)</label><input id="f-dc-costPerPcs" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
+          <div class="fg" style="margin:0"><label>Accessories Cost (BDT)</label><input id="f-dc-accessoriesCost" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
           <div class="fg" style="margin:0"><label>Carton Cost (BDT)</label><input id="f-dc-cartonCost" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
           <div class="fg" style="margin:0"><label>C&amp;F Cost (BDT)</label><input id="f-dc-cnfCost" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
           <div class="fg" style="margin:0"><label>Shipping / BL Cost (BDT)</label><input id="f-dc-blCost" type="number" step="0.01" min="0" placeholder="0" oninput="updateProfitPreview()"></div>
@@ -821,24 +830,33 @@ const SHIPPED_DONE=['Shipped','Delivered'];
 function isShipped(s){return SHIPPED_DONE.includes(s.shipped||'Order Placed')}
 
 // ── PER-ORDER PROFITABILITY ───────────────────────────────────────────────────
-const COSTING_KEYS=['totalQty','costPerPcs','cartonCost','cnfCost','blCost','transportCost','wastagePct','overheadPct','exchangeRate'];
+const COSTING_KEYS=['totalQty','costPerPcs','accessoriesCost','cartonCost','cnfCost','blCost','transportCost','wastagePct','overheadPct','exchangeRate'];
 const ADDON_KEYS=['cCommission','cBank','cOther']; // USD charges
-// Flat per-order costing — goods costs in BDT → landed cost → USD; charges added in USD.
+// Per-order costing — goods costs in BDT → landed cost → USD; charges added in USD.
+// Material cost comes from costing.items [{name,qty,costPerPcs}] when present (multi-item
+// orders), otherwise from the flat totalQty × costPerPcs fields.
 function calcOrderCosting(c){
-  const totalQty=Number(c.totalQty)||0;
-  const costPerPcs=Number(c.costPerPcs)||0;
+  const items=(c.items||[]).filter(it=>Number(it.qty)>0||Number(it.costPerPcs)>0);
+  let totalQty,material;
+  if(items.length){
+    totalQty=items.reduce((a,it)=>a+(Number(it.qty)||0),0);
+    material=items.reduce((a,it)=>a+(Number(it.qty)||0)*(Number(it.costPerPcs)||0),0);
+  }else{
+    totalQty=Number(c.totalQty)||0;
+    material=(Number(c.costPerPcs)||0)*totalQty;
+  }
+  const accessoriesCost=Number(c.accessoriesCost)||0;
   const cartonCost=Number(c.cartonCost)||0;
   const cnf=Number(c.cnfCost)||0,bl=Number(c.blCost)||0,transport=Number(c.transportCost)||0;
   const wastagePct=Number(c.wastagePct)||0;
   const overheadPct=Number(c.overheadPct)||0;
   const rate=Number(c.exchangeRate)||120;
-  const material=costPerPcs*totalQty;
   const wastage=material*wastagePct/100;
-  const directBDT=material+cartonCost+cnf+bl+transport+wastage;
+  const directBDT=material+accessoriesCost+cartonCost+cnf+bl+transport+wastage;
   const overhead=directBDT*overheadPct/100;
   const landedBDT=directBDT+overhead;
   const landedUSD=rate?landedBDT/rate:0;
-  return{totalQty,material,wastage,cartonCost,fixedCosts:cnf+bl+transport,directBDT,overhead,landedBDT,landedUSD,rate};
+  return{totalQty,items,material,wastage,accessoriesCost,cartonCost,fixedCosts:cnf+bl+transport,directBDT,overhead,landedBDT,landedUSD,rate};
 }
 function orderCost(s){
   const r=calcOrderCosting(s.costing||{});
@@ -847,7 +865,7 @@ function orderCost(s){
 }
 function hasCostData(s){
   const c=s.costing||{};
-  return ['costPerPcs','cartonCost','cnfCost','blCost','transportCost'].some(k=>Number(c[k]||0)>0)||ADDON_KEYS.some(k=>Number(s[k]||0)>0);
+  return ['costPerPcs','accessoriesCost','cartonCost','cnfCost','blCost','transportCost'].some(k=>Number(c[k]||0)>0)||(c.items||[]).some(it=>Number(it.costPerPcs||0)>0)||ADDON_KEYS.some(k=>Number(s[k]||0)>0);
 }
 function orderProfit(s){
   const revenue=Number(s.iamt||0);
@@ -863,13 +881,57 @@ function profitBdg(s){
   const arrow=p.profit>=0?'▲':'▼';
   return`<span class="bdg ${cls}" title="Net ${fUSD(p.profit)} · Margin ${p.margin.toFixed(1)}%">${arrow} ${p.margin.toFixed(1)}%</span>`;
 }
+// Multi-item rows in the Cost & Profitability section
+let _dcItemSeq=0;
+function addDcItem(it){
+  it=it||{};
+  const id=++_dcItemSeq;
+  const wrap=$('dc-items-rows');if(!wrap)return;
+  const row=document.createElement('div');
+  row.dataset.dcRow=id;
+  row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1.2fr minmax(70px,auto) auto;gap:8px;align-items:center;margin-bottom:6px';
+  const inp='padding:6px 8px;border:1.5px solid var(--bdr);border-radius:6px;background:var(--inp);color:var(--txt);font-size:12.5px;width:100%;box-sizing:border-box';
+  row.innerHTML=`
+    <input type="text" id="dci-name-${id}" placeholder="Item name" style="${inp}">
+    <input type="number" id="dci-qty-${id}" min="0" step="1" placeholder="Qty (pcs)" oninput="updateProfitPreview()" style="${inp}">
+    <input type="number" id="dci-cost-${id}" min="0" step="0.01" placeholder="Cost/pc (BDT)" oninput="updateProfitPreview()" style="${inp}">
+    <span id="dci-tot-${id}" style="font-size:11.5px;font-weight:700;color:var(--muted);text-align:right;white-space:nowrap">৳0</span>
+    <button type="button" class="xbtn" title="Remove item" onclick="removeDcItem(${id})">×</button>`;
+  wrap.appendChild(row);
+  $('dci-name-'+id).value=it.name||'';
+  $('dci-qty-'+id).value=(it.qty!==undefined&&it.qty!=='')?it.qty:'';
+  $('dci-cost-'+id).value=(it.costPerPcs!==undefined&&it.costPerPcs!=='')?it.costPerPcs:'';
+  updateProfitPreview();
+}
+function removeDcItem(id){const r=document.querySelector('[data-dc-row="'+id+'"]');if(r)r.remove();updateProfitPreview();}
+function setDcItems(items){const wrap=$('dc-items-rows');if(!wrap)return;wrap.innerHTML='';(items||[]).forEach(it=>addDcItem(it));updateProfitPreview();}
+function _readDcItems(){
+  return [...document.querySelectorAll('#dc-items-rows [data-dc-row]')].map(r=>{
+    const id=r.dataset.dcRow;
+    const v=x=>{const el=$(x+'-'+id);return el?el.value:''};
+    return{name:v('dci-name').trim(),qty:v('dci-qty')===''?'':+v('dci-qty'),costPerPcs:v('dci-cost')===''?'':+v('dci-cost')};
+  }).filter(it=>it.name!==''||it.qty!==''||it.costPerPcs!=='');
+}
 // Read the in-form costing inputs into a costing object
 function _readCostingForm(){
   const g=k=>{const el=$('f-dc-'+k);return el?el.value:''};
-  const o={};COSTING_KEYS.forEach(k=>o[k]=g(k));return o;
+  const o={};COSTING_KEYS.forEach(k=>o[k]=g(k));
+  o.items=_readDcItems();
+  return o;
 }
 function updateProfitPreview(){
   const box=$('profit-preview');if(!box)return;
+  // refresh per-item line totals + flat-field state
+  const rows=[...document.querySelectorAll('#dc-items-rows [data-dc-row]')];
+  rows.forEach(row=>{
+    const id=row.dataset.dcRow;
+    const q=Number(($('dci-qty-'+id)||{}).value)||0,cp=Number(($('dci-cost-'+id)||{}).value)||0;
+    const t=$('dci-tot-'+id);if(t)t.textContent=fBDT(q*cp);
+  });
+  const itemized=rows.length>0;
+  ['f-dc-totalQty','f-dc-costPerPcs'].forEach(fid=>{const el=$(fid);if(el){el.disabled=itemized;el.style.opacity=itemized?'.45':'';}});
+  const hint=$('dc-items-hint');
+  if(hint)hint.textContent=itemized?'Qty & material cost are calculated from the items above — flat Total Qty / Cost per Piece are disabled.':'No items added — using flat Total Qty × Cost per Piece below.';
   const revenue=Number($('f-iamt').value||0);
   const c=_readCostingForm();
   const r=calcOrderCosting(c);
@@ -880,7 +942,13 @@ function updateProfitPreview(){
   const col=profit>=0?'var(--ok)':'var(--err)';
   const arrow=profit>=0?'▲':'▼';
   const label=profit>=0?'NET PROFIT':'NET LOSS';
+  const itemLines=(r.items&&r.items.length)
+    ?r.items.map((it,i)=>`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:1px 0;color:var(--muted)"><span>• ${it.name||('Item '+(i+1))} — ${(Number(it.qty)||0).toLocaleString()} pcs × ${fBDT(Number(it.costPerPcs)||0)}</span><span>${fBDT((Number(it.qty)||0)*(Number(it.costPerPcs)||0))}</span></div>`).join('')
+      +`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0;border-bottom:1px dashed var(--divider);margin-bottom:4px;color:var(--muted)"><span><strong>Material (${r.items.length} item${r.items.length!==1?'s':''})</strong></span><strong>${fBDT(r.material)}</strong></div>`
+    :'';
   box.innerHTML=`
+    ${itemLines}
+    ${r.accessoriesCost?`<div style="display:flex;justify-content:space-between;font-size:11.5px;padding:1px 0;color:var(--muted)"><span>+ Accessories (BDT)</span><span>${fBDT(r.accessoriesCost)}</span></div>`:''}
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--muted)"><span>Goods landed cost (BDT ${fBDT(r.landedBDT)} @ ${r.rate})</span><span>${fUSD(r.landedUSD)}</span></div>
     <div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--muted)"><span>+ Charges (USD)</span><span>${fUSD(addon)}</span></div>
     ${r.totalQty?`<div style="font-size:11.5px;padding:2px 0;color:var(--muted)">Total Qty: ${r.totalQty.toLocaleString()} pcs · Per-piece landed: ${fUSD(r.totalQty?r.landedUSD/r.totalQty:0)}</div>`:''}
@@ -3009,6 +3077,9 @@ function fillShipFromOrder(oid){
   if(o.advancePayment)$('f-dpmt').value=o.advancePayment;
   if(o.shipmentDate)$('f-exf').value=o.shipmentDate;
   else if(o.date)$('f-exf').value=o.date;
+  // Pre-fill costing item rows (name + qty) so per-item costs can be entered; don't overwrite rows already typed in
+  if(items.length&&!_readDcItems().length)setDcItems(items.map(it=>({name:[it.itemNo,it.description].filter(Boolean).join(' — '),qty:+it.quantity||'',costPerPcs:''})));
+  updateProfitPreview();
   toast('📋 Pre-filled from order: '+(o.poNo||o.invoiceNo||'Order'));
 }
 function openAdd(){
@@ -3022,6 +3093,7 @@ function openAdd(){
   $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
   ['cCommission','cBank','cOther'].forEach(k=>$('f-'+k).value='');
   COSTING_KEYS.forEach(k=>{const el=$('f-dc-'+k);if(el)el.value='';});
+  setDcItems([]);
   ['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=false);$('f-id').value='';
   updateProfitPreview();
   $('copy-ship-btn').style.display='none';
@@ -3043,6 +3115,7 @@ function openEdit(id){
   $('f-etd').value=s.etd||'';$('f-eta').value=s.eta||'';
   $('f-cCommission').value=s.cCommission||'';$('f-cBank').value=s.cBank||'';$('f-cOther').value=s.cOther||'';
   const dc=s.costing||{};COSTING_KEYS.forEach(k=>{const el=$('f-dc-'+k);if(el)el.value=(dc[k]!==undefined&&dc[k]!=='')?dc[k]:'';});
+  setDcItems(dc.items);
   $('f-cancel').checked=!!s.cancelled;$('f-notes').value=s.notes||'';
   updateProfitPreview();
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
@@ -3062,7 +3135,7 @@ function saveShip(){
     pay:$('f-pay').value,sur:$('f-sur').value,inc:$('f-inc').value,
     payDue:$('f-payDue').value,vessel:$('f-vessel').value.trim(),blno:$('f-blno').value.trim(),
     etd:$('f-etd').value,eta:$('f-eta').value,
-    costing:(()=>{const o={};COSTING_KEYS.forEach(k=>{const el=$('f-dc-'+k);o[k]=el&&el.value!==''?+el.value:''});return o;})(),
+    costing:(()=>{const o={};COSTING_KEYS.forEach(k=>{const el=$('f-dc-'+k);o[k]=el&&el.value!==''?+el.value:''});o.items=_readDcItems();return o;})(),
     cCommission:+$('f-cCommission').value||0,cBank:+$('f-cBank').value||0,cOther:+$('f-cOther').value||0,
     cancelled:$('f-cancel').checked,notes:$('f-notes').value.trim(),
     docs:{ci:$('f-doc-ci').checked,pl:$('f-doc-pl').checked,bl:$('f-doc-bl').checked,lc:$('f-doc-lc').checked,coo:$('f-doc-coo').checked}
@@ -3115,6 +3188,7 @@ function copyShip(id){
   $('f-payDue').value='';$('f-vessel').value='';$('f-blno').value='';$('f-etd').value='';$('f-eta').value='';
   ['cCommission','cBank','cOther'].forEach(k=>$('f-'+k).value=s[k]||'');
   const dc=s.costing||{};COSTING_KEYS.forEach(k=>{const el=$('f-dc-'+k);if(el)el.value=(dc[k]!==undefined&&dc[k]!=='')?dc[k]:'';});
+  setDcItems(dc.items);
   const fd=s.docs||{};['ci','pl','bl','lc','coo'].forEach(k=>$('f-doc-'+k).checked=!!fd[k]);
   populateDL();$('ship-ov').classList.add('open');updateProfitPreview();
 }
