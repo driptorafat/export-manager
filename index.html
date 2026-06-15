@@ -1278,7 +1278,7 @@ ${(()=>{
   </div>
 </div>
 ${(()=>{
-  const shipped=active.filter(s=>(s.shipped||'Order In Progress')==='Shipped');
+  const shipped=active.filter(s=>isShipped(s));
   const surPending=shipped.filter(s=>s.sur!=='Complete');
   if(!surPending.length)return'';
   return`<div class="card" style="margin-top:18px;border-left:4px solid var(--warn)"><div class="card-title">📋 Surrender Certificate Pending — ${surPending.length} shipment${surPending.length>1?'s':''}</div><div class="tbl-wrap"><table><thead><tr><th>Order No</th><th>Party</th><th>Month</th><th>Invoice</th><th>Surrender Status</th></tr></thead><tbody>${surPending.slice(0,8).map(s=>`<tr><td><strong>${s.orderNo}</strong></td><td>${s.party}</td><td>${s.month}</td><td><strong>${fUSD(s.iamt)}</strong></td><td>${surBdg(s.sur)}</td></tr>`).join('')}</tbody></table></div>${surPending.length>8?`<div style="font-size:11.5px;color:var(--muted);padding:6px 2px">…+${surPending.length-8} more</div>`:''}</div>`;
@@ -1293,8 +1293,8 @@ function renderShipments(yr,ships){
     if(ST.fStatus==='Full Paid'&&s.pay!=='Full Paid')return false;
     if(ST.fStatus==='Partially Paid'&&s.pay!=='Partially Paid')return false;
     if(ST.fStatus==='None'&&s.pay!=='None')return false;
-    if(ST.fStatus==='Shipped'&&(s.shipped||'Order In Progress')!=='Shipped')return false;
-    if(ST.fStatus==='Order In Progress'&&(s.shipped||'Order In Progress')!=='Order In Progress')return false;
+    if(ST.fStatus==='Shipped'&&!isShipped(s))return false;
+    if(ST.fStatus==='Order In Progress'&&isShipped(s))return false;
     if(ST.fStatus==='Incentive Pending'&&s.inc==='Yes')return false;
     if(ST.fStatus==='Cancelled'&&!s.cancelled)return false;
     if(ST.search){const q=ST.search.toLowerCase();if(!`${s.orderNo} ${s.party} ${s.dest} ${s.month}`.toLowerCase().includes(q))return false}
@@ -2456,7 +2456,7 @@ function printYearly(yr){
   const bm={};active.forEach(s=>{bm[s.party]=(bm[s.party]||0)+Number(s.iamt||0)});
   const buyers=Object.entries(bm).sort((a,b)=>b[1]-a[1]);
   const donutItems=buyers.map((b,i)=>({label:b[0],value:b[1],color:COLORS[i%COLORS.length]}));
-  const ongoingYr=active.filter(s=>(s.shipped||'Order In Progress')==='Order In Progress');
+  const ongoingYr=active.filter(s=>!isShipped(s));
   const body=`
 <div class="kpi-row">
   <div class="kpi-box"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div><div class="sub">${ships.filter(s=>s.cancelled).length} cancelled</div></div>
@@ -2483,7 +2483,7 @@ function printYearly(yr){
 </table>
 <h2>All Shipments</h2>
 <table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>Month</th><th>CBM</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Surrender</th><th>Incentive</th></tr></thead>
-<tbody>${ships.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.month}</td><td>${s.vol}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${(s.shipped||'Order In Progress')==='Shipped'?'badge-ok':'badge-warn'}">${s.shipped||'Order In Progress'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+<tbody>${ships.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.month}</td><td>${s.vol}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${isShipped(s)?'badge-ok':'badge-warn'}">${s.shipped||'Order Placed'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
 </table>
 <div class="page-break"></div>
 <h2>Orders In Progress</h2>
@@ -2520,11 +2520,11 @@ function printMonthly(yr,month){
     const ms=ships.filter(s=>s.month===m);
     const mi=ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
     return`<h3>${m}</h3><table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
-    <tbody>${ms.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${(s.shipped||'Order In Progress')==='Shipped'?'badge-ok':'badge-warn'}">${s.shipped||'Order In Progress'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+    <tbody>${ms.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${isShipped(s)?'badge-ok':'badge-warn'}">${s.shipped||'Order Placed'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
     <tfoot><tr><td colspan="4">Sub-total (${ms.filter(s=>!s.cancelled).length} active)</td><td></td><td>$${Math.round(mi).toLocaleString()}</td><td colspan="6"></td></tr></tfoot></table>`;
   }).join('<br>'):
   `<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
-  <tbody>${list.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${(s.shipped||'Order In Progress')==='Shipped'?'badge-ok':'badge-warn'}">${s.shipped||'Order In Progress'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
+  <tbody>${list.map(s=>`<tr><td>${s.orderNo}${s.cancelled?' [CANCELLED]':''}</td><td>${s.party}</td><td>${s.dest}</td><td>${s.vol}</td><td>${s.exf&&s.exf.includes('-')?new Date(s.exf).toLocaleDateString('en-GB'):(s.exf||'—')}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${s.dpmt?'$'+Number(s.dpmt).toLocaleString():'—'}</td><td>${s.dpmt?'$'+Math.max(0,(s.iamt||0)-(s.dpmt||0)).toLocaleString():'—'}</td><td class="${isShipped(s)?'badge-ok':'badge-warn'}">${s.shipped||'Order Placed'}</td><td class="${s.pay==='Full Paid'?'badge-ok':s.pay==='Partially Paid'?'badge-warn':'badge-err'}">${s.pay||'None'}</td><td>${s.sur}</td><td class="${s.inc==='Yes'?'badge-ok':'badge-warn'}">${s.inc}</td></tr>`).join('')}</tbody>
   <tfoot><tr><td colspan="4">Total (${active.length} active)</td><td></td><td>$${Math.round(inv).toLocaleString()}</td><td colspan="6"></td></tr></tfoot></table>`;
   const body=`<div class="kpi-row">
     <div class="kpi-box"><div class="lbl">Shipments</div><div class="val">${active.length}</div></div>
