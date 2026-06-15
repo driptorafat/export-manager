@@ -784,6 +784,24 @@ async function _initData(){
   }
 }
 function saveAll(d){if(_idb){_idbSet('em_v2',d).catch(function(e){toast('⚠️ Could not save: '+e.message);});}else{try{localStorage.setItem('em_v2',JSON.stringify(d));}catch(e){if(e.name==='QuotaExceededError'||e.code===22){toast('⚠️ Storage full! Please reload — storage upgrade in progress.');}else{toast('⚠️ Could not save: '+e.message);}}}}
+// Idempotent migration: legacy orders saved without a pipeline stage default to
+// "in progress" and were wrongly counted as ongoing. Mark clearly-completed ones
+// (Full Paid, or ex-factory date already past) as "Shipped". Runs on boot and after
+// every cloud pull; only touches stage-less orders so it is safe to re-run.
+function migrateOrderStages(){
+  let changed=0;const today=new Date();today.setHours(0,0,0,0);
+  Object.keys(D.years||{}).forEach(function(yr){
+    const arr=(D.years[yr]&&D.years[yr].shipments)||[];
+    arr.forEach(function(s){
+      if(s.cancelled||s.shipped)return;
+      let done=s.pay==='Full Paid';
+      if(!done&&s.exf&&/^\d{4}-\d{2}-\d{2}$/.test(s.exf)){const d=new Date(s.exf);if(!isNaN(d)&&d<today)done=true;}
+      if(done){s.shipped='Shipped';changed++;}
+    });
+  });
+  if(changed)saveAll(D);
+  return changed;
+}
 function compressImg(file,cb,maxW,maxH,quality){maxW=maxW||800;maxH=maxH||800;quality=quality||0.72;const r=new FileReader();r.onload=function(ev){const img=new Image();img.onload=function(){let w=img.width,h=img.height;if(w>maxW||h>maxH){const scale=Math.min(maxW/w,maxH/h);w=Math.round(w*scale);h=Math.round(h*scale);}const cv=document.createElement('canvas');cv.width=w;cv.height=h;const ctx=cv.getContext('2d');ctx.drawImage(img,0,0,w,h);cb(cv.toDataURL('image/jpeg',quality));};img.src=ev.target.result;};r.readAsDataURL(file);}
 function setTheme(t){document.getElementById('root-html').setAttribute('data-theme',t);localStorage.setItem('em_theme',t);document.querySelectorAll('[id^="tb-"]').forEach(b=>b.style.outline='none');const tb=document.getElementById('tb-'+t);if(tb)tb.style.outline='3px solid #fff';}
 function toggleThemePicker(){const p=document.getElementById('theme-picker');if(p)p.style.display=p.style.display==='none'?'block':'none';}
@@ -3293,6 +3311,7 @@ async function doPull(){
     if(parsed.years)Object.assign(D.years,parsed.years);
     if(parsed.currentYear)D.currentYear=parsed.currentYear;
     if(parsed.contactsMeta)D.contactsMeta=parsed.contactsMeta;
+    migrateOrderStages();
     saveAll(D);updateYrSel();render();
     setSyncStatus('ok','Pulled '+new Date().toLocaleTimeString());toast('☁ Pulled from cloud');
   }catch(e){setSyncStatus('err','Pull error');toast('Pull error: '+e.message)}
@@ -4548,6 +4567,7 @@ table.items tfoot td{padding:3pt 4pt;font-size:8pt}
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 function bootApp() {
+  migrateOrderStages();
   updateYrSel();
   nav('dashboard');
   if(D.cloud && D.cloud.gistId && D.cloud.token) setTimeout(doPull, 800);
