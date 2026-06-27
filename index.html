@@ -1305,6 +1305,20 @@ ${(()=>{
 }
 
 // ── ALL SHIPMENTS ─────────────────────────────────────────────────────────────
+// Sort a shipment list in place by ex-factory date per ST.fSort. Rows with no
+// valid ex-factory date always sink to the end. Shared by All Shipments and
+// Orders In Progress so both honor the same sort preference.
+function applyShipSort(list){
+  if(ST.fSort==='exf-asc'||ST.fSort==='exf-desc'){
+    const dir=ST.fSort==='exf-asc'?1:-1;
+    const t=s=>{const d=s.exf&&s.exf.includes('-')?new Date(s.exf):null;return d&&!isNaN(d)?d.getTime():null};
+    list.sort((a,b)=>{const ta=t(a),tb=t(b);if(ta===null&&tb===null)return 0;if(ta===null)return 1;if(tb===null)return -1;return(ta-tb)*dir;});
+  }
+  return list;
+}
+function _sortSelect(){
+  return `<select onchange="ST.fSort=this.value;render()" title="Sort order"><option value="exf-asc" ${ST.fSort==='exf-asc'?'selected':''}>Ex-Factory ↑ (earliest)</option><option value="exf-desc" ${ST.fSort==='exf-desc'?'selected':''}>Ex-Factory ↓ (latest)</option><option value="default" ${ST.fSort==='default'?'selected':''}>Default (entry order)</option></select>`;
+}
 function renderShipments(yr,ships){
   const parties=uniq(ships,'party'),filtered=ships.filter(s=>{
     if(ST.fMonth!=='All'&&s.month!==ST.fMonth)return false;
@@ -1319,11 +1333,7 @@ function renderShipments(yr,ships){
     if(ST.search){const q=ST.search.toLowerCase();if(!`${s.orderNo} ${s.party} ${s.dest} ${s.month}`.toLowerCase().includes(q))return false}
     return true;
   });
-  if(ST.fSort==='exf-asc'||ST.fSort==='exf-desc'){
-    const dir=ST.fSort==='exf-asc'?1:-1;
-    const t=s=>{const d=s.exf&&s.exf.includes('-')?new Date(s.exf):null;return d&&!isNaN(d)?d.getTime():null};
-    filtered.sort((a,b)=>{const ta=t(a),tb=t(b);if(ta===null&&tb===null)return 0;if(ta===null)return 1;if(tb===null)return -1;return(ta-tb)*dir;});
-  }
+  applyShipSort(filtered);
   const tot=filtered.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
   return `
 <div class="sh"><div><div class="sh-t">Shipments — ${yr}</div><div class="sh-s">${filtered.length} of ${ships.length} shown • ${fUSD(tot)} invoice</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="doImportShipCSV()" title="Import shipments from CSV (same format as export)">📂 Import CSV</button><button class="btn btn-pri btn-sm" onclick="openAdd()">+ Add Shipment</button></div></div>
@@ -1332,7 +1342,7 @@ function renderShipments(yr,ships){
   <select onchange="ST.fMonth=this.value;render()"><option value="All">All Months</option>${MONTHS.map(m=>`<option ${ST.fMonth===m?'selected':''}>${m}</option>`).join('')}</select>
   <select onchange="ST.fParty=this.value;render()"><option value="All">All Buyers</option>${parties.map(p=>`<option ${ST.fParty===p?'selected':''}>${p}</option>`).join('')}</select>
   <select onchange="ST.fStatus=this.value;render()"><option value="All">All Status</option><option>Shipped</option><option>Order In Progress</option><option>Full Paid</option><option>Partially Paid</option><option>None</option><option>Incentive Pending</option><option>Cancelled</option></select>
-  <select onchange="ST.fSort=this.value;render()" title="Sort order"><option value="exf-asc" ${ST.fSort==='exf-asc'?'selected':''}>Ex-Factory ↑ (earliest)</option><option value="exf-desc" ${ST.fSort==='exf-desc'?'selected':''}>Ex-Factory ↓ (latest)</option><option value="default" ${ST.fSort==='default'?'selected':''}>Default (entry order)</option></select>
+  ${_sortSelect()}
   <button class="btn btn-ghost btn-sm" onclick="ST.fMonth='All';ST.fParty='All';ST.fStatus='All';ST.fSort='exf-asc';ST.search='';render()">Clear</button>
 </div>
 ${shipTable(filtered,true)}`;
@@ -1359,12 +1369,13 @@ function renderCalendar(yr,ships){
 // ── ORDERS IN PROGRESS ───────────────────────────────────────────────────────
 function renderOngoing(yr,ships){
   const ongoing=ships.filter(s=>!s.cancelled&&!isShipped(s));
+  applyShipSort(ongoing);
   const tot=ongoing.reduce((a,s)=>a+Number(s.iamt||0),0);
   const totRbal=ongoing.reduce((a,s)=>a+Math.max(0,(s.iamt||0)-(s.dpmt||0)),0);
   const totDpmt=ongoing.reduce((a,s)=>a+Number(s.dpmt||0),0);
   return `
 <div class="sh"><div><div class="sh-t">Orders In Progress — ${yr}</div><div class="sh-s">${ongoing.length} order${ongoing.length!==1?'s':''} awaiting dispatch • ${fUSD(tot)} invoice • ${fUSD(totRbal)} outstanding</div></div>
-  <button class="btn btn-ghost btn-sm" onclick="printOngoing('${yr}')">🖨 Print Report</button>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${_sortSelect()}<button class="btn btn-ghost btn-sm" onclick="printOngoing('${yr}')">🖨 Print Report</button></div>
 </div>
 ${ongoing.length?`<div class="kpi-grid" style="margin-bottom:18px">
   <div class="kpi warn"><div class="lbl">Orders In Progress</div><div class="val">${ongoing.length}</div><div class="sub">Awaiting dispatch</div></div>
