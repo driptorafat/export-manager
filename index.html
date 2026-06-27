@@ -822,7 +822,7 @@ function nextId(yr){const s=getShips(yr);return s.length?Math.max(...s.map(x=>x.
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let D={currentYear:'2025',years:{},catalog:[],costings:[],quotations:[],orders:[],cloud:{gistId:'',token:'',autoSync:false}};
-let ST={page:'dashboard',fMonth:'All',fParty:'All',fStatus:'All',search:'',cmpYears:[],cmpInit:false,containerType:'40ft',ctSearch:'',ctCountry:'All',ctStatus:'All',ctSrc:'All',ctPage:1,ctSort:'n'};
+let ST={page:'dashboard',fMonth:'All',fParty:'All',fStatus:'All',fSort:'exf-asc',search:'',cmpYears:[],cmpInit:false,containerType:'40ft',ctSearch:'',ctCountry:'All',ctStatus:'All',ctSrc:'All',ctPage:1,ctSort:'n'};
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const $=id=>document.getElementById(id);
@@ -1319,6 +1319,11 @@ function renderShipments(yr,ships){
     if(ST.search){const q=ST.search.toLowerCase();if(!`${s.orderNo} ${s.party} ${s.dest} ${s.month}`.toLowerCase().includes(q))return false}
     return true;
   });
+  if(ST.fSort==='exf-asc'||ST.fSort==='exf-desc'){
+    const dir=ST.fSort==='exf-asc'?1:-1;
+    const t=s=>{const d=s.exf&&s.exf.includes('-')?new Date(s.exf):null;return d&&!isNaN(d)?d.getTime():null};
+    filtered.sort((a,b)=>{const ta=t(a),tb=t(b);if(ta===null&&tb===null)return 0;if(ta===null)return 1;if(tb===null)return -1;return(ta-tb)*dir;});
+  }
   const tot=filtered.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
   return `
 <div class="sh"><div><div class="sh-t">Shipments — ${yr}</div><div class="sh-s">${filtered.length} of ${ships.length} shown • ${fUSD(tot)} invoice</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="doImportShipCSV()" title="Import shipments from CSV (same format as export)">📂 Import CSV</button><button class="btn btn-pri btn-sm" onclick="openAdd()">+ Add Shipment</button></div></div>
@@ -1327,7 +1332,8 @@ function renderShipments(yr,ships){
   <select onchange="ST.fMonth=this.value;render()"><option value="All">All Months</option>${MONTHS.map(m=>`<option ${ST.fMonth===m?'selected':''}>${m}</option>`).join('')}</select>
   <select onchange="ST.fParty=this.value;render()"><option value="All">All Buyers</option>${parties.map(p=>`<option ${ST.fParty===p?'selected':''}>${p}</option>`).join('')}</select>
   <select onchange="ST.fStatus=this.value;render()"><option value="All">All Status</option><option>Shipped</option><option>Order In Progress</option><option>Full Paid</option><option>Partially Paid</option><option>None</option><option>Incentive Pending</option><option>Cancelled</option></select>
-  <button class="btn btn-ghost btn-sm" onclick="ST.fMonth='All';ST.fParty='All';ST.fStatus='All';ST.search='';render()">Clear</button>
+  <select onchange="ST.fSort=this.value;render()" title="Sort order"><option value="exf-asc" ${ST.fSort==='exf-asc'?'selected':''}>Ex-Factory ↑ (earliest)</option><option value="exf-desc" ${ST.fSort==='exf-desc'?'selected':''}>Ex-Factory ↓ (latest)</option><option value="default" ${ST.fSort==='default'?'selected':''}>Default (entry order)</option></select>
+  <button class="btn btn-ghost btn-sm" onclick="ST.fMonth='All';ST.fParty='All';ST.fStatus='All';ST.fSort='exf-asc';ST.search='';render()">Clear</button>
 </div>
 ${shipTable(filtered,true)}`;
 }
