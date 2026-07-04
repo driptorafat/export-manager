@@ -545,7 +545,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
 <div class="modal sm">
   <div class="mh"><h3>Select Month to Print</h3><button class="xbtn" onclick="closeModal('mthpick-ov')">×</button></div>
   <div class="mb">
-    <div class="fg"><label>Month</label><select id="mthpick-sel"><option value="All">All Months</option><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div>
+    <div class="fg"><label>Month</label><select id="mthpick-sel"><option value="All">All Months</option><option value="H1">Jan – Jun (H1)</option><option value="H2">Jul – Dec (H2)</option><option>January</option><option>February</option><option>March</option><option>April</option><option>May</option><option>June</option><option>July</option><option>August</option><option>September</option><option>October</option><option>November</option><option>December</option></select></div>
   </div>
   <div class="mf"><button class="btn btn-ghost" onclick="closeModal('mthpick-ov')">Cancel</button><button class="btn btn-pri" onclick="doPrintMonthly()">Print</button></div>
 </div>
@@ -2348,7 +2348,11 @@ function renderReports(yr){
   <div class="rpt-card">
     <h4>📅 Monthly Detail</h4>
     <p>Detailed shipment-by-shipment breakdown for a selected month, including all statuses and amounts.</p>
-    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="openMonthPicker()">🖨 Select Month & Print</button></div>
+    <div class="rbt" style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-pri btn-sm" onclick="openMonthPicker()">🖨 Select Month & Print</button>
+      <button class="btn btn-ghost btn-sm" onclick="printMonthly('${yr}','H1')">🖨 Jan–Jun</button>
+      <button class="btn btn-ghost btn-sm" onclick="printMonthly('${yr}','H2')">🖨 Jul–Dec</button>
+    </div>
   </div>
   <div class="rpt-card">
     <h4>🏢 Buyer Analysis</h4>
@@ -2548,11 +2552,12 @@ ${ongoingYr.length?`<table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</t
 
 function printMonthly(yr,month){
   const ships=getShips(yr),cfg=getCfg(yr);
-  const list=month==='All'?ships:ships.filter(s=>s.month===month);
+  const rangeMonths=month==='All'?MONTHS:month==='H1'?MONTHS.slice(0,6):month==='H2'?MONTHS.slice(6):null;
+  const list=rangeMonths?ships.filter(s=>rangeMonths.includes(s.month)):ships.filter(s=>s.month===month);
   const active=list.filter(s=>!s.cancelled);
   const inv=active.reduce((a,s)=>a+Number(s.iamt||0),0);
   const cbm=active.reduce((a,s)=>a+Number(s.vol||0),0);
-  const byMonth=month==='All'?MONTHS.filter(m=>ships.some(s=>s.month===m)).map(m=>{
+  const byMonth=rangeMonths?rangeMonths.filter(m=>ships.some(s=>s.month===m)).map(m=>{
     const ms=ships.filter(s=>s.month===m);
     const mi=ms.filter(s=>!s.cancelled).reduce((a,s)=>a+Number(s.iamt||0),0);
     return`<h3>${m}</h3><table><thead><tr><th>Order No</th><th>Buyer</th><th>Dest</th><th>CBM</th><th>Ex-Factory</th><th>Invoice (USD)</th><th>Down Pmt</th><th>Balance</th><th>Status</th><th>Payment</th><th>Sur.</th><th>Inc.</th></tr></thead>
@@ -2567,8 +2572,8 @@ function printMonthly(yr,month){
     <div class="kpi-box"><div class="lbl">Invoice (USD)</div><div class="val">$${Math.round(inv).toLocaleString()}</div></div>
     <div class="kpi-box"><div class="lbl">Invoice (BDT)</div><div class="val">৳${Math.round(inv*cfg.usdToBdt).toLocaleString()}</div></div>
     <div class="kpi-box"><div class="lbl">CBM</div><div class="val">${fNum(cbm)}</div></div>
-  </div><h2>${month==='All'?'All Months':month}</h2>${byMonth}`;
-  printBase(`Monthly Detail — ${month}`,yr,body);
+  </div><h2>${{All:'All Months',H1:'January – June',H2:'July – December'}[month]||month}</h2>${byMonth}`;
+  printBase(`Monthly Detail — ${{All:'All Months',H1:'Jan–Jun',H2:'Jul–Dec'}[month]||month}`,yr,body);
 }
 
 function printBuyer(yr){
