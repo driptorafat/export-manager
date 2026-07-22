@@ -2497,6 +2497,7 @@ function printYearly(yr){
   const buyers=Object.entries(bm).sort((a,b)=>b[1]-a[1]);
   const donutItems=buyers.map((b,i)=>({label:b[0],value:b[1],color:COLORS[i%COLORS.length]}));
   const ongoingYr=active.filter(s=>!isShipped(s));
+  applyShipSort(ongoingYr);
   const body=`
 <div class="kpi-row">
   <div class="kpi-box"><div class="lbl">Total Shipments</div><div class="val">${active.length}</div><div class="sub">${ships.filter(s=>s.cancelled).length} cancelled</div></div>
@@ -2606,6 +2607,7 @@ function printBuyer(yr){
 function printOngoing(yr){
   const ships=getShips(yr),cfg=getCfg(yr);
   const ongoing=ships.filter(s=>!s.cancelled&&!isShipped(s));
+  applyShipSort(ongoing);
   const tot=ongoing.reduce((a,s)=>a+Number(s.iamt||0),0);
   const totDpmt=ongoing.reduce((a,s)=>a+Number(s.dpmt||0),0);
   const totRbal=ongoing.reduce((a,s)=>a+Math.max(0,(s.iamt||0)-(s.dpmt||0)),0);
