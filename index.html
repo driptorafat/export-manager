@@ -297,6 +297,33 @@ tfoot td{background:var(--card2);font-weight:700;padding:10px 12px;border-top:1p
 .agebar span{display:block;height:100%}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted)}
 .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle}
+/* ── CASH INCENTIVE ───────────────────────────────────── */
+.inc-pipe{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px;scrollbar-width:thin}
+.inc-stage{flex:0 0 auto;min-width:118px;max-width:150px;text-align:left;background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:9px 11px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow)}
+.inc-stage:hover{border-color:var(--pri)}
+.inc-stage.on{border-color:var(--pri);background:var(--pril)}
+.inc-stage .n{font-size:19px;font-weight:800;color:var(--htxt);font-variant-numeric:tabular-nums}
+.inc-stage .t{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.25;white-space:normal}
+.inc-dots{display:inline-flex;gap:3px;vertical-align:middle}
+.inc-dots i{width:9px;height:9px;border-radius:50%;background:var(--divider);border:1px solid var(--bdr)}
+.inc-dots i.d{background:var(--ok);border-color:var(--ok)}
+.inc-dots i.p{background:var(--warn);border-color:var(--warn)}
+.inc-bulk{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;background:var(--pril);border-radius:9px;padding:6px 10px}
+.inc-sum{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--card2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px}
+.stp{position:relative}
+.stp-i{display:flex;gap:14px;position:relative;padding-bottom:16px}
+.stp-i:not(:last-child)::before{content:"";position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--divider)}
+.stp-i.done:not(:last-child)::before{background:var(--ok)}
+.stp-n{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:750;font-size:13px;background:var(--card2);border:2px solid var(--bdr);color:var(--muted);z-index:1}
+.stp-i.done .stp-n{background:var(--ok);border-color:var(--ok);color:#fff}
+.stp-i.cur .stp-n{border-color:var(--pri);color:var(--pri);background:var(--pril)}
+.stp-i.total .stp-n{background:var(--acc);border-color:var(--acc);color:#fff}
+.stp-c{flex:1;min-width:0;padding-top:4px}
+.stp-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.stp-s{font-size:12px;color:var(--muted);margin:2px 0 8px}
+.stp-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px 12px}
+.stp-f label{display:block;font-size:11.5px;font-weight:650;color:var(--muted);margin-bottom:4px}
+.stp-v{font-size:13.5px;font-weight:700;padding:5px 0}
 /* ── COMMAND PALETTE ────────────────────────────────────── */
 #pal-ov{display:none;position:fixed;inset:0;background:rgba(16,24,40,.45);backdrop-filter:blur(2px);z-index:600;align-items:flex-start;justify-content:center;padding:12vh 16px 16px}
 #pal-ov.open{display:flex}
@@ -634,6 +661,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
         <div class="fg"><label>Surrender status</label><select id="f-sur"><option value="Complete">Complete</option><option value="Yes">Yes</option><option value="No">No</option></select></div>
         <div class="fg"><label>Cash incentive applied</label><select id="f-inc"><option value="Yes">Yes</option><option value="No">No</option></select></div>
       </div>
+      <button type="button" class="btn btn-out btn-sm" id="f-inc-open" onclick="const id=+$('f-id').value;if(!id){toast('Save the shipment first');return}closeModal('ship-ov');openIncModal(D.currentYear,id)">🎖 Open cash incentive tracker →</button>
     </div>
     <!-- TNA -->
     <div class="tpanel" data-p="tna">
@@ -715,6 +743,15 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:16px 0}
     <div id="pm-info" style="font-size:12.5px;color:var(--muted)"></div>
   </div>
   <div class="mf"><button class="btn btn-ghost" onclick="closeModal('pay-ov')">Cancel</button><button class="btn btn-pri" onclick="savePayment()">Save payment</button></div>
+</div>
+</div>
+
+<!-- CASH INCENTIVE MODAL -->
+<div class="ov" id="inc-ov">
+<div class="modal lg flex" style="height:min(880px,94vh)">
+  <div class="mh"><div style="min-width:0"><h3 id="im-title">Cash incentive</h3><div id="im-sub" style="font-size:12.5px;color:var(--muted);margin-top:2px"></div></div><button class="xbtn" onclick="closeModal('inc-ov')">×</button></div>
+  <div class="mb" id="im-body"></div>
+  <div class="mf"><button class="btn btn-ghost" onclick="closeModal('inc-ov')">Cancel</button><button class="btn btn-pri" onclick="saveIncModal()">Save incentive</button></div>
 </div>
 </div>
 
@@ -1307,14 +1344,14 @@ function svgGroupedBar(groups,seriesNames,colors,{w=460,h=170,title='',prefix='$
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
-const PAGE_TITLES={dashboard:'Dashboard',shipments:'All Shipments',calendar:'Monthly View',ongoing:'Orders In Progress',container:'Container Planner',buyers:'Buyers Analysis',financials:'Financials',personal:'Personal Earnings',pnl:'Profit & Loss Statement',reports:'Print Reports',tna:'TNA Calendar',receivables:'Receivables',activity:'Activity Log',settings:'Settings',compare:'Multi-Year Comparison',years:'Manage Years',contacts:'B2B Contacts',costing:'Costing Calculator',quotation:'Quotations',orders:'Orders & Invoices','order-detail':'Order Details',catalog:'Product Catalog','catalog-detail':'Product Details'};
+const PAGE_TITLES={dashboard:'Dashboard',shipments:'All Shipments',calendar:'Monthly View',ongoing:'Orders In Progress',container:'Container Planner',buyers:'Buyers Analysis',financials:'Financials',personal:'Personal Earnings',pnl:'Profit & Loss Statement',reports:'Print Reports',tna:'TNA Calendar',receivables:'Receivables',incentive:'Cash Incentive',activity:'Activity Log',settings:'Settings',compare:'Multi-Year Comparison',years:'Manage Years',contacts:'B2B Contacts',costing:'Costing Calculator',quotation:'Quotations',orders:'Orders & Invoices','order-detail':'Order Details',catalog:'Product Catalog','catalog-detail':'Product Details'};
 function nav(page){
   const changed=ST.page!==page;
   ST.page=page;
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('active'));
   const ni=$('ni-'+navKey(page));if(ni)ni.classList.add('active');
   $('tb-title').textContent=PAGE_TITLES[page]||page;
-  $('tb-meta').textContent=(page==='compare'||page==='years'||page==='receivables'?'All years':'Year '+D.currentYear)+' · Export Manager';
+  $('tb-meta').textContent=(page==='compare'||page==='years'||page==='receivables'||(page==='incentive'&&ST.incYr==='All')?'All years':'Year '+D.currentYear)+' · Export Manager';
   toggleSidebar(false);
   render();
   if(changed)$('content').scrollTop=0;
@@ -1351,6 +1388,7 @@ function render(){
   else if(ST.page==='tna')c.innerHTML=renderTna(yr,ships);
   else if(ST.page==='receivables')c.innerHTML=renderReceivables();
   else if(ST.page==='activity')c.innerHTML=renderActivity(yr);
+  else if(ST.page==='incentive')c.innerHTML=renderIncentive();
   if(ST.page==='settings')renderTplRows();
 }
 
@@ -1369,7 +1407,7 @@ function shipTable(list,actions=true){
   <td>${outstanding(s)>0.005?'<strong'+(isOverdue(s)?' style="color:var(--err)" title="Overdue"':'')+'>'+fUSD(outstanding(s))+'</strong>':'—'}</td>
   <td>${profitBdg(s)}</td>
   <td>${shippedBdg(s.shipped||'Order Placed')}${agingBdg(s.exf,s.shipped||'Order Placed')}</td>
-  <td>${payBdg(s.pay)}</td><td>${surBdg(s.sur)}</td><td>${incBdg(s.inc)}${incDeadlineBdg(s.exf,s.inc)}</td>
+  <td>${payBdg(s.pay)}</td><td>${surBdg(s.sur)}</td><td style="cursor:pointer;white-space:nowrap" title="Open cash incentive tracker" onclick="openIncModal(D.currentYear,${s.id})">${s.cancelled?incBdg(s.inc):incComplete(s)?'<span class="bdg bdg-ok">✓ Received</span>':`${incDots(s)}<span class="money-sub">${incCurrent(s)+1}. ${esc(INC_STEPS[incCurrent(s)].l)}</span>`}${incDeadlineChip(s)?'<div style="margin-top:3px">'+incDeadlineChip(s)+'</div>':''}</td>
   ${actions?`<td style="white-space:nowrap;display:flex;gap:3px;flex-wrap:wrap">${!s.cancelled&&!isShipped(s)?`<button class="btn btn-ok btn-xs" title="Mark as Shipped" onclick="quickMarkShipped(${s.id})">🚢</button>`:''}${!s.cancelled&&outstanding(s)>0.005?`<button class="btn btn-ok btn-xs" title="Record payment" onclick="openPayModal(D.currentYear,${s.id})">💰</button>`:''}<button class="btn btn-out btn-xs" onclick="openEdit(${s.id})">Edit</button> <button class="btn btn-ghost btn-xs" title="Generate Packing List" onclick="generatePackingList(${s.id})">📄 PL</button> <button class="btn btn-err btn-xs" onclick="delShip(${s.id})">Del</button></td>`:''}
 </tr>`}).join('')}</tbody></table></div>`;
 }
@@ -2565,6 +2603,11 @@ function renderReports(yr){
     <h4>💳 Receivables &amp; Aging</h4>
     <p>Every unpaid invoice across all years with due dates, days late and aging buckets — for follow-ups with buyers and the bank.</p>
     <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printReceivables()">🖨 Print</button><button class="btn btn-ghost btn-sm" onclick="nav('receivables')">Open →</button></div>
+  </div>
+  <div class="rpt-card">
+    <h4>🎖 Cash Incentive</h4>
+    <p>Each order's incentive claim — realisation, PRC, association, application, audit, certificate, Bangladesh Bank and amount received.</p>
+    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printIncentive()">🖨 Print</button><button class="btn btn-ghost btn-sm" onclick="nav('incentive')">Open →</button></div>
   </div>
   <div class="rpt-card">
     <h4>🗓 TNA Calendar</h4>
@@ -5203,8 +5246,8 @@ function buildNotifItems(){
     if(d>=-14&&d<=0){items.push({type:'info',title:'Ex-factory soon: '+s.orderNo,body:s.party+' — '+(Math.abs(d))+'d away',go:()=>openEdit(s.id)})}
   });
   // 4. Incentive application overdue (60+ days after ex-factory)
-  ships.filter(s=>s.inc!=='Yes'&&ageDays(s.exf)>60).forEach(s=>{
-    items.push({type:'err',title:'Incentive overdue: '+s.orderNo,body:s.party+' — '+ageDays(s.exf)+'d since ex-factory',go:()=>openEdit(s.id)});
+  allShipsWithYear().filter(({s})=>!s.cancelled&&!incComplete(s)).forEach(({yr:y,s})=>{const d=incDeadline(s);if(!d||d.left>30)return;
+    items.push({type:d.left<0?'err':'warn',title:(d.left<0?'Incentive deadline passed: ':'Apply for incentive: ')+s.orderNo,body:`${s.party} — ${d.left<0?Math.abs(d.left)+'d ago':d.left+'d left'} (realised ${fDate(incStep(s,'real').date)})`,go:()=>openIncModal(y,s.id,'apply')});
   });
   // 5. Missing documents — grouped into one alert
   const missing=ships.filter(s=>{const d=s.docs||{};return isShipped(s)&&['ci','pl','bl','lc','coo'].some(k=>!d[k])});
@@ -5382,11 +5425,11 @@ function diffShip(a,b){
   const ra=rcptTotal(a),rb=rcptTotal(b);if(Math.abs(ra-rb)>0.004)ch.push(['Payments received',fUSD(ra),fUSD(rb)]);
   return ch;
 }
-const HIST_ICON={create:'＋',update:'✎',delete:'🗑',payment:'💰',tna:'🗓',ship:'🚢',import:'⬆',paid:'✓'};
+const HIST_ICON={incentive:'🎖',create:'＋',update:'✎',delete:'🗑',payment:'💰',tna:'🗓',ship:'🚢',import:'⬆',paid:'✓'};
 function histItemHTML(e,showOrder){
   const dt=new Date(e.t);
   const when=dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' · '+dt.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  const verb={create:'created',update:'edited',delete:'deleted',payment:'recorded a payment on',tna:'updated the TNA of',ship:'marked as shipped:',import:'imported',paid:'marked as fully paid:'}[e.a]||e.a;
+  const verb={create:'created',update:'edited',delete:'deleted',payment:'recorded a payment on',tna:'updated the TNA of',ship:'marked as shipped:',import:'imported',paid:'marked as fully paid:',incentive:'updated the cash incentive of'}[e.a]||e.a;
   const cls=e.a==='create'?'create':e.a==='delete'?'delete':(e.a==='payment'||e.a==='paid')?'pay':'';
   const list=e.ch||[];
   const ch=list.slice(0,14).map(c=>`<div>${esc(c[0])}: ${c[1]&&c[1]!=='—'?`<s>${esc(c[1])}</s> → `:''}<b>${esc(c[2])}</b></div>`).join('')+(list.length>14?`<div>+${list.length-14} more</div>`:'');
@@ -5695,7 +5738,7 @@ function renderActivity(yr){
   const list=all.filter(e=>(type==='All'||e.a===type)&&(user==='All'||e.u===user)&&(!q||`${e.o} ${e.p} ${e.note} ${(e.ch||[]).map(c=>c.join(' ')).join(' ')}`.toLowerCase().includes(q)));
   let lastDay='';
   const items=list.slice(0,400).map(e=>{const day=new Date(e.t).toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});const h=day!==lastDay?`<div class="pal-grp" style="padding:16px 0 4px">${day}</div>`:'';lastDay=day;return h+histItemHTML(e,true)}).join('');
-  const types=[['All','All changes'],['create','Created'],['update','Edited'],['payment','Payments'],['tna','TNA'],['ship','Shipped'],['paid','Marked paid'],['delete','Deleted'],['import','Imports']];
+  const types=[['All','All changes'],['create','Created'],['update','Edited'],['payment','Payments'],['tna','TNA'],['ship','Shipped'],['paid','Marked paid'],['incentive','Cash incentive'],['delete','Deleted'],['import','Imports']];
   return`
 <div class="sh"><div><div class="sh-t">Activity Log</div><div class="sh-s">Who changed what, and when — ${yr}</div></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -5714,6 +5757,7 @@ function attentionHTML(yr,ships){
   ships.filter(s=>!s.cancelled&&!isShipped(s)).forEach(s=>(s.tna||[]).forEach(m=>{const st=tnaStatus(m);if(st==='late')items.push({sev:0,ic:'🗓',t:`${m.l} — ${Math.abs(daysFromToday(m.plan))}d late`,sub:`${s.orderNo} · ${s.party}`,go:`openTnaQuick(${s.id},'${m.k}')`,btn:'Update'});else if(st==='soon')items.push({sev:2,ic:'🗓',t:`${m.l} — due ${relDays(daysFromToday(m.plan))}`,sub:`${s.orderNo} · ${s.party}`,go:`openTnaQuick(${s.id},'${m.k}')`,btn:'Update'})}));
   receivableRows(false).filter(r=>r.late>0).forEach(r=>items.push({sev:1,ic:'💰',t:`${fUSD(r.out,0)} overdue by ${r.late}d`,sub:`${r.s.orderNo} · ${r.s.party}${r.yr!==yr?' · '+r.yr:''}`,go:`openPayModal('${r.yr}',${r.s.id})`,btn:'Record payment',late:r.late}));
   ships.filter(s=>!s.cancelled&&!isShipped(s)&&s.exf&&_ISO.test(s.exf)).forEach(s=>{const d=daysFromToday(s.exf);if(d>=0&&d<=7)items.push({sev:2,ic:'🏭',t:`Ex-factory ${relDays(d)}`,sub:`${s.orderNo} · ${s.party} · ${fDate(s.exf)}`,go:`openEdit(${s.id})`,btn:'Open'});else if(d<0)items.push({sev:1,ic:'🏭',t:`Ex-factory passed ${Math.abs(d)}d ago — not marked shipped`,sub:`${s.orderNo} · ${s.party}`,go:`quickMarkShipped(${s.id})`,btn:'Mark shipped'})});
+  allShipsWithYear().filter(({s})=>!s.cancelled&&!incComplete(s)).forEach(({yr:y,s})=>{const d=incDeadline(s);if(d&&d.left<=30)items.push({sev:d.left<0?0:1,ic:'🎖',t:d.left<0?`Incentive deadline passed ${Math.abs(d.left)}d ago`:`Apply for cash incentive — ${d.left}d left`,sub:`${s.orderNo} · ${s.party}${y!==yr?' · '+y:''}`,go:`openIncModal('${y}',${s.id},'apply')`,btn:'Open'})});
   items.sort((a,b)=>a.sev-b.sev||(b.late||0)-(a.late||0));
   const sevCol=['var(--err)','var(--err)','var(--warn)'];
   return`<div class="card" style="margin-bottom:18px"><div class="card-title" style="display:flex;justify-content:space-between;align-items:center">📌 Needs your attention ${items.length?`<span class="bdg bdg-err">${items.length}</span>`:''}</div>
@@ -5727,7 +5771,7 @@ const NAV=[
   {g:'',items:[['dashboard','Dashboard','home']]},
   {g:'Orders',items:[['ongoing','In Progress'],['tna','TNA Calendar'],['shipments','All Shipments'],['calendar','Monthly View']]},
   {g:'Sales & Documents',items:[['quotation','Quotations'],['orders','Orders & Invoices'],['costing','Costing'],['catalog','Product Catalog']]},
-  {g:'Money',items:[['receivables','Receivables'],['pnl','Profit & Loss'],['personal','Personal Earnings']]},
+  {g:'Money',items:[['receivables','Receivables'],['incentive','Cash Incentive'],['pnl','Profit & Loss'],['personal','Personal Earnings']]},
   {g:'Insights',items:[['buyers','Buyers'],['compare','Multi-Year Compare'],['reports','Print Reports'],['activity','Activity Log']]},
   {g:'Tools',items:[['container','Container Planner'],['contacts','B2B Contacts']]},
   {g:'System',items:[['settings','Settings'],['years','Manage Years']]}
@@ -5742,6 +5786,7 @@ const NAV_IC={
   orders:'<path d="M4 2h11l5 5v15H4z"/><polyline points="15 2 15 7 20 7"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="16" y2="16"/>',
   costing:'<rect x="4" y="2" width="16" height="20" rx="2"/><rect x="7.5" y="5.5" width="9" height="4" rx="1"/><line x1="8" y1="13.5" x2="8.01" y2="13.5"/><line x1="12" y1="13.5" x2="12.01" y2="13.5"/><line x1="16" y1="13.5" x2="16.01" y2="13.5"/><line x1="8" y1="17.5" x2="8.01" y2="17.5"/><line x1="12" y1="17.5" x2="12.01" y2="17.5"/><line x1="16" y1="17.5" x2="16.01" y2="17.5"/>',
   catalog:'<path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>',
+  incentive:'<circle cx="12" cy="9" r="6"/><path d="M8.5 14.2L7 22l5-3 5 3-1.5-7.8"/><path d="M10 9h4M12 7v4"/>',
   receivables:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/>',
   pnl:'<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
   personal:'<circle cx="12" cy="8" r="4"/><path d="M5 21v-1a7 7 0 0114 0v1"/>',
@@ -5768,6 +5813,7 @@ function updateNavBadges(){
   set('ongoing',prog.length,false);
   const late=prog.reduce((a,s)=>a+tnaStats(s).late,0);set('tna',late,true);
   set('receivables',receivableRows(false).filter(r=>r.late>0).length,true);
+  set('incentive',allShipsWithYear().filter(({s})=>!s.cancelled&&!incComplete(s)&&(()=>{const d=incDeadline(s);return d&&d.left<=30})()).length,true);
 }
 function toggleSidebar(force){const a=$('app');if(!a)return;const open=force===undefined?!a.classList.contains('sb-open'):force;a.classList.toggle('sb-open',open)}
 function toggleSidebarMini(){const a=$('app');a.classList.toggle('sb-mini');try{localStorage.setItem('em_sbmini',a.classList.contains('sb-mini')?'1':'')}catch(e){}}
@@ -5961,6 +6007,223 @@ ${o.piNotes?`<li>${esc(o.piNotes).replace(/\n/g,'<br>')}</li>`:''}
 <script>window.onload=function(){var imgs=document.images,done=0,total=imgs.length;if(!total){setTimeout(window.print,500);return;}function check(){if(++done>=total)setTimeout(window.print,300);}for(var i=0;i<total;i++){if(imgs[i].complete)check();else{imgs[i].onload=check;imgs[i].onerror=check;}}}<\/script>
 </body></html>`);
   w.document.close();
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CASH INCENTIVE TRACKER — one pipeline per shipment, auto-filled from order,
+// invoice and payment data; later steps are entered as the claim progresses.
+// Stored on the shipment as s.incv = {orderDate, invDate, steps:{k:{st,date,amt}}}
+// ══════════════════════════════════════════════════════════════════════════════
+const INC_STEPS=[
+  {k:'order',l:'Order',sub:'Order amount & order date',amt:'usd',auto:true},
+  {k:'invoice',l:'Invoice',sub:'Invoice amount & invoice date',amt:'usd',auto:true},
+  {k:'real',l:'Payment realisation',sub:'Export proceeds realised in the bank',amt:'usd',dl:'Date of realisation',al:'Realised amount (USD)'},
+  {k:'prc',l:'PRC received',sub:'Proceeds Realisation Certificate from the bank',dl:'PRC receiving date'},
+  {k:'assoc',l:'Association application',sub:'Application / certificate from the association',dl:'Application date'},
+  {k:'apply',l:'Cash incentive application',sub:'Claim submitted to the bank',dl:'Date of application'},
+  {k:'audit',l:'Audit',sub:'Audit firm verification',dl:'Date of audit'},
+  {k:'cert',l:'Audit certificate',sub:'Certificate received from the auditor',amt:'bdt',dl:'Certificate receiving date',al:'Audit certificate amount (BDT)'},
+  {k:'bb',l:'Submitted to Bangladesh Bank',sub:'Bank forwards the claim to Bangladesh Bank',dl:'Date submitted by bank'},
+  {k:'recv',l:'Incentive received',sub:'Incentive credited to your account',amt:'bdt',dl:'Date received',al:'Received amount (BDT)'}
+];
+const INC_ST={pending:['Pending','chip-up'],progress:['In progress','chip-soon'],done:['Done','chip-done'],na:['Not applicable','chip-up']};
+function incRate(){const v=getPrefs().incRate;return v===undefined||v===''||v===null?10:+v}
+function incDeadlineDays(){const v=getPrefs().incDeadline;return v===undefined||v===''||v===null?180:+v}
+function linkedOrderOf(s){return getOrders().find(o=>o.linkedShipId===s.id)}
+function _incv(s){return s.incv||{}}
+// Effective state of one step: stored values win; otherwise derive from the shipment.
+function incStep(s,k){
+  const iv=_incv(s),v=(iv.steps&&iv.steps[k])||{};
+  const r={st:v.st||'',date:v.date||'',amt:v.amt===undefined||v.amt===null?'':v.amt,auto:false};
+  if(k==='order'){const o=linkedOrderOf(s);r.amt=+s.oamt||+s.iamt||0;r.date=iv.orderDate||(o&&o.poDate)||'';r.st=r.amt?'done':'pending';r.auto=true}
+  else if(k==='invoice'){const o=linkedOrderOf(s);r.amt=+s.iamt||0;r.date=iv.invDate||(o&&o.date)||s.etd||s.exf||'';r.st=isShipped(s)&&r.amt?'done':r.amt?'progress':'pending';r.auto=true}
+  else if(k==='real'){
+    const paid=s.pay==='Full Paid'?Math.max(paidTotal(s),+s.iamt||0):paidTotal(s);
+    const last=(s.receipts||[]).map(x=>x.date).filter(Boolean).sort().pop()||'';
+    if(!v.st){r.st=s.pay==='Full Paid'?'done':paid>0?'progress':'pending';r.auto=true}
+    if(r.amt==='')r.amt=paid?Math.round(paid*100)/100:'';
+    if(!r.date)r.date=last;
+  }
+  else if(k==='apply'&&!v.st&&s.inc==='Yes'){r.st='done';r.auto=true}
+  if(!r.st)r.st='pending';
+  return r;
+}
+function incSteps(s){return INC_STEPS.map(d=>Object.assign({d},incStep(s,d.k)))}
+function incCurrent(s){const st=incSteps(s);const i=st.findIndex(x=>x.st!=='done'&&x.st!=='na');return i<0?INC_STEPS.length:i}
+function incDoneCount(s){return incSteps(s).filter(x=>x.st==='done'||x.st==='na').length}
+function incComplete(s){const r=incStep(s,'recv');return r.st==='done'||r.st==='na'}
+// Amounts in BDT: certificate amount once certified, otherwise rate × realised (or invoice) value
+function incBasisUSD(s){const r=incStep(s,'real');return +r.amt||+s.iamt||0}
+function incEstimateBDT(s,yr){return incBasisUSD(s)*incRate()/100*(getCfg(yr).usdToBdt||0)}
+function incTotal(s,yr){const c=incStep(s,'cert');if(c.st==='done'&&+c.amt)return{amt:+c.amt,src:'certified'};return{amt:incEstimateBDT(s,yr),src:'estimated'}}
+function incReceived(s){const r=incStep(s,'recv');return r.st==='done'?(+r.amt||0):0}
+// Days left to apply: counted from the realisation date until the application is filed
+function incDeadline(s){
+  const real=incStep(s,'real'),ap=incStep(s,'apply');
+  if(ap.st==='done'||ap.st==='na'||real.st!=='done'||!real.date||!_ISO.test(real.date))return null;
+  const due=addDaysISO(real.date,incDeadlineDays());return{due,left:daysFromToday(due)};
+}
+function incDeadlineChip(s){const d=incDeadline(s);if(!d)return'';if(d.left<0)return`<span class="chip chip-late">Deadline passed ${Math.abs(d.left)}d</span>`;if(d.left<=30)return`<span class="chip chip-soon">${d.left}d left to apply</span>`;return`<span class="chip chip-up">${d.left}d left to apply</span>`}
+function incRows(yrSel){return allShipsWithYear().filter(({yr,s})=>!s.cancelled&&(yrSel==='All'||yr===yrSel))}
+function incDots(s){return`<span class="inc-dots">${incSteps(s).map((x,i)=>`<i class="${x.st==='done'||x.st==='na'?'d':x.st==='progress'?'p':''}" title="${i+1}. ${esc(x.d.l)} — ${INC_ST[x.st][0]}"></i>`).join('')}</span>`}
+function fBDTn(n){return'৳'+Math.round(+n||0).toLocaleString('en-US')}
+
+function renderIncentive(){
+  const yrSel=ST.incYr||D.currentYear,showDone=!!ST.incDone,stF=ST.incStage===undefined?-1:ST.incStage,q=(ST.incQ||'').toLowerCase();
+  const all=incRows(yrSel);
+  const open=all.filter(({s})=>!incComplete(s));
+  const pool=showDone?all:open;
+  const counts=INC_STEPS.map(()=>0);let doneN=0;
+  all.forEach(({s})=>{const c=incCurrent(s);if(c>=INC_STEPS.length)doneN++;else counts[c]++});
+  let rows=pool.filter(({s})=>(stF<0||incCurrent(s)===stF)&&(!q||`${s.orderNo} ${s.party} ${s.dest}`.toLowerCase().includes(q)));
+  rows.sort((a,b)=>{const da=incDeadline(a.s),db=incDeadline(b.s);const la=da?da.left:1e9,lb=db?db.left:1e9;return la-lb||incCurrent(b.s)-incCurrent(a.s)||(a.s.exf||'').localeCompare(b.s.exf||'')});
+  const sum=(arr,f)=>arr.reduce((a,x)=>a+f(x),0);
+  const totalInc=sum(all,({yr,s})=>incTotal(s,yr).amt),certified=sum(all,({s})=>{const c=incStep(s,'cert');return c.st==='done'?(+c.amt||0):0}),received=sum(all,({s})=>incReceived(s));
+  const risk=open.filter(({s})=>{const d=incDeadline(s);return d&&d.left<=30});
+  const yrs=allYears();
+  const sel=ST.incSel||(ST.incSel={});
+  const selN=Object.keys(sel).filter(k=>sel[k]).length;
+  return`
+<div class="sh"><div><div class="sh-t">Cash Incentive</div><div class="sh-s">Every export order's incentive claim — from realisation to money received. Order, invoice and payment data sync automatically.</div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <select class="srch-inp" onchange="ST.incYr=this.value;ST.incStage=-1;render()"><option value="All" ${yrSel==='All'?'selected':''}>All years</option>${yrs.map(y=>`<option ${y===yrSel?'selected':''}>${y}</option>`).join('')}</select>
+    <button class="btn btn-ghost btn-sm" onclick="editIncRate()" title="Incentive rate & application deadline">⚙ Rate ${incRate()}% · ${incDeadlineDays()}d</button>
+    <button class="btn btn-ghost btn-sm" onclick="printIncentive()">🖨 Print</button>
+  </div></div>
+<div class="kpi-grid">
+  <div class="kpi"><div class="lbl">Open claims</div><div class="val">${open.length}</div><div class="sub">${all.length-open.length} completed · ${yrSel==='All'?'all years':yrSel}</div></div>
+  <div class="kpi acc"><div class="lbl">Total incentive</div><div class="val">${fBDTn(totalInc)}</div><div class="sub">Certified where available, else ${incRate()}% estimate</div></div>
+  <div class="kpi"><div class="lbl">Certified</div><div class="val">${fBDTn(certified)}</div><div class="sub">Audit certificate amounts</div></div>
+  <div class="kpi ok"><div class="lbl">Received</div><div class="val">${fBDTn(received)}</div><div class="sub">Still to receive ${fBDTn(Math.max(0,totalInc-received))}</div></div>
+  <div class="kpi ${risk.length?'err':'ok'}" ${risk.length?`onclick="ST.incStage=2;render()"`:''}><div class="lbl">Deadline risk</div><div class="val">${risk.length}</div><div class="sub">≤30 days left to apply (${incDeadlineDays()}d after realisation)</div></div>
+</div>
+<div class="inc-pipe">
+  <button class="inc-stage${stF<0?' on':''}" onclick="ST.incStage=-1;render()"><span class="n">${pool.length}</span><span class="t">All ${showDone?'':'open'}</span></button>
+  ${INC_STEPS.map((d,i)=>`<button class="inc-stage${stF===i?' on':''}" onclick="ST.incStage=${i};render()"><span class="n">${counts[i]}</span><span class="t">${i+1}. ${esc(d.l)}</span></button>`).join('')}
+  <button class="inc-stage${showDone?' on':''}" onclick="ST.incDone=!ST.incDone;render()"><span class="n" style="color:var(--ok)">${doneN}</span><span class="t">✓ Received</span></button>
+</div>
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:14px 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--bdr)">
+    <input class="srch-inp" placeholder="Search order or buyer…" value="${esc(ST.incQ||'')}" oninput="ST.incQ=this.value;clearTimeout(window._incT);window._incT=setTimeout(()=>{render();const i=document.querySelector('#inc-q');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)" id="inc-q" style="min-width:220px">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" ${showDone?'checked':''} onchange="ST.incDone=this.checked;render()"> Show received</label>
+    <div style="flex:1"></div>
+    ${selN?`<div class="inc-bulk"><b>${selN} selected</b> · mark <select id="bk-step" class="inp-sm" style="width:auto">${INC_STEPS.slice(2).map(d=>`<option value="${d.k}">${esc(d.l)}</option>`).join('')}</select> done on <input type="date" id="bk-date" class="inp-sm" style="width:auto" value="${todayISO()}"> <button class="btn btn-pri btn-xs" onclick="bulkIncStep()">Apply</button> <button class="btn btn-ghost btn-xs" onclick="ST.incSel={};render()">Clear</button></div>`:'<span style="font-size:12px;color:var(--muted)">Tip: tick several orders to update a step for all of them at once.</span>'}
+  </div>
+  ${rows.length?`<div class="tbl-wrap" style="border:none;border-radius:0"><table><thead><tr><th style="width:30px"><input type="checkbox" onchange="incSelAll(this.checked)" ${rows.length&&rows.every(r=>sel[r.yr+':'+r.s.id])?'checked':''}></th><th>Order</th><th style="text-align:right">Invoice</th><th style="text-align:right">Realised</th><th>Progress</th><th>Current step</th><th style="text-align:right">Incentive</th><th style="text-align:right">Received</th><th></th></tr></thead><tbody>${rows.map(({yr,s})=>{
+    const cur=incCurrent(s),done=cur>=INC_STEPS.length,tot=incTotal(s,yr),rc=incReceived(s),re=incStep(s,'real');
+    const prev=cur>0?incStep(s,INC_STEPS[cur-1].k):null;
+    const since=prev&&prev.date?daysFromToday(prev.date):null;
+    return`<tr><td><input type="checkbox" ${sel[yr+':'+s.id]?'checked':''} onchange="ST.incSel['${yr}:${s.id}']=this.checked;render()"></td>
+    <td><strong style="cursor:pointer;color:var(--pri);white-space:nowrap" onclick="openIncModal('${yr}',${s.id})">${esc(s.orderNo)}</strong>${yrSel==='All'?` <span class="tag">${yr}</span>`:''}<span class="money-sub">${esc(s.party)} · ${esc(s.dest||'')}</span></td>
+    <td style="text-align:right">${invoiceCell(s)}</td>
+    <td style="text-align:right">${+re.amt?fUSD(re.amt,0):'—'}<span class="money-sub">${re.date?fDate(re.date):''}</span></td>
+    <td>${incDots(s)}<span class="money-sub">${incDoneCount(s)}/${INC_STEPS.length} steps</span></td>
+    <td>${done?'<span class="chip chip-done">✓ Incentive received</span>':`<div style="font-weight:600;font-size:13px">${cur+1}. ${esc(INC_STEPS[cur].l)}</div><div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${incDeadlineChip(s)}${since!==null&&since<0?`<span class="chip chip-up">waiting ${Math.abs(since)}d</span>`:''}</div>`}</td>
+    <td style="text-align:right;font-weight:700">${fBDTn(tot.amt)}<span class="money-sub">${tot.src}</span></td>
+    <td style="text-align:right;color:${rc?'var(--ok)':'var(--muted)'};font-weight:${rc?700:400}">${rc?fBDTn(rc):'—'}</td>
+    <td style="white-space:nowrap">${done?'':`<button class="btn btn-ok btn-xs" title="Mark “${esc(INC_STEPS[cur].l)}” done today" onclick="quickIncStep('${yr}',${s.id},'${INC_STEPS[cur].k}')">✓</button> `}<button class="btn btn-ghost btn-xs" onclick="openIncModal('${yr}',${s.id})">Open</button></td></tr>`}).join('')}</tbody>
+    <tfoot><tr><td></td><td>${rows.length} order${rows.length!==1?'s':''}</td><td style="text-align:right">${fUSD(sum(rows,({s})=>+s.iamt||0),0)}</td><td style="text-align:right">${fUSD(sum(rows,({s})=>+incStep(s,'real').amt||0),0)}</td><td colspan="2"></td><td style="text-align:right">${fBDTn(sum(rows,({yr,s})=>incTotal(s,yr).amt))}</td><td style="text-align:right">${fBDTn(sum(rows,({s})=>incReceived(s)))}</td><td></td></tr></tfoot></table></div>`:`<div class="empty">${all.length?'No orders at this step.':'No orders for '+yrSel+' yet.'}</div>`}
+</div>
+<p style="font-size:12px;color:var(--muted);margin-top:12px">Steps 1–3 fill in automatically from the shipment (order/invoice amounts, payments recorded on Receivables). Estimated incentive = realised USD × ${incRate()}% × ৳${getCfg(yrSel==='All'?D.currentYear:yrSel).usdToBdt}/USD until an audit certificate amount is entered.</p>`;
+}
+function incSelAll(on){const yrSel=ST.incYr||D.currentYear;ST.incSel={};if(on){const stF=ST.incStage===undefined?-1:ST.incStage;incRows(yrSel).filter(({s})=>(ST.incDone||!incComplete(s))&&(stF<0||incCurrent(s)===stF)).forEach(({yr,s})=>ST.incSel[yr+':'+s.id]=true)}render()}
+function editIncRate(){
+  infoModal('Incentive settings',`<div class="fg"><label>Cash incentive rate (% of realised FOB value)</label><input type="number" step="0.01" min="0" id="ir-rate" value="${incRate()}"></div>
+  <div class="fg"><label>Apply within (days after realisation)</label><input type="number" step="1" min="0" id="ir-dl" value="${incDeadlineDays()}"></div>
+  <p class="hint" style="margin-top:0">Used for the estimated amount and the “days left to apply” warning. Set these to the rate and deadline that apply to your product under the current Bangladesh Bank circular.</p>
+  <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn btn-ghost" onclick="closeModal('info-ov')">Cancel</button><button class="btn btn-pri" onclick="getPrefs().incRate=+$('ir-rate').value||0;getPrefs().incDeadline=+$('ir-dl').value||0;saveAll(D);closeModal('info-ov');render();updateNavBadges();toast('✅ Incentive settings saved');if(D.cloud&&D.cloud.autoSync)doSync()">Save</button></div>`);
+}
+function _setIncStep(s,k,st,date,amt){
+  if(!s.incv)s.incv={};if(!s.incv.steps)s.incv.steps={};
+  const o=s.incv.steps[k]||{};const nv={st:st||'',date:date||'',amt:amt===undefined?(o.amt===undefined?'':o.amt):amt};
+  s.incv.steps[k]=nv;
+  if(k==='apply')s.inc=(st==='done')?'Yes':(s.inc==='Yes'&&st==='na'?'Yes':'No');
+}
+function quickIncStep(yr,id,k){
+  const list=getShips(yr),s=list.find(x=>x.id===id);if(!s)return;
+  const d=INC_STEPS.find(x=>x.k===k);const before=incStep(s,k);
+  if(d.amt==='bdt'&&k!=='real'){openIncModal(yr,id,k);return}
+  _setIncStep(s,k,'done',todayISO(),k==='real'?(before.amt===''?'':before.amt):undefined);
+  logHist(yr,{id:s.id,o:s.orderNo,p:s.party,a:'incentive',ch:[[d.l,INC_ST[before.st][0],'Done · '+fDate(todayISO())]]});
+  setShips(yr,list);render();updateNavBadges();updateNotifBadge();toast('✓ '+d.l+' marked done for '+s.orderNo);
+  if(D.cloud&&D.cloud.autoSync)doSync();
+}
+function bulkIncStep(){
+  const k=$('bk-step').value,date=$('bk-date').value||todayISO(),d=INC_STEPS.find(x=>x.k===k);
+  const keys=Object.keys(ST.incSel||{}).filter(x=>ST.incSel[x]);if(!keys.length)return;
+  confirm2('Update '+keys.length+' order'+(keys.length!==1?'s':'')+'?',`Mark “${d.l}” as Done on ${fDate(date)} for all selected orders.`,()=>{
+    const byYr={};keys.forEach(x=>{const[yr,id]=x.split(':');(byYr[yr]=byYr[yr]||[]).push(+id)});
+    Object.keys(byYr).forEach(yr=>{const list=getShips(yr);byYr[yr].forEach(id=>{const s=list.find(x=>x.id===id);if(!s)return;const b=incStep(s,k);_setIncStep(s,k,'done',date,k==='real'?b.amt:undefined);logHist(yr,{id:s.id,o:s.orderNo,p:s.party,a:'incentive',ch:[[d.l,INC_ST[b.st][0],'Done · '+fDate(date)]],note:'bulk update'})});setShips(yr,list)});
+    ST.incSel={};render();updateNavBadges();updateNotifBadge();toast('✅ '+d.l+' updated for '+keys.length+' orders');
+    if(D.cloud&&D.cloud.autoSync)doSync();
+  },'Update','btn-pri');
+}
+// ── Detail modal: vertical stepper ───────────────────────────────────────────
+let _im=null;
+function openIncModal(yr,id,focusK){
+  const s=getShips(yr).find(x=>x.id===id);if(!s)return;
+  _im={yr,id};
+  const iv=_incv(s),o=linkedOrderOf(s);
+  $('im-title').textContent='Cash incentive — '+s.orderNo;
+  $('im-sub').textContent=[s.party,s.dest,isShipped(s)?'Shipped':(s.shipped||'Order Placed'),'Year '+yr].filter(Boolean).join(' · ');
+  const steps=incSteps(s),cur=incCurrent(s);
+  const stSel=(k,v)=>`<select class="inp-sm" id="im-st-${k}" onchange="incModalRefresh()">${Object.keys(INC_ST).map(x=>`<option value="${x}" ${x===v?'selected':''}>${INC_ST[x][0]}</option>`).join('')}</select>`;
+  $('im-body').innerHTML=`<div id="im-sum"></div><div class="stp">${steps.map((x,i)=>{const d=x.d,k=d.k;
+    let fields='';
+    if(k==='order')fields=`<div class="stp-f"><label>Order amount</label><div class="stp-v">${fUSD(x.amt)} <span class="bdg bdg-grey">auto</span></div></div><div class="stp-f"><label>Order date</label><input type="date" class="inp-sm" id="im-orderDate" value="${iv.orderDate||(o&&o.poDate)||''}"></div>`;
+    else if(k==='invoice')fields=`<div class="stp-f"><label>Invoice amount</label><div class="stp-v">${invoiceCell(s)} <span class="bdg bdg-grey">auto</span></div></div><div class="stp-f"><label>Invoice date</label><input type="date" class="inp-sm" id="im-invDate" value="${iv.invDate||(o&&o.date)||''}" placeholder="${s.etd||s.exf||''}"></div>`;
+    else fields=`<div class="stp-f"><label>Status${x.auto?' <span class="bdg bdg-grey">auto</span>':''}</label>${stSel(k,x.st)}</div><div class="stp-f"><label>${esc(d.dl)}</label><input type="date" class="inp-sm" id="im-date-${k}" value="${x.date||''}"></div>${d.amt?`<div class="stp-f"><label>${esc(d.al)}</label><input type="number" step="0.01" min="0" class="inp-sm" id="im-amt-${k}" value="${x.amt===''?'':x.amt}" oninput="incModalRefresh()"></div>`:''}`;
+    return`<div class="stp-i ${x.st==='done'||x.st==='na'?'done':i===cur?'cur':''}" id="im-row-${k}"><div class="stp-n">${x.st==='done'?'✓':i+1}</div><div class="stp-c"><div class="stp-h"><b>${esc(d.l)}</b> <span class="chip ${INC_ST[x.st][1]}" id="im-chip-${k}">${INC_ST[x.st][0]}</span>${k==='real'?' '+incDeadlineChip(s):''}</div><div class="stp-s">${esc(d.sub)}${k==='real'&&x.auto?' — synced from payments':''}${k==='apply'&&x.auto?' — from the shipment’s incentive status':''}</div><div class="stp-g">${fields}</div></div></div>`}).join('')}
+    <div class="stp-i total"><div class="stp-n">11</div><div class="stp-c"><div class="stp-h"><b>Total amount for incentive</b></div><div id="im-total"></div></div></div></div>
+  <div class="fg" style="margin-top:12px"><label>Notes</label><textarea id="im-note" rows="2" placeholder="Bank, association reference, auditor, anything useful…">${esc(iv.note||'')}</textarea></div>`;
+  $('inc-ov').classList.add('open');incModalRefresh();
+  if(focusK)setTimeout(()=>{const r=$('im-row-'+focusK);if(r)r.scrollIntoView({block:'center'});const a=$('im-amt-'+focusK)||$('im-st-'+focusK);if(a)a.focus()},60);
+}
+function _readIncModal(s){
+  const iv=JSON.parse(JSON.stringify(_incv(s)));if(!iv.steps)iv.steps={};
+  iv.orderDate=$('im-orderDate').value;iv.invDate=$('im-invDate').value;iv.note=$('im-note').value.trim();
+  INC_STEPS.slice(2).forEach(d=>{const k=d.k;const st=$('im-st-'+k).value,date=$('im-date-'+k).value,amt=$('im-amt-'+k)?($('im-amt-'+k).value===''?'':+$('im-amt-'+k).value):undefined;
+    const auto=incStep(s,k);
+    // keep a step "auto" (unsaved) while the user hasn't changed anything on it
+    if(auto.auto&&st===auto.st&&date===(auto.date||'')&&(amt===undefined||String(amt)===String(auto.amt))){delete iv.steps[k];return}
+    iv.steps[k]={st,date,amt:amt===undefined?'':amt};
+  });
+  return iv;
+}
+function incModalRefresh(){
+  if(!_im)return;const s=getShips(_im.yr).find(x=>x.id===_im.id);if(!s)return;
+  const tmp=Object.assign({},s,{incv:_readIncModal(s)});
+  INC_STEPS.slice(2).forEach(d=>{const st=$('im-st-'+d.k).value,c=$('im-chip-'+d.k);if(c){c.className='chip '+INC_ST[st][1];c.textContent=INC_ST[st][0]}const n=$('im-row-'+d.k);if(n){n.classList.toggle('done',st==='done'||st==='na');const c2=n.querySelector('.stp-n');if(c2)c2.textContent=st==='done'?'✓':(INC_STEPS.findIndex(x=>x.k===d.k)+1)}});
+  const tot=incTotal(tmp,_im.yr),rc=incReceived(tmp),cfg=getCfg(_im.yr);
+  $('im-total').innerHTML=`<div class="stp-g"><div class="stp-f"><label>Basis (realised value)</label><div class="stp-v">${fUSD(incBasisUSD(tmp))}</div></div><div class="stp-f"><label>Estimate @ ${incRate()}% × ৳${cfg.usdToBdt}</label><div class="stp-v">${fBDTn(incEstimateBDT(tmp,_im.yr))}</div></div><div class="stp-f"><label>Total for incentive</label><div class="stp-v" style="font-size:16px;color:var(--acc)">${fBDTn(tot.amt)} <span class="bdg bdg-grey">${tot.src}</span></div></div><div class="stp-f"><label>Received / balance</label><div class="stp-v"><span style="color:var(--ok)">${fBDTn(rc)}</span> · ${fBDTn(Math.max(0,tot.amt-rc))} due</div></div></div>`;
+  $('im-sum').innerHTML=`<div class="inc-sum">${incDots(tmp)}<span><b>${incDoneCount(tmp)}/${INC_STEPS.length}</b> steps done</span><span>Total <b>${fBDTn(tot.amt)}</b></span><span>Received <b style="color:var(--ok)">${fBDTn(rc)}</b></span></div>`;
+}
+function saveIncModal(){
+  if(!_im)return;const list=getShips(_im.yr),s=list.find(x=>x.id===_im.id);if(!s)return;
+  const before={};INC_STEPS.forEach(d=>before[d.k]=incStep(s,d.k));const oldInc=s.inc;
+  const iv=_readIncModal(s);s.incv=iv;
+  const ap=iv.steps.apply;if(ap)s.inc=ap.st==='done'?'Yes':(ap.st==='pending'||ap.st==='progress')?'No':s.inc;
+  const ch=[];INC_STEPS.forEach(d=>{const a=before[d.k],b=incStep(s,d.k);
+    if(a.st!==b.st)ch.push([d.l,INC_ST[a.st][0],INC_ST[b.st][0]]);
+    if((a.date||'')!==(b.date||''))ch.push([d.l+' date',_hv(a.date,'d'),_hv(b.date,'d')]);
+    if(String(a.amt)!==String(b.amt)&&(a.amt!==''||b.amt!==''))ch.push([d.l+' amount',a.amt===''?'—':(d.amt==='bdt'?fBDTn(a.amt):fUSD(a.amt)),b.amt===''?'—':(d.amt==='bdt'?fBDTn(b.amt):fUSD(b.amt))]);});
+  if(oldInc!==s.inc)ch.push(['Incentive status',oldInc||'—',s.inc]);
+  if(ch.length)logHist(_im.yr,{id:s.id,o:s.orderNo,p:s.party,a:'incentive',ch});
+  setShips(_im.yr,list);closeModal('inc-ov');render();updateNavBadges();updateNotifBadge();
+  toast(ch.length?'✅ Incentive updated · '+ch.length+' change'+(ch.length!==1?'s':''):'No changes');
+  if(ch.length&&D.cloud&&D.cloud.autoSync)doSync();
+}
+function printIncentive(){
+  const yrSel=ST.incYr||D.currentYear;
+  const rows=incRows(yrSel).filter(({s})=>ST.incDone||!incComplete(s));
+  const cell=(s,k)=>{const x=incStep(s,k);if(x.st==='done')return'✓ '+(x.date?_fmtDate(x.date):'');if(x.st==='na')return'N/A';if(x.st==='progress')return'…';return''};
+  const body=`<h2>Cash Incentive Tracker — ${yrSel==='All'?'All years':yrSel}</h2>
+<table style="font-size:7pt"><thead><tr><th>Order / Buyer</th><th>Invoice USD</th><th>Realised</th>${INC_STEPS.slice(3).map(d=>`<th>${esc(d.l)}</th>`).join('')}<th>Incentive ৳</th><th>Received ৳</th></tr></thead>
+<tbody>${rows.map(({yr,s})=>{const re=incStep(s,'real'),t=incTotal(s,yr);return`<tr><td><strong>${esc(s.orderNo)}</strong><br>${esc(s.party)}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${re.st==='done'?'$'+Number(re.amt||0).toLocaleString()+'<br>'+_fmtDate(re.date):re.st==='progress'?'Partial':''}</td>${INC_STEPS.slice(3).map(d=>`<td class="${incStep(s,d.k).st==='done'?'badge-ok':''}">${cell(s,d.k)}</td>`).join('')}<td>${Math.round(t.amt).toLocaleString()}${t.src==='estimated'?'*':''}</td><td>${incReceived(s)?Math.round(incReceived(s)).toLocaleString():''}</td></tr>`}).join('')}</tbody>
+<tfoot><tr><td>TOTAL (${rows.length})</td><td>$${Math.round(rows.reduce((a,{s})=>a+(+s.iamt||0),0)).toLocaleString()}</td><td colspan="${INC_STEPS.length-2}"></td><td>${Math.round(rows.reduce((a,{yr,s})=>a+incTotal(s,yr).amt,0)).toLocaleString()}</td><td>${Math.round(rows.reduce((a,{s})=>a+incReceived(s),0)).toLocaleString()}</td></tr></tfoot></table>
+<p style="font-size:8pt;color:#666;margin-top:8pt">* estimated at ${incRate()}% of realised value; otherwise audit-certified amount.</p>`;
+  printBase('Cash Incentive Report',yrSel==='All'?'All years':yrSel,body);
 }
 
 </script>
