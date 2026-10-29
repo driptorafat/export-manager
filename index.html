@@ -308,6 +308,7 @@ tfoot td{background:var(--card2);font-weight:700;padding:10px 12px;border-top:1p
 .inc-dots i{width:9px;height:9px;border-radius:50%;background:var(--divider);border:1px solid var(--bdr)}
 .inc-dots i.d{background:var(--ok);border-color:var(--ok)}
 .inc-dots i.p{background:var(--warn);border-color:var(--warn)}
+.inc-mini{background:var(--card2);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}.inc-mini span{font-size:11.5px;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.04em}.inc-mini b{font-size:18px;font-weight:800}
 .inc-bulk{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12.5px;background:var(--pril);border-radius:9px;padding:6px 10px}
 .inc-sum{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--card2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px}
 .stp{position:relative}
@@ -2574,6 +2575,7 @@ function renderReports(yr){
   return `
 <div class="sh"><div><div class="sh-t">Print Reports — ${yr}</div><div class="sh-s">Generate professional printable reports with charts</div></div></div>
 <div class="print-note">📄 Reports open in a new window and auto-trigger the print dialog. Use your browser's print settings to save as PDF or print on paper.</div>
+${incReportCardHTML(yr)}
 <div class="rpt-grid">
   <div class="rpt-card">
     <h4>📊 Yearly Summary</h4>
@@ -2603,11 +2605,6 @@ function renderReports(yr){
     <h4>💳 Receivables &amp; Aging</h4>
     <p>Every unpaid invoice across all years with due dates, days late and aging buckets — for follow-ups with buyers and the bank.</p>
     <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printReceivables()">🖨 Print</button><button class="btn btn-ghost btn-sm" onclick="nav('receivables')">Open →</button></div>
-  </div>
-  <div class="rpt-card">
-    <h4>🎖 Cash Incentive</h4>
-    <p>Each order's incentive claim — realisation, PRC, association, application, audit, certificate, Bangladesh Bank and amount received.</p>
-    <div class="rbt"><button class="btn btn-pri btn-sm" onclick="printIncentive()">🖨 Print</button><button class="btn btn-ghost btn-sm" onclick="nav('incentive')">Open →</button></div>
   </div>
   <div class="rpt-card">
     <h4>🗓 TNA Calendar</h4>
@@ -6214,16 +6211,68 @@ function saveIncModal(){
   toast(ch.length?'✅ Incentive updated · '+ch.length+' change'+(ch.length!==1?'s':''):'No changes');
   if(ch.length&&D.cloud&&D.cloud.autoSync)doSync();
 }
-function printIncentive(){
-  const yrSel=ST.incYr||D.currentYear;
-  const rows=incRows(yrSel).filter(({s})=>ST.incDone||!incComplete(s));
-  const cell=(s,k)=>{const x=incStep(s,k);if(x.st==='done')return'✓ '+(x.date?_fmtDate(x.date):'');if(x.st==='na')return'N/A';if(x.st==='progress')return'…';return''};
-  const body=`<h2>Cash Incentive Tracker — ${yrSel==='All'?'All years':yrSel}</h2>
-<table style="font-size:7pt"><thead><tr><th>Order / Buyer</th><th>Invoice USD</th><th>Realised</th>${INC_STEPS.slice(3).map(d=>`<th>${esc(d.l)}</th>`).join('')}<th>Incentive ৳</th><th>Received ৳</th></tr></thead>
-<tbody>${rows.map(({yr,s})=>{const re=incStep(s,'real'),t=incTotal(s,yr);return`<tr><td><strong>${esc(s.orderNo)}</strong><br>${esc(s.party)}</td><td>$${Number(s.iamt||0).toLocaleString()}</td><td>${re.st==='done'?'$'+Number(re.amt||0).toLocaleString()+'<br>'+_fmtDate(re.date):re.st==='progress'?'Partial':''}</td>${INC_STEPS.slice(3).map(d=>`<td class="${incStep(s,d.k).st==='done'?'badge-ok':''}">${cell(s,d.k)}</td>`).join('')}<td>${Math.round(t.amt).toLocaleString()}${t.src==='estimated'?'*':''}</td><td>${incReceived(s)?Math.round(incReceived(s)).toLocaleString():''}</td></tr>`}).join('')}</tbody>
-<tfoot><tr><td>TOTAL (${rows.length})</td><td>$${Math.round(rows.reduce((a,{s})=>a+(+s.iamt||0),0)).toLocaleString()}</td><td colspan="${INC_STEPS.length-2}"></td><td>${Math.round(rows.reduce((a,{yr,s})=>a+incTotal(s,yr).amt,0)).toLocaleString()}</td><td>${Math.round(rows.reduce((a,{s})=>a+incReceived(s),0)).toLocaleString()}</td></tr></tfoot></table>
-<p style="font-size:8pt;color:#666;margin-top:8pt">* estimated at ${incRate()}% of realised value; otherwise audit-certified amount.</p>`;
-  printBase('Cash Incentive Report',yrSel==='All'?'All years':yrSel,body);
+function _incReportRows(o){
+  return incRows(o.yr).filter(({s})=>{const c=incComplete(s);return (o.scope==='all'||(o.scope==='open'&&!c)||(o.scope==='received'&&c))&&(o.buyer==='All'||s.party===o.buyer)});
+}
+function _incReportOpts(){const r=ST.incRpt||(ST.incRpt={});return{yr:r.yr||D.currentYear,scope:r.scope||'all',buyer:r.buyer||'All'}}
+function incReportCardHTML(){
+  const o=_incReportOpts(),rows=_incReportRows(o);
+  const buyers=[...new Set(incRows(o.yr).map(x=>x.s.party))].sort();
+  const tot=rows.reduce((a,{yr,s})=>a+incTotal(s,yr).amt,0),rc=rows.reduce((a,{s})=>a+incReceived(s),0);
+  const counts=INC_STEPS.map(()=>0);let doneN=0;rows.forEach(({s})=>{const c=incCurrent(s);c>=INC_STEPS.length?doneN++:counts[c]++});
+  const set=k=>`ST.incRpt.${k}=this.value;render()`;
+  return`<div class="card" style="margin-bottom:18px;border-left:3px solid var(--acc)">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+    <div><div style="font-size:16px;font-weight:750;color:var(--htxt)">🎖 Cash Incentive Report</div><div style="font-size:13px;color:var(--muted);margin-top:2px">Summary, stage breakdown, buyer-wise totals and order-by-order claim status — ready to print or save as PDF.</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-pri" onclick="printIncentive(_incReportOpts())">🖨 Print report</button><button class="btn btn-ghost" onclick="nav('incentive')">Open tracker →</button></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    <select class="srch-inp" onchange="${set('yr')}"><option value="All" ${o.yr==='All'?'selected':''}>All years</option>${allYears().map(y=>`<option ${y===o.yr?'selected':''}>${y}</option>`).join('')}</select>
+    <select class="srch-inp" onchange="${set('scope')}"><option value="all" ${o.scope==='all'?'selected':''}>All claims</option><option value="open" ${o.scope==='open'?'selected':''}>Open claims only</option><option value="received" ${o.scope==='received'?'selected':''}>Received only</option></select>
+    <select class="srch-inp" onchange="${set('buyer')}"><option value="All">All buyers</option>${buyers.map(b=>`<option ${b===o.buyer?'selected':''}>${esc(b)}</option>`).join('')}</select>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px">
+    <div class="inc-mini"><span>Orders</span><b>${rows.length}</b></div>
+    <div class="inc-mini"><span>Total incentive</span><b style="color:var(--acc)">${fBDTn(tot)}</b></div>
+    <div class="inc-mini"><span>Received</span><b style="color:var(--ok)">${fBDTn(rc)}</b></div>
+    <div class="inc-mini"><span>Still to receive</span><b>${fBDTn(Math.max(0,tot-rc))}</b></div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">${INC_STEPS.map((d,i)=>counts[i]?`<span class="bdg bdg-grey">${i+1}. ${esc(d.l)}: <b>${counts[i]}</b></span>`:'').join('')}${doneN?`<span class="bdg bdg-ok">✓ Received: ${doneN}</span>`:''}${rows.length?'':'<span style="color:var(--muted);font-size:13px">No orders match these filters.</span>'}</div>
+</div>`;
+}
+function printIncentive(o){
+  o=o||{yr:ST.incYr||D.currentYear,scope:ST.incDone?'all':'open',buyer:'All'};
+  const rows=_incReportRows(o).sort((a,b)=>a.yr.localeCompare(b.yr)||(a.s.exf||'9').localeCompare(b.s.exf||'9'));
+  if(!rows.length){toast('No orders match these filters');return}
+  const yrLbl=o.yr==='All'?'All years':o.yr;
+  const n=v=>Math.round(+v||0).toLocaleString('en-US');
+  const tot=rows.reduce((a,{yr,s})=>a+incTotal(s,yr).amt,0),rc=rows.reduce((a,{s})=>a+incReceived(s),0);
+  const cert=rows.reduce((a,{s})=>{const c=incStep(s,'cert');return a+(c.st==='done'?(+c.amt||0):0)},0);
+  const inv=rows.reduce((a,{s})=>a+(+s.iamt||0),0),real=rows.reduce((a,{s})=>a+(incStep(s,'real').st==='done'?(+incStep(s,'real').amt||0):0),0);
+  const counts=INC_STEPS.map(()=>({n:0,amt:0}));let done={n:0,amt:0};
+  rows.forEach(({yr,s})=>{const c=incCurrent(s),t=incTotal(s,yr).amt;if(c>=INC_STEPS.length){done.n++;done.amt+=t}else{counts[c].n++;counts[c].amt+=t}});
+  const bm={};rows.forEach(({yr,s})=>{const k=s.party;if(!bm[k])bm[k]={n:0,inv:0,tot:0,rc:0};bm[k].n++;bm[k].inv+=+s.iamt||0;bm[k].tot+=incTotal(s,yr).amt;bm[k].rc+=incReceived(s)});
+  const cell=(s,k)=>{const x=incStep(s,k);if(x.st==='done')return'✓'+(x.date?'<br>'+_fmtDate(x.date):'');if(x.st==='na')return'N/A';if(x.st==='progress')return'In prog.';return'—'};
+  const body=`<style>@page{size:A4 landscape;margin:10mm 12mm}body{padding:0 4mm}table{font-size:7.6pt}thead th{font-size:7pt}td.ok{background:#E8F5E9;color:#1B5E20}</style>
+<div class="kpi-row">
+  <div class="kpi-box"><div class="lbl">Orders</div><div class="val">${rows.length}</div><div class="sub">${o.scope==='open'?'Open claims':o.scope==='received'?'Received':'All claims'}${o.buyer!=='All'?' · '+esc(o.buyer):''}</div></div>
+  <div class="kpi-box"><div class="lbl">Invoice value</div><div class="val">$${n(inv)}</div><div class="sub">Realised $${n(real)}</div></div>
+  <div class="kpi-box"><div class="lbl">Total incentive</div><div class="val">৳${n(tot)}</div><div class="sub">Certified ৳${n(cert)}</div></div>
+  <div class="kpi-box"><div class="lbl">Received</div><div class="val" style="color:#2E7D32">৳${n(rc)}</div><div class="sub">Balance ৳${n(Math.max(0,tot-rc))}</div></div>
+</div>
+<div class="two-col">
+<div><h2>Claims by current step</h2>
+<table><thead><tr><th>Step</th><th>Orders</th><th>Incentive (৳)</th></tr></thead><tbody>${INC_STEPS.map((d,i)=>counts[i].n?`<tr><td>${i+1}. ${esc(d.l)}</td><td>${counts[i].n}</td><td>${n(counts[i].amt)}</td></tr>`:'').join('')}${done.n?`<tr><td><strong>✓ Incentive received</strong></td><td>${done.n}</td><td>${n(done.amt)}</td></tr>`:''}</tbody>
+<tfoot><tr><td>TOTAL</td><td>${rows.length}</td><td>${n(tot)}</td></tr></tfoot></table></div>
+<div><h2>By buyer</h2>
+<table><thead><tr><th>Buyer</th><th>Orders</th><th>Invoice ($)</th><th>Incentive (৳)</th><th>Received (৳)</th></tr></thead><tbody>${Object.entries(bm).sort((a,b)=>b[1].tot-a[1].tot).map(([b,v])=>`<tr><td>${esc(b)}</td><td>${v.n}</td><td>${n(v.inv)}</td><td>${n(v.tot)}</td><td>${v.rc?n(v.rc):'—'}</td></tr>`).join('')}</tbody></table></div>
+</div>
+<h2>Order-wise claim status</h2>
+<table><thead><tr><th>#</th><th>Order / Buyer</th>${o.yr==='All'?'<th>Year</th>':''}<th>Order ($)</th><th>Invoice ($)</th><th>Realised ($)</th>${INC_STEPS.slice(3).map(d=>`<th>${esc(d.l)}</th>`).join('')}<th>Incentive (৳)</th><th>Received (৳)</th></tr></thead>
+<tbody>${rows.map(({yr,s},i)=>{const re=incStep(s,'real'),t=incTotal(s,yr),cr=incStep(s,'cert'),r=incStep(s,'recv');return`<tr><td>${i+1}</td><td><strong>${esc(s.orderNo)}</strong><br>${esc(s.party)}</td>${o.yr==='All'?`<td>${yr}</td>`:''}<td>${n(incStep(s,'order').amt)}</td><td>${n(s.iamt)}</td><td>${re.st==='done'?n(re.amt)+'<br>'+_fmtDate(re.date):re.st==='progress'?'Partial':'—'}</td>${INC_STEPS.slice(3).map(d=>{const x=incStep(s,d.k);let v=cell(s,d.k);if(d.k==='cert'&&x.st==='done'&&+x.amt)v+='<br>৳'+n(x.amt);return`<td class="${x.st==='done'?'ok':''}">${v}</td>`}).join('')}<td><strong>${n(t.amt)}</strong>${t.src==='estimated'?'*':''}</td><td>${r.st==='done'?n(r.amt):'—'}</td></tr>`}).join('')}</tbody>
+<tfoot><tr><td colspan="${o.yr==='All'?3:2}">TOTAL (${rows.length})</td><td>${n(rows.reduce((a,{s})=>a+(+incStep(s,'order').amt||0),0))}</td><td>${n(inv)}</td><td>${n(real)}</td><td colspan="${INC_STEPS.length-3}"></td><td>${n(tot)}</td><td>${n(rc)}</td></tr></tfoot></table>
+<p style="font-size:8pt;color:#666;margin-top:8pt">* Estimated at ${incRate()}% of realised (or invoice) value × BDT rate; otherwise the audit-certified amount. Application deadline: ${incDeadlineDays()} days after realisation.</p>`;
+  printBase('Cash Incentive Report',yrLbl,body);
 }
 
 </script>
